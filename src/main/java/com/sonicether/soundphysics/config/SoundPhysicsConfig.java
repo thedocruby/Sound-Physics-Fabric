@@ -107,6 +107,7 @@ public class SoundPhysicsConfig implements ConfigData {
         public boolean raytraceParticles = false;
     }
 
+    // TODO: change preset back to "Balanced" when performance permits
     @ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.DROPDOWN)
     @Comment("Soft presets. Some of these can be applied one after another to stack effects onto a base profile.")
     public ConfigPresets preset = ConfigPresets.DEFAULT_PERFORMANCE;

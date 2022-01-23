@@ -269,7 +269,7 @@ public class ReverbSlot {
         this.roomRolloffFactor = roomRolloffFactor;
     }
 
-    public void initialize() {
+    public ReverbSlot initialize() {
         if (initialised) delete();
 
         //<editor-fold desc="auxSlotId = new EXTEfx.alAuxiliaryEffectSlot; effectId = new EXTEfx.alEffect; filterId = new EXTEfx.alFilter;">
@@ -291,7 +291,7 @@ public class ReverbSlot {
         //</editor-fold>
 
         initialised = true;
-        this.set();
+        return this.set();
     }
 
     public void delete() {
@@ -301,7 +301,7 @@ public class ReverbSlot {
         initialised = false;
     }
 
-    public void set() {
+    public ReverbSlot set() {
         //<editor-fold desc="setReverbParams();">
         EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_DENSITY, density);
         checkErrorLog("Error while assigning reverb density: " + density);
@@ -331,6 +331,7 @@ public class ReverbSlot {
 
         //Attach updated effect object
         EXTEfx.alAuxiliaryEffectSloti(auxSlotId, EXTEfx.AL_EFFECTSLOT_EFFECT, effectId);
+        return this;
     }
 
     public void applyFilter(int sourceID, float gain, float cutoff) {

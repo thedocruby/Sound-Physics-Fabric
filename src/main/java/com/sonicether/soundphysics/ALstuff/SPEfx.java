@@ -2,9 +2,13 @@ package com.sonicether.soundphysics.ALstuff;
 
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.MathHelper;
+import org.jetbrains.annotations.NotNull;
 import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.ALC10;
 import org.lwjgl.openal.EXTEfx;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.sonicether.soundphysics.SoundPhysics.mc;
 
@@ -24,22 +28,17 @@ import static com.sonicether.soundphysics.config.PrecomputedConfig.pC;
 
 public class SPEfx {
 
-    private static final ReverbSlot slot1 = new ReverbSlot(0.15f , 0.0f, 1.0f, 2, 0.99f, 0.8571429f, 2.5f, 0.001f, 1.26f, 0.011f, 0.994f, 0.16f);
-    private static final ReverbSlot slot2 = new ReverbSlot(0.55f , 0.0f, 1.0f, 3, 0.99f, 1         , 0.2f, 0.015f, 1.26f, 0.011f, 0.994f, 0.15f);
-    private static final ReverbSlot slot3 = new ReverbSlot(1.68f , 0.1f, 1.0f, 5, 0.99f, 1         , 0.0f, 0.021f, 1.26f, 0.021f, 0.994f, 0.13f);
-    private static final ReverbSlot slot4 = new ReverbSlot(4.142f, 0.5f, 1.0f, 4, 0.89f, 1         , 0.0f, 0.025f, 1.26f, 0.021f, 0.994f, 0.11f);
+    private static final List<ReverbSlot> slots = new ArrayList<>();
     private static int directFilter0;
     private static final float rainDecayConstant = (float) (Math.log(2.0) / 1200);
     private static float rainAccumulator;
     private static boolean rainHasInitialValue;
 
-    public static void syncReverbParams()
-    {   //Set the global reverb parameters and apply them to the effect and effectslot
-        if (slot1.initialised){slot1.set(); slot2.set(); slot3.set(); slot4.set();}
+    public static void syncReverbParams() {   //Set the global reverb parameters and apply them to the effect and effectslot
+        if (slots.size() > 0 && slots.get(0).initialised){ for (ReverbSlot slot : slots) { slot.set(); } }
     }
 
-    public static void setupEFX()
-    {
+    public static void setupEFX() {
         //Get current context and device
         final long currentContext = ALC10.alcGetCurrentContext();
         final long currentDevice = ALC10.alcGetContextsDevice(currentContext);
@@ -50,44 +49,56 @@ public class SPEfx {
             return;
         }
         // Delete previous filter if it was there
-        if (slot1.initialised) EXTEfx.alDeleteFilters(directFilter0);
+        if (slots.size() > 0 && slots.get(0).initialised){
+            EXTEfx.alDeleteFilters(directFilter0);
+            for (ReverbSlot slot : slots) {
+                slot.delete();
+            }
+            slots.clear();
+        }
 
         // Create auxiliary effect slots
-        slot1.initialize();
-        slot2.initialize();
-        slot3.initialize();
-        slot4.initialize();
+        // TODO: make this parametric so it can be iterated, allowing for the effect slot count to be variable
+        slots.add(0, new ReverbSlot(0.15f , 0.0f, 1.0f, 2, 0.99f, 0.8571429f, 2.5f, 0.001f, 1.26f, 0.011f, 0.994f, 0.16f).initialize());
+        slots.add(1, new ReverbSlot(0.55f , 0.0f, 1.0f, 3, 0.99f, 1         , 0.2f, 0.015f, 1.26f, 0.011f, 0.994f, 0.15f).initialize());
+        slots.add(2, new ReverbSlot(1.68f , 0.1f, 1.0f, 5, 0.99f, 1         , 0.0f, 0.021f, 1.26f, 0.021f, 0.994f, 0.13f).initialize());
+        slots.add(3, new ReverbSlot(4.142f, 0.5f, 1.0f, 4, 0.89f, 1         , 0.0f, 0.025f, 1.26f, 0.021f, 0.994f, 0.11f).initialize());
 
         // Create filters
         directFilter0 = EXTEfx.alGenFilters();
         EXTEfx.alFilteri(directFilter0, EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
-        logGeneral("directFilter0: "+directFilter0);
+        logGeneral("directFilter0: " + directFilter0);
     }
 
+    /**
+     * Registers the calculated reverb environment with OpenAL.
+     *
+     * @param sourceID ID of the source of the sound being processed
+     * @param sendGain  output gain of the reverb audio from the effect slots
+     * @param sendCutoff output cutoff of the reverb audio from the effect slots
+     * @param directGain output gain of the main audio of sound being processed
+     * @param directCutoff output cutoff of the main audio of sound being processed
+     * @throws IllegalArgumentException if the number of reverb audio parameters does not match the number of effect slots (sendGain.length, sendCutoff.length != slots.size)
+     */
     public static void setEnvironment(
             final int sourceID,
-            final float sendGain0, final float sendGain1, final float sendGain2, final float sendGain3,
-            final float sendCutoff0, final float sendCutoff1, final float sendCutoff2, final float sendCutoff3,
-            final float directCutoff, final float directGain
-    )
-    {
+            final double @NotNull [] sendGain, final double @NotNull [] sendCutoff,
+            final double directGain, final double directCutoff
+    ) {
+        if (sendGain.length != slots.size() || sendCutoff.length != slots.size()) {
+            throw new IllegalArgumentException("Error: Reverb parameter count does not match reverb slot count!");
+        }
         if (pC.off) return;
         float absorptionHF = getAbsorptionHF();
-        slot1.airAbsorptionGainHF = absorptionHF;
-        slot2.airAbsorptionGainHF = absorptionHF;
-        slot3.airAbsorptionGainHF = absorptionHF;
-        slot4.airAbsorptionGainHF = absorptionHF;
+        for (ReverbSlot slot : slots){ slot.airAbsorptionGainHF = absorptionHF; }
 
         syncReverbParams();
 
         // Set reverb send filter values and set source to send to all reverb fx slots
-        slot1.applyFilter(sourceID, sendGain0, sendCutoff0);
-        slot2.applyFilter(sourceID, sendGain1, sendCutoff1);
-        slot3.applyFilter(sourceID, sendGain2, sendCutoff2);
-        slot4.applyFilter(sourceID, sendGain3, sendCutoff3);
+        for(int i = 0; i < slots.size(); i++){ slots.get(i).applyFilter(sourceID, (float) sendGain[i], (float) sendCutoff[i]); }
 
-        EXTEfx.alFilterf(directFilter0, EXTEfx.AL_LOWPASS_GAIN, directGain);
-        EXTEfx.alFilterf(directFilter0, EXTEfx.AL_LOWPASS_GAINHF, directCutoff);
+        EXTEfx.alFilterf(directFilter0, EXTEfx.AL_LOWPASS_GAIN, (float) directGain);
+        EXTEfx.alFilterf(directFilter0, EXTEfx.AL_LOWPASS_GAINHF, (float) directCutoff);
         AL10.alSourcei(sourceID, EXTEfx.AL_DIRECT_FILTER, directFilter0);
         checkErrorLog("Set Environment directFilter0:");
 
@@ -95,6 +106,7 @@ public class SPEfx {
         checkErrorLog("Set Environment airAbsorption:");
     }
 
+    // TODO: move rain/absorption code from ALstuff.SPEfx to extras.AdvancedAir
     public static float getAbsorptionHF() {
         if(mc == null || mc.world == null || mc.player == null)
             return 1.0f;
@@ -117,16 +129,17 @@ public class SPEfx {
         return (float) Math.pow(10.0d, (alpha * -1.0d * pC.humidityAbsorption)/20.0d); // convert alpha (decibels per meter of attenuation) into airAbsorptionGainHF value and return
     }
 
-    public static void setSoundPos(final int sourceID, final Vec3d pos)
-    {
+    public static void setSoundPos(final int sourceID, final Vec3d pos) {
         if (pC.off) return;
         //System.out.println(pos);//TO DO
         AL10.alSourcefv(sourceID, 4100, new float[]{(float) pos.x, (float) pos.y, (float) pos.z});
     }
+
     public static float getRain(){
         float tickDelta = 1.0f;
         return (mc==null || mc.world==null) ? 0.0f : mc.world.getRainGradient(tickDelta);
     }
+
     public static void updateSmoothedRain() {
         if (!rainHasInitialValue) {
             // There is no smoothing on the first value.
