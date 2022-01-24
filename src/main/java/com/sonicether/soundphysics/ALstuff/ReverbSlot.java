@@ -307,8 +307,8 @@ public class ReverbSlot {
         checkErrorLog("Error while assigning reverb density: " + density);
         EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_DIFFUSION, diffusion);
         checkErrorLog("Error while assigning reverb diffusion: " + diffusion);
-        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_GAIN, gain * pC.globalReverbGain);
-        checkErrorLog("Error while assigning reverb gain: " + gain * pC.globalReverbGain);
+        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_GAIN, gain);
+        checkErrorLog("Error while assigning reverb gain: " + gain);
         EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_GAINHF, gainHF);
         checkErrorLog("Error while assigning reverb gainHF: " + gainHF);
         EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_DECAY_TIME, decayTime);
@@ -336,7 +336,7 @@ public class ReverbSlot {
 
     public void applyFilter(int sourceID, float gain, float cutoff) {
         // Set reverb send filter values and set source to send to all reverb fx slots
-        EXTEfx.alFilterf(filterId, EXTEfx.AL_LOWPASS_GAIN, gain);
+        EXTEfx.alFilterf(filterId, EXTEfx.AL_LOWPASS_GAIN, gain * pC.globalReverbGain);
         EXTEfx.alFilterf(filterId, EXTEfx.AL_LOWPASS_GAINHF, cutoff);
         AL11.alSource3i(sourceID, EXTEfx.AL_AUXILIARY_SEND_FILTER, auxSlotId, 1, filterId);
         checkErrorLog("Set Environment filter"+filterId+" to "+auxSlotId+":");

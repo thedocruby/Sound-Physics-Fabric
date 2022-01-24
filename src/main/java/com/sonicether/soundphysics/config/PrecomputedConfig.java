@@ -60,6 +60,9 @@ public class PrecomputedConfig {
     public final boolean pLog;
     public final boolean dRays;
 
+    public final int traceRange;
+    public final double minEnergy;
+
     private boolean active = true;
 
     public PrecomputedConfig(SoundPhysicsConfig c) throws CloneNotSupportedException {
@@ -67,7 +70,7 @@ public class PrecomputedConfig {
         off = !c.enabled;
 
         defaultAttenuationFactor = c.General.attenuationFactor;
-        globalReverbGain = (float) (c.General.globalReverbGain * 0.0595);
+        globalReverbGain = (float) (c.General.globalReverbGain);
         globalReverbBrightness = (float) (c.General.globalReverbBrightness * 0.7);
         globalBlockAbsorption = c.General.globalBlockAbsorption * 2;
         soundDistanceAllowance = c.General.soundDistanceAllowance;
@@ -132,6 +135,9 @@ public class PrecomputedConfig {
         eLog = c.Misc.environmentLogging;
         pLog = c.Misc.performanceLogging;
         dRays = c.Misc.raytraceParticles;
+
+        traceRange = 256;
+        minEnergy = 0.01;
     }
 
     public void deactivate(){ active = false;}

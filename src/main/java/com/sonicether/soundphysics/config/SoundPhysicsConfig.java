@@ -13,6 +13,7 @@ import java.util.Map;
 @SuppressWarnings("CanBeFinal")
 @Config(name = "sound_physics")
 @Config.Gui.Background("minecraft:textures/block/note_block.png")
+// TODO: Add performance impact to the tooltips
 public class SoundPhysicsConfig implements ConfigData {
 
     @Comment("Enable reverb?")

@@ -2,6 +2,7 @@ package com.sonicether.soundphysics.config.BlueTapePack;
 
 import com.sonicether.soundphysics.ALstuff.SPEfx;
 import com.sonicether.soundphysics.SPLog;
+import com.sonicether.soundphysics.SoundPhysics;
 import com.sonicether.soundphysics.SoundPhysicsMod;
 import com.sonicether.soundphysics.config.MaterialData;
 import com.sonicether.soundphysics.config.PrecomputedConfig;
@@ -79,6 +80,7 @@ public class ConfigManager {
         if(PrecomputedConfig.pC != null) PrecomputedConfig.pC.deactivate();
         try {PrecomputedConfig.pC = new PrecomputedConfig(c);} catch (CloneNotSupportedException e) {e.printStackTrace(); return ActionResult.FAIL;}
         SPEfx.syncReverbParams();
+        SoundPhysics.updateRayStream();
         return ActionResult.SUCCESS;
     }
 }

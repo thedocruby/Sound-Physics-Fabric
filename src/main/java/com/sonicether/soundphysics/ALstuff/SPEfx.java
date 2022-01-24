@@ -59,10 +59,10 @@ public class SPEfx {
 
         // Create auxiliary effect slots
         // TODO: make this parametric so it can be iterated, allowing for the effect slot count to be variable
-        slots.add(0, new ReverbSlot(0.15f , 0.0f, 1.0f, 2, 0.99f, 0.8571429f, 2.5f, 0.001f, 1.26f, 0.011f, 0.994f, 0.16f).initialize());
-        slots.add(1, new ReverbSlot(0.55f , 0.0f, 1.0f, 3, 0.99f, 1         , 0.2f, 0.015f, 1.26f, 0.011f, 0.994f, 0.15f).initialize());
-        slots.add(2, new ReverbSlot(1.68f , 0.1f, 1.0f, 5, 0.99f, 1         , 0.0f, 0.021f, 1.26f, 0.021f, 0.994f, 0.13f).initialize());
-        slots.add(3, new ReverbSlot(4.142f, 0.5f, 1.0f, 4, 0.89f, 1         , 0.0f, 0.025f, 1.26f, 0.021f, 0.994f, 0.11f).initialize());
+        slots.add(0, new ReverbSlot(0.15f , 0.0f, 1.0f, 0.2f, 0.99f, 0.8571429f, 2.5f, 0.001f, 1.26f, 0.011f, 0.994f, 0.16f).initialize());
+        slots.add(1, new ReverbSlot(0.55f , 0.0f, 1.0f, 0.3f, 0.99f, 1         , 0.2f, 0.015f, 1.26f, 0.011f, 0.994f, 0.15f).initialize());
+        slots.add(2, new ReverbSlot(1.68f , 0.1f, 1.0f, 0.5f, 0.99f, 1         , 0.0f, 0.021f, 1.26f, 0.021f, 0.994f, 0.13f).initialize());
+        slots.add(3, new ReverbSlot(4.142f, 0.5f, 1.0f, 0.4f, 0.89f, 1         , 0.0f, 0.025f, 1.26f, 0.021f, 0.994f, 0.11f).initialize());
 
         // Create filters
         directFilter0 = EXTEfx.alGenFilters();
@@ -74,7 +74,7 @@ public class SPEfx {
      * Registers the calculated reverb environment with OpenAL.
      *
      * @param sourceID ID of the source of the sound being processed
-     * @param sendGain  output gain of the reverb audio from the effect slots
+     * @param sendGain output gain of the reverb audio from the effect slots
      * @param sendCutoff output cutoff of the reverb audio from the effect slots
      * @param directGain output gain of the main audio of sound being processed
      * @param directCutoff output cutoff of the main audio of sound being processed
