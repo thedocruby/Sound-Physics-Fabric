@@ -14,10 +14,10 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.sonicether.soundphysics.SoundPhysicsMod"
+      "com.thedocruby.soundphysics.SoundPhysicsMod"
     ],
     "modmenu": [
-      "com.sonicether.soundphysics.config.BlueTapePack.ModMenuIntegration"
+      "com.thedocruby.soundphysics.config.BlueTapePack.ModMenuIntegration"
     ]
   },
   "mixins": [
