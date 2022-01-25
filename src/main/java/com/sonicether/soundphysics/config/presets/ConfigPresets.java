@@ -12,7 +12,7 @@ import java.lang.String;
 
 import static com.sonicether.soundphysics.config.presets.ConfigChanger.changeConfig;
 
-// TODO: buff base profiles when performance permits
+// TODO: Update Profiles after rewrite, before first beta
 @SuppressWarnings({"unused", "RedundantTypeArguments"})
 public enum ConfigPresets {
     // Press ctrl+shift+numpad_'-' to collapse all

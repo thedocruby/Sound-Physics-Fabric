@@ -85,8 +85,7 @@ public class RaycastFix {
                         if (ddz == -1) chunk = currentNotAirStorage.zm;
                         else if (ddz == 1) chunk = currentNotAirStorage.zp;
                     } else chunk = (WorldChunk) world.getChunk(xx, zz, ChunkStatus.FULL, false);
-                } else
-                    chunk = (WorldChunk) world.getChunk(xx, zz, ChunkStatus.FULL, false);
+                } else chunk = (WorldChunk) world.getChunk(xx, zz, ChunkStatus.FULL, false);
                 currentX = xx; currentZ = zz; currentY = ybs;
                 currentNotAirStorage = chunk == null ? null : ((WorldChunkAccess)chunk).getNotAirLiquidStorage();
                 currentSlice = currentNotAirStorage == null ? null : currentNotAirStorage.getSection(ybs);
@@ -160,8 +159,7 @@ public class RaycastFix {
                                 if (ddz == -1) chunk = currentNotAirStorage.zm;
                                 else if (ddz == 1) chunk = currentNotAirStorage.zp;
                             } else chunk = (WorldChunk) world.getChunk(x, z, ChunkStatus.FULL, false);
-                        } else
-                        chunk = (WorldChunk) world.getChunk(x, z, ChunkStatus.FULL, false);
+                        } else chunk = (WorldChunk) world.getChunk(x, z, ChunkStatus.FULL, false);
                         currentX = x; currentZ = z; currentY = ybs;
                         currentNotAirStorage = chunk == null ? null : ((WorldChunkAccess)chunk).getNotAirLiquidStorage();
                         currentSlice = currentNotAirStorage == null ? null : currentNotAirStorage.getSection(ybs);
@@ -244,15 +242,13 @@ public class RaycastFix {
         shapes = shapeCache.get(posl);
         if (shapes == null) {
             if (pC.dRays) world.addParticle(ParticleTypes.END_ROD, false, pos.getX() + 0.5d, pos.getY() + 1d, pos.getZ() + 0.5d, 0, 0, 0);
-            VoxelShape fluidShape = bs.getFluidState().getShape(world, pos);
             VoxelShape collisionShape = bs.getCollisionShape(world, pos);
-            shapes =  new Shapes(collisionShape == EMPTY ? null : collisionShape, fluidShape == EMPTY ? null : fluidShape);
+            shapes =  new Shapes(collisionShape == EMPTY ? null : collisionShape, null);
             shapeCache.put(posl, shapes);
         }
 
         VoxelShape voxelShape = shapes.getSolid();//BlockShape
-        VoxelShape voxelShape2 = shapes.getLiquid();//FluidShape
-        if (voxelShape == CUBE || voxelShape2 == CUBE) {
+        if (voxelShape == CUBE) {
             Direction direction =
                     side == 1 ? Direction.EAST :
                     side == 2 ? Direction.UP :
@@ -260,15 +256,6 @@ public class RaycastFix {
                     Direction.getFacing(start.x-pos.getX()-0.5, start.y-pos.getY()-0.5, start.z-pos.getZ()-0.5);
             return new SPHitResult(false, start, direction, pos, bs, c);
         }
-        SPHitResult blockHitResult = voxelShape == null ? null : SPHitResult.get(voxelShape.raycast(start, end, pos), bs, c);
-        SPHitResult blockHitResult2 = voxelShape2 == null ? null : SPHitResult.get(voxelShape2.raycast(start, end, pos), bs, c);
-
-        if (blockHitResult2 == null) return blockHitResult;
-        if (blockHitResult == null) return blockHitResult2;
-        double d = start.squaredDistanceTo(blockHitResult.getPos());
-        double e = start.squaredDistanceTo(blockHitResult2.getPos());
-        return d <= e ? blockHitResult : blockHitResult2;
+        return voxelShape == null ? null : SPHitResult.get(voxelShape.raycast(start, end, pos), bs, c);
     }
-
-
 }

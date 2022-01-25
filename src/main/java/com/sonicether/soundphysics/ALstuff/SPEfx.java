@@ -1,6 +1,5 @@
 package com.sonicether.soundphysics.ALstuff;
 
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.MathHelper;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.openal.AL10;
@@ -10,9 +9,8 @@ import org.lwjgl.openal.EXTEfx;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.sonicether.soundphysics.SoundPhysics.mc;
-
 import static com.sonicether.soundphysics.SPLog.*;
+import static com.sonicether.soundphysics.SoundPhysics.mc;
 import static com.sonicether.soundphysics.config.PrecomputedConfig.pC;
 
 /*
@@ -129,11 +127,11 @@ public class SPEfx {
         return (float) Math.pow(10.0d, (alpha * -1.0d * pC.humidityAbsorption)/20.0d); // convert alpha (decibels per meter of attenuation) into airAbsorptionGainHF value and return
     }
 
-    public static void setSoundPos(final int sourceID, final Vec3d pos) {
+    /* public static void setSoundPos(final int sourceID, final Vec3d pos) {
         if (pC.off) return;
         //System.out.println(pos);//TO DO
         AL10.alSourcefv(sourceID, 4100, new float[]{(float) pos.x, (float) pos.y, (float) pos.z});
-    }
+    } */ // TODO: DirEval
 
     public static float getRain(){
         float tickDelta = 1.0f;

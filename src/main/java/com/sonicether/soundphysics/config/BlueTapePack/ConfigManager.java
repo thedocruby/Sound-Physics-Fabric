@@ -13,7 +13,6 @@ import me.shedaniel.autoconfig.ConfigHolder;
 import me.shedaniel.autoconfig.serializer.JanksonConfigSerializer;
 import net.minecraft.util.ActionResult;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -80,7 +79,7 @@ public class ConfigManager {
         if(PrecomputedConfig.pC != null) PrecomputedConfig.pC.deactivate();
         try {PrecomputedConfig.pC = new PrecomputedConfig(c);} catch (CloneNotSupportedException e) {e.printStackTrace(); return ActionResult.FAIL;}
         SPEfx.syncReverbParams();
-        SoundPhysics.updateRayStream();
+        SoundPhysics.updateRays();
         return ActionResult.SUCCESS;
     }
 }

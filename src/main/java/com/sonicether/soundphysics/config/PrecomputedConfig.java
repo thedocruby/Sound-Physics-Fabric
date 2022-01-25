@@ -1,7 +1,6 @@
 package com.sonicether.soundphysics.config;
 
 import com.sonicether.soundphysics.SPLog;
-import com.sonicether.soundphysics.SoundPhysics;
 import com.sonicether.soundphysics.SoundPhysicsMod;
 import it.unimi.dsi.fastutil.objects.Reference2DoubleOpenHashMap;
 import net.minecraft.sound.BlockSoundGroup;
@@ -19,7 +18,6 @@ public class PrecomputedConfig {
     public static double soundDistanceAllowance = 4;
     public static double defaultAttenuationFactor = 1;
     public static PrecomputedConfig pC = null;
-    public final boolean multiThreading = true;
 
     public final boolean off;
 
@@ -62,6 +60,7 @@ public class PrecomputedConfig {
 
     public final int traceRange;
     public final double minEnergy;
+    public final double maxDistance;
 
     private boolean active = true;
 
@@ -138,6 +137,7 @@ public class PrecomputedConfig {
 
         traceRange = 256;
         minEnergy = 0.01;
+        maxDistance = pC.traceRange * pC.nRayBounces;
     }
 
     public void deactivate(){ active = false;}
