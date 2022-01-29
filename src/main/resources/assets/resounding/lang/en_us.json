@@ -1,0 +1,51 @@
+{
+  "text.autoconfig.resounding.title": "Resounding Config",
+
+  "text.autoconfig.resounding.option.enabled": "Enable rendering",
+
+  "text.autoconfig.resounding.option.General": "General options:",
+  "text.autoconfig.resounding.option.Performance": "Performance options:",
+  "text.autoconfig.resounding.option.Materials": "Materials:",
+  "text.autoconfig.resounding.option.Vlads_Tweaks": "Vlad's tweaks:",
+  "text.autoconfig.resounding.option.Misc": "Logging options:",
+
+  "text.autoconfig.resounding.option.General.attenuationFactor": "Attenuation (fade over distance) factor",
+  "text.autoconfig.resounding.option.General.globalReverbGain": "Reverb volume gain",
+  "text.autoconfig.resounding.option.General.globalReverbBrightness": "Reverb brightness",
+  "text.autoconfig.resounding.option.General.globalBlockAbsorption": "Block passthrough sound absorption",
+  "text.autoconfig.resounding.option.General.globalBlockReflectance": "Block reflectance multiplier",
+  "text.autoconfig.resounding.option.General.soundDistanceAllowance": "Sound max distance multiplier",
+  "text.autoconfig.resounding.option.General.airAbsorption": "Sound absorption by air",
+  "text.autoconfig.resounding.option.General.humidityAbsorption": "Sound absorption by humidity",
+  "text.autoconfig.resounding.option.General.rainAbsorption": "Sound absorption by rain drops",
+  "text.autoconfig.resounding.option.General.underwaterFilter": "Underwater filter strength",
+
+  "text.autoconfig.resounding.option.Performance.skipRainOcclusionTracing": "Skip tracing for rain sounds",
+  "text.autoconfig.resounding.option.Performance.environmentEvaluationRays": "Rays per sound",
+  "text.autoconfig.resounding.option.Performance.environmentEvaluationRayBounces": "Reflections per ray",
+  "text.autoconfig.resounding.option.Performance.simplerSharedAirspaceSimulation": "Cheap shared airspace detection",
+
+  "text.autoconfig.resounding.option.Materials.materialProperties": "Material Properties",
+  "text.autoconfig.resounding.option.Materials.blockWhiteList": "Block Whitelist",
+
+  "text.autoconfig.resounding.option.Vlads_Tweaks.recordsDisable": "Skip Jukebox/Note Block occlusion",
+  "text.autoconfig.resounding.option.Vlads_Tweaks.continuousRefreshRate": "Continuous sources refresh interval",
+  "text.autoconfig.resounding.option.Vlads_Tweaks.maxDirectOcclusionFromBlocks": "Maximum direct occlusion",
+  "text.autoconfig.resounding.option.Vlads_Tweaks._9RayDirectOcclusion": "9 ray direct occlusion calculation",
+  "text.autoconfig.resounding.option.Vlads_Tweaks.soundDirectionEvaluation": "Re-calculate sound direction",
+  "text.autoconfig.resounding.option.Vlads_Tweaks.directRaysDirEvalMultiplier": "Sound reflection bias",
+  "text.autoconfig.resounding.option.Vlads_Tweaks.notOccludedNoRedirect": "Skip redirecting visible blocks",
+
+  "text.autoconfig.resounding.option.Misc.debugLogging": "Logging",
+  "text.autoconfig.resounding.option.Misc.occlusionLogging": "Occlusion logging",
+  "text.autoconfig.resounding.option.Misc.environmentLogging": "Environment logging",
+  "text.autoconfig.resounding.option.Misc.performanceLogging": "Performance logging",
+  "text.autoconfig.resounding.option.Misc.raytraceParticles": "Raytracing Particles",
+
+  "text.autoconfig.resounding.option.preset": "Preset",
+
+  "text.autoconfig.resounding.option.MaterialData": "Set material properties:",
+  "text.autoconfig.resounding.option.MaterialData.example": "Material",
+  "text.autoconfig.resounding.option.MaterialData.reflectivity": "Reflectivity",
+  "text.autoconfig.resounding.option.MaterialData.absorption": "Occlusion density"
+}

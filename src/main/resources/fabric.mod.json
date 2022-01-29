@@ -1,32 +1,35 @@
 {
   "schemaVersion": 1,
-  "id": "soundphysics",
+  "id": "resounding",
   "version": "${version}",
-  "name": "Sound Physics",
+  "name": "Resounding",
   "description": "Provides realistic sound attenuation, reverberation, and absorption through blocks using physically-based raytraced audio shaders.",
-  "authors": ["Sonic Ether","vlad2305m","Dr. Rubisco"],
+  "authors": ["Dr. Rubisco","vlad2305m","Sonic Ether"],
   "contact": {
-    "sources": "https://github.com/vlad2305m/Sound-Physics-Fabric",
-    "issues": "https://github.com/vlad2305m/Sound-Physics-Fabric/issues"
+    "sources": "https://github.com/thedocruby/resounding",
+    "issues": "https://github.com/thedocruby/resounding/issues"
   },
-  "license": "GPL",
-  "icon": "assets/soundphysics/icon.png",
+  "license": "GPL-3.0",
+  "icon": "assets/resounding/icon.png",
   "environment": "*",
   "entrypoints": {
-    "main": [
-      "com.thedocruby.soundphysics.SoundPhysicsMod"
+    "client": [
+      "dev.thedocruby.resounding.ResoundingModClient"
+    ],
+    "server": [
+      "dev.thedocruby.resounding.ResoundingModServer"
     ],
     "modmenu": [
-      "com.thedocruby.soundphysics.config.BlueTapePack.ModMenuIntegration"
+      "dev.thedocruby.resounding.config.BlueTapePack.ModMenuIntegration"
     ]
   },
   "mixins": [
-    "soundphysics.mixins.json",
+    "resounding.mixins.json",
     "bluetapepack.mixins.json"
   ],
   "depends": {
     "cloth-config2": ">=6.0.0",
-    "fabricloader": ">=0.12.11",
+    "fabricloader": ">=0.12.12",
     "minecraft": "1.18.x"
   },
   "suggests": {
