@@ -1,5 +1,6 @@
-package dev.thedocruby.resounding.ALstuff;
+package dev.thedocruby.resounding.openal;
 
+import dev.thedocruby.resounding.Resounding;
 import dev.thedocruby.resounding.ResoundingLog;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
 import net.fabricmc.api.EnvType;
@@ -276,19 +277,19 @@ public class ReverbSlot {
         //<editor-fold desc="auxSlotId = new EXTEfx.alAuxiliaryEffectSlot; effectId = new EXTEfx.alEffect; filterId = new EXTEfx.alFilter;">
         // Create auxiliary effect slot (secondary audio output)
         auxSlotId = EXTEfx.alGenAuxiliaryEffectSlots();
-        ResoundingLog.logGeneral("Aux slot " + auxSlotId + " created");
+        Resounding.LOGGER.info("Aux slot {} created", auxSlotId);
         EXTEfx.alAuxiliaryEffectSloti(auxSlotId, EXTEfx.AL_EFFECTSLOT_AUXILIARY_SEND_AUTO, AL10.AL_TRUE);
-        ResoundingLog.checkErrorLog("Failed creating reverb slot "+auxSlotId+"!");
+        ResoundingLog.checkErrorLog("Failed creating aux slot "+auxSlotId+"!");
 
         //Create effect objects
         effectId = EXTEfx.alGenEffects();												    //Create effect object
         EXTEfx.alEffecti(effectId, EXTEfx.AL_EFFECT_TYPE, EXTEfx.AL_EFFECT_EAXREVERB);		//Set effect object to be reverb
-        ResoundingLog.checkErrorLog("Failed creating reverb effect "+effectId+"!");
-        ResoundingLog.logGeneral("effect for "+auxSlotId+": "+effectId);
+        ResoundingLog.checkErrorLog("Failed creating reverb effect object "+effectId+"!");
+        Resounding.LOGGER.info("Created effect object {} for aux slot {}.", effectId, auxSlotId);
 
         filterId = EXTEfx.alGenFilters();
         EXTEfx.alFilteri(filterId, EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
-        ResoundingLog.logGeneral("filter for "+auxSlotId+": "+filterId);
+        Resounding.LOGGER.info("Created filter object {} for aux slot {}.", filterId, auxSlotId);
         //</editor-fold>
 
         initialised = true;
@@ -302,7 +303,7 @@ public class ReverbSlot {
         initialised = false;
     }
 
-    public ReverbSlot set() {
+    private ReverbSlot set() {
         //<editor-fold desc="setReverbParams();">
         EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_DENSITY, density);
         ResoundingLog.checkErrorLog("Error while assigning reverb density: " + density);

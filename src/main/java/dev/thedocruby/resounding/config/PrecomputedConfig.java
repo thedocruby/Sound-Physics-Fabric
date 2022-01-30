@@ -119,10 +119,10 @@ public class PrecomputedConfig {
             defaultReflectivity = c.Materials.materialProperties.get("DEFAULT").reflectivity;
             defaultAbsorption = c.Materials.materialProperties.get("DEFAULT").absorption;
             blockWhiteMap = c.Materials.blockWhiteList.stream()
-                    .map((a) -> new Pair<>(a, c.Materials.materialProperties.get(a)))
-                    .map((e) -> {
+                    .map(a -> new Pair<>(a, c.Materials.materialProperties.get(a)))
+                    .map(e -> {
                         if (e.getRight() != null) return e;
-                        ResoundingLog.logError("Missing material data for " + e.getLeft() + ", Default entry created");
+                        Resounding.LOGGER.error("Missing material data for {}, Default entry created.", e.getLeft());
                         final MaterialData newData = new MaterialData(e.getLeft(), defaultReflectivity, defaultAbsorption);
                         c.Materials.materialProperties.put(e.getLeft(), newData);
                         e.setRight(newData);
@@ -146,8 +146,8 @@ public class PrecomputedConfig {
                 }
             });
             if (!wrong.isEmpty()) {
-                ResoundingLog.logError("MaterialData map contains " + wrong.size() + " extra entries: " + Arrays.toString(new List[]{wrong}) + "\nRemoving...");
-                toRemove.forEach((e) -> c.Materials.materialProperties.remove(e));
+                Resounding.LOGGER.error("Material Data map contains {} extra entries:\n{}\nPatching Material Data...", wrong.size(), Arrays.toString(new List[]{wrong}));
+                toRemove.forEach(c.Materials.materialProperties::remove);
             }
 
             recordsDisable = c.Vlads_Tweaks.recordsDisable;

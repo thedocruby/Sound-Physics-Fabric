@@ -1,6 +1,7 @@
 package dev.thedocruby.resounding;
 
-import dev.thedocruby.resounding.ALstuff.ResoundingEFX;
+import dev.thedocruby.resounding.openal.ResoundingEFX;
+import dev.thedocruby.resounding.effects.AirEffects;
 import dev.thedocruby.resounding.performance.RaycastFix;
 import dev.thedocruby.resounding.performance.SPHitResult;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
@@ -17,9 +18,12 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.chunk.WorldChunk;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -31,7 +35,10 @@ import static java.util.Map.entry;
 @SuppressWarnings({"CommentedOutCode"})
 public class Resounding {
 
+	private Resounding() { }
+
 	public static EnvType env = null;
+	public static final Logger LOGGER = LogManager.getLogger("Resounding");
 	private static final Pattern rainPattern = Pattern.compile(".*rain.*");
 	public static final Pattern stepPattern = Pattern.compile(".*step.*");
 	private static final Pattern blockPattern = Pattern.compile(".*block..*");
@@ -135,9 +142,9 @@ public class Resounding {
 
 	@Environment(EnvType.CLIENT)
 	public static void init() {
-		ResoundingLog.log("Initializing Resounding...");
+		LOGGER.info("Initializing Resounding...");
 		ResoundingEFX.setupEFX();
-		ResoundingLog.log("ResoundingEFX is ready...");
+		LOGGER.info("OpenAL EFX successfully primed for Resounding effects");
 		mc = MinecraftClient.getInstance();
 		updateRays();
 	}
@@ -159,7 +166,7 @@ public class Resounding {
 		else if (PrecomputedConfig.pC.nRays >= 24) { epsilon = 1.33d; }
 		else { epsilon = 0.33d; }
 
-		rays = IntStream.range(0, PrecomputedConfig.pC.nRays).parallel().unordered().mapToObj((i) -> {
+		rays = IntStream.range(0, PrecomputedConfig.pC.nRays).parallel().unordered().mapToObj(i -> {
 			final double theta = 2d * Math.PI * i / gRatio;
 			final double phi = Math.acos(1d - 2d * (i + epsilon) / (PrecomputedConfig.pC.nRays - 1d + 2d * epsilon));
 
@@ -184,21 +191,28 @@ public class Resounding {
 
 	@Environment(EnvType.CLIENT)
 	public static void playSound(double posX, double posY, double posZ, int sourceID, boolean auxOnly) {
-		if (PrecomputedConfig.pC.dLog) ResoundingLog.logGeneral("Playing sound! | Source ID: " + sourceID + " " + posX + ", " + posY + ", " + posZ + "    Sound category: " + lastSoundCategory.toString() + "    Sound name: " + lastSoundName);
+		if (PrecomputedConfig.pC.off) return;
 
-		long startTime = 0, endTime;
-		if (PrecomputedConfig.pC.pLog) startTime = System.nanoTime();
-		{
-			evaluateEnvironment(sourceID, posX, posY, posZ, auxOnly);
+		if (PrecomputedConfig.pC.dLog) {
+			LOGGER.info("Playing sound!\n      Source ID:      {}\n Source Pos:     {}\n      Sound category: {}\n      Sound name:     {}", sourceID, new double[] {posX, posY, posZ}, lastSoundCategory, lastSoundName);
+		} else {
+			LOGGER.debug("Playing sound!\n      Source ID:      {}\n Source Pos:     {}\n      Sound category: {}\n      Sound name:     {}", sourceID, new double[] {posX, posY, posZ}, lastSoundCategory, lastSoundName);
 		}
+
+		long startTime = 0;
+		long endTime;
+		if (PrecomputedConfig.pC.pLog) startTime = System.nanoTime();
+
+		evalEnv(sourceID, posX, posY, posZ, auxOnly);
+
 		if (PrecomputedConfig.pC.pLog) { endTime = System.nanoTime();
-			ResoundingLog.log("Total calculation time for sound " + lastSoundName + ": " + (double)(endTime - startTime)/(double)1000000 + " milliseconds");
+			LOGGER.info("Total calculation time for sound {}: {} milliseconds", lastSoundName, (double)(endTime - startTime)/(double)1000000);
 		}
 
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static double getBlockReflectivity(final BlockState blockState) {
+	private static double getBlockReflectivity(final @NotNull BlockState blockState) {
 		BlockSoundGroup soundType = blockState.getSoundGroup();
 		String blockName = blockState.getBlock().getTranslationKey();
 		if (PrecomputedConfig.pC.blockWhiteSet.contains(blockName)) return PrecomputedConfig.pC.blockWhiteMap.get(blockName).reflectivity;
@@ -218,12 +232,13 @@ public class Resounding {
 	}
 */
 
+	@Contract("_, _ -> new")
 	@Environment(EnvType.CLIENT)
-	private static Vec3d pseudoReflect(Vec3d dir, Vec3i normal)
+	private static @NotNull Vec3d pseudoReflect(Vec3d dir, @NotNull Vec3i normal)
 	{return new Vec3d(normal.getX() == 0 ? dir.x : -dir.x, normal.getY() == 0 ? dir.y : -dir.y, normal.getZ() == 0 ? dir.z : -dir.z);}
 
 	@Environment(EnvType.CLIENT)
-	private static RayResult throwEnvironmentRay(Vec3d dir){
+	private static @NotNull RayResult throwEnvRay(@NotNull Vec3d dir){
 		RayResult result = new RayResult();
 
 		SPHitResult rayHit = RaycastFix.fixedRaycast(
@@ -335,14 +350,14 @@ public class Resounding {
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static void evaluateEnvironment(final int sourceID, double posX, double posY, double posZ, boolean auxOnly) {
+	private static void evalEnv(final int sourceID, double posX, double posY, double posZ, boolean auxOnly) {
 		if (PrecomputedConfig.pC.off) return;
 
 		if (mc.player == null || mc.world == null || posY <= mc.world.getBottomY() || (PrecomputedConfig.pC.recordsDisable && lastSoundCategory == SoundCategory.RECORDS) || uiPattern.matcher(lastSoundName).matches() || (posX == 0.0 && posY == 0.0 && posZ == 0.0))
 		{
 			//logDetailed("Menu sound!");
 			try {
-				ResoundingEFX.setEnvironment(sourceID, new double[]{0f, 0f, 0f, 0f}, new double[]{1f, 1f, 1f, 1f}, auxOnly ? 0f : 1f, 1f);
+				ResoundingEFX.setEnv(sourceID, new double[]{0f, 0f, 0f, 0f}, new double[]{1f, 1f, 1f, 1f}, auxOnly ? 0f : 1f, 1f);
 			} catch (IllegalArgumentException e) { e.printStackTrace(); }
 			return;
 		}
@@ -355,7 +370,7 @@ public class Resounding {
 		if (PrecomputedConfig.pC.skipRainOcclusionTracing && isRain)
 		{
 			try {
-				ResoundingEFX.setEnvironment(sourceID, new double[]{0f, 0f, 0f, 0f}, new double[]{1f, 1f, 1f, 1f}, auxOnly ? 0f : 1f, 1f);
+				ResoundingEFX.setEnv(sourceID, new double[]{0f, 0f, 0f, 0f}, new double[]{1f, 1f, 1f, 1f}, auxOnly ? 0f : 1f, 1f);
 			} catch (IllegalArgumentException e) { e.printStackTrace(); }
 			return;
 		}
@@ -378,15 +393,14 @@ public class Resounding {
 		RaycastFix.minX = (int) (playerPos.getX() - dist);
 		RaycastFix.maxZ = (int) (playerPos.getZ() + dist);
 		RaycastFix.minZ = (int) (playerPos.getZ() - dist);
+
 		soundChunk = mc.world.getChunk(((int)Math.floor(posX))>>4,((int)Math.floor(posZ))>>4);
+		soundPos = new Vec3d(posX, posY, posZ);
+		soundBlockPos = new BlockPos(soundPos.x, soundPos.y,soundPos.z);
 
 		// TODO: This still needs to be rewritten
 		// TODO: fix reflection/absorption calc with an exponential
 		//Direct sound occlusion
-
-		soundPos = new Vec3d(posX, posY, posZ);
-
-		soundBlockPos = new BlockPos(soundPos.x, soundPos.y,soundPos.z);
 
 		/*
 		Vec3d normalToPlayer = playerPos.subtract(soundPos).normalize();
@@ -460,21 +474,21 @@ public class Resounding {
 		*/
 
 		if (isRain) {
-			processEnvironment(sourceID, auxOnly, null); return;}
+			processEnv(sourceID, auxOnly, null); return;}
 
 		// Throw rays around
 
 		//doDirEval = pC.soundDirectionEvaluation && (occlusionAccumulation > 0 || pC.notOccludedRedirect); // TODO: DirEval
 
-		Set<RayResult> results = rays.stream().parallel().unordered().map(Resounding::throwEnvironmentRay).collect(Collectors.toSet());
+		Set<RayResult> results = rays.stream().parallel().unordered().map(Resounding::throwEnvRay).collect(Collectors.toSet());
 
 		// pass data to post
 		// TODO: `directCutoff` should be calculated with `directGain` in `processEnvironment()`, using an occlusionBrightness factor.
-		processEnvironment(sourceID, auxOnly, results);
+		processEnv(sourceID, auxOnly, results);
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static void processEnvironment(int sourceID, boolean auxOnly, @Nullable Set<RayResult> results) {
+	private static void processEnv(int sourceID, boolean auxOnly, @Nullable Set<RayResult> results) {
 		// Calculate reverb parameters for this sound
 		double directGain = auxOnly ? 0 : 1; // TODO: fix occlusion so i don't have to override this.
 
@@ -496,23 +510,25 @@ public class Resounding {
 			sum = sum.multiply(1 / weight);
 			setSoundPos(sourceID, sum.normalize().multiply(soundPos.distanceTo(playerPos)).add(playerPos));
 
-			// ψ this shows a star at perceived sound pos ψ
 			// Vec3d pos = sum.normalize().multiply(soundPos.distanceTo(playerPos)).add(playerPos);
 			// mc.world.addParticle(ParticleTypes.END_ROD, false, pos.getX(), pos.getY(), pos.getZ(), 0,0,0);
 		*/}
 		boolean inWater = false;
+		double airAbsorptionHF = AirEffects.getAbsorptionHF();
 
 		assert mc.player != null;
 		if (mc.player.isSubmergedInWater()) { inWater = true; }
 
 		if (results == null) {
-			try { ResoundingEFX.setEnvironment(sourceID, new double[PrecomputedConfig.pC.resolution], new double[PrecomputedConfig.pC.resolution], directGain, directGain * PrecomputedConfig.pC.globalAbsorptionBrightness);
+			try { ResoundingEFX.setEnv(sourceID, new double[PrecomputedConfig.pC.resolution], new double[PrecomputedConfig.pC.resolution], directGain, directGain * PrecomputedConfig.pC.globalAbsorptionBrightness);
 			} catch (IllegalArgumentException e) { e.printStackTrace(); }
 			return;
 		}
 
 		// TODO: Does this perform better in parallel?
-		double missedSum = 0.0D, sharedAirspaceSum = 0.0D, bounceCount = 0.0D;
+		double missedSum = 0.0D;
+		double sharedAirspaceSum = 0.0D;
+		double bounceCount = 0.0D;
 		for (RayResult result : results) {
 			bounceCount += result.lastBounce + 1;
 			missedSum += result.missed;
@@ -529,7 +545,7 @@ public class Resounding {
 		for (RayResult result : results) {
 			if (result.missed == 1.0D) continue;
 			for (int j = 0; j <= result.lastBounce; j++) {
-				double energy = result.totalBounceReflectivity[j] / Math.pow(result.totalBounceDistance[j], 2.0D * missedSum);
+				double energy = result.totalBounceReflectivity[j] / Math.pow(result.totalBounceDistance[j], (2.0D * missedSum) + 1 - airAbsorptionHF);
 				int t = (int) (Math.pow(MathHelper.clamp(logBase(PrecomputedConfig.pC.minEnergy, 1.0D / energy) * -1.0D * result.totalBounceDistance[j] / PrecomputedConfig.speedOfSound * PrecomputedConfig.pC.maxDecayTime, 0.0D, 1.0D), PrecomputedConfig.pC.warpFactor) * (PrecomputedConfig.pC.resolution - 1));
 				sendGain[t] += energy;
 			}
@@ -546,10 +562,14 @@ public class Resounding {
 		//logDetailed("HitRatio0: " + hitRatioBounce1 + " HitRatio1: " + hitRatioBounce2 + " HitRatio2: " + hitRatioBounce3 + " HitRatio3: " + hitRatioBounce4);
 		//logEnvironment("Bounce reflectivity 0: " + bounceReflectivityRatio[0] + " bounce reflectivity 1: " + bounceReflectivityRatio[1] + " bounce reflectivity 2: " + bounceReflectivityRatio[2] + " bounce reflectivity 3: " + bounceReflectivityRatio[3]);
 
-		if (PrecomputedConfig.pC.eLog) ResoundingLog.logEnvironment("Final environment settings:\n      Source Gain:    " + directGain + "\n      Source Gain HF: " + directCutoff + "\n      Reverb Gain:    " + Arrays.toString(sendGain) + "\n      Reverb Gain HF: " + Arrays.toString(sendCutoff));
+		if (PrecomputedConfig.pC.eLog) {
+			LOGGER.info("Final environment settings:\n      Source Gain:    {}\n      Source Gain HF: {}\n      Reverb Gain:    {}\n      Reverb Gain HF: {}", directGain, directCutoff, sendGain, sendCutoff);
+		} else {
+			LOGGER.debug("Final environment settings:\n      Source Gain:    {}\n      Source Gain HF: {}\n      Reverb Gain:    {}\n      Reverb Gain HF: {}", directGain, directCutoff, sendGain, sendCutoff);
+		}
 
 		try {
-			ResoundingEFX.setEnvironment(sourceID, sendGain, sendCutoff, directGain, directCutoff);
+			ResoundingEFX.setEnv(sourceID, sendGain, sendCutoff, directGain, directCutoff);
 		} catch (IllegalArgumentException e) {
 			e.printStackTrace();
 		}

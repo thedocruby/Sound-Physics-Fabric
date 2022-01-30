@@ -1,8 +1,6 @@
 package dev.thedocruby.resounding.config.BlueTapePack;
 
-import dev.thedocruby.resounding.ALstuff.ResoundingEFX;
 import dev.thedocruby.resounding.Resounding;
-import dev.thedocruby.resounding.ResoundingLog;
 import dev.thedocruby.resounding.config.MaterialData;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
 import dev.thedocruby.resounding.config.ResoundingConfig;
@@ -20,6 +18,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class ConfigManager {
+
+    private ConfigManager() {}
+
     private static ConfigHolder<ResoundingConfig> holder;
 
     @Environment(EnvType.CLIENT)
@@ -36,7 +37,7 @@ public class ConfigManager {
         holder = AutoConfig.register(ResoundingConfig.class, JanksonConfigSerializer::new);
 
         if (Resounding.env == EnvType.CLIENT) try {GuiRegistryinit.register();} catch (Throwable ignored){
-            ResoundingLog.logError("Failed to register config menu unwrappers. Edit config that isn't working in the config file");}
+            Resounding.LOGGER.error("Failed to register config menu unwrappers. Edit config that isn't working in the config file");}
 
         holder.registerSaveListener((holder, config) -> onSave(config));
         holder.registerLoadListener((holder, config) -> onSave(config));
@@ -61,7 +62,7 @@ public class ConfigManager {
 
     @Environment(EnvType.CLIENT)
     public static void handleBrokenMaterials( ResoundingConfig c ){
-        ResoundingLog.logError("Critical materialProperties error. Resetting materialProperties");
+        Resounding.LOGGER.error("Critical materialProperties error. Resetting materialProperties");
         ResoundingConfig fallback = DEFAULT;
         ConfigPresets.RESET_MATERIALS.configChanger.accept(fallback);
         c.Materials.materialProperties = fallback.Materials.materialProperties;
@@ -69,7 +70,7 @@ public class ConfigManager {
     }
 
     public static void handleUnstableConfig( ResoundingConfig c ){
-        ResoundingLog.logError("Error: Config file is not from a compatible version! Resetting the config...");
+        Resounding.LOGGER.error("Error: Config file is not from a compatible version! Resetting the config...");
         ConfigPresets.DEFAULT_PERFORMANCE.configChanger.accept(c);
         ConfigPresets.RESET_MATERIALS.configChanger.accept(c);
         c.version = "1.0.0-alpha.1";
@@ -79,10 +80,9 @@ public class ConfigManager {
         if (Resounding.env == EnvType.CLIENT && (c.Materials.materialProperties == null || c.Materials.materialProperties.get("DEFAULT") == null)) handleBrokenMaterials(c);
         if (Resounding.env == EnvType.CLIENT && c.preset != ConfigPresets.LOAD_SUCCESS) c.preset.configChanger.accept(c);
         if (c.version == null || !Objects.equals(c.version, "1.0.0-alpha.1")) handleUnstableConfig(c);
-        if(PrecomputedConfig.pC != null) PrecomputedConfig.pC.deactivate();
+        if (PrecomputedConfig.pC != null) PrecomputedConfig.pC.deactivate();
         try {PrecomputedConfig.pC = new PrecomputedConfig(c);} catch (CloneNotSupportedException e) {e.printStackTrace(); return ActionResult.FAIL;}
         if (Resounding.env == EnvType.CLIENT) {
-            ResoundingEFX.syncReverbParams();
             Resounding.updateRays();
         }
         return ActionResult.SUCCESS;

@@ -20,6 +20,9 @@ import static dev.thedocruby.resounding.config.BlueTapePack.mixin.GuiRegistriesA
 
 @SuppressWarnings("ALL") // its the blue tape after all
 public class GuiRegistryinit {
+
+    private GuiRegistryinit() {}
+
     public static void register() {
         Map<Class<? extends ConfigData>, GuiRegistry> guiRegistries = getGuiRegistries();
         GuiRegistry registry = new GuiRegistry();

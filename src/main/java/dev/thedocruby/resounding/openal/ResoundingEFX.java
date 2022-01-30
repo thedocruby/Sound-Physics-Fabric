@@ -1,5 +1,6 @@
-package dev.thedocruby.resounding.ALstuff;
+package dev.thedocruby.resounding.openal;
 
+import dev.thedocruby.resounding.Resounding;
 import dev.thedocruby.resounding.ResoundingLog;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
 import net.fabricmc.api.EnvType;
@@ -12,8 +13,6 @@ import org.lwjgl.openal.EXTEfx;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static dev.thedocruby.resounding.Resounding.mc;
 
 /*
                                         !!!Documentation for OpenAL!!!
@@ -29,24 +28,19 @@ import static dev.thedocruby.resounding.Resounding.mc;
 @Environment(EnvType.CLIENT)
 public class ResoundingEFX {
 
+    private ResoundingEFX() {}
+
     private static final List<ReverbSlot> slots = new ArrayList<>();
     private static int directFilter0;
-    private static final float rainDecayConstant = (float) (Math.log(2.0) / 1200);
-    private static float rainAccumulator;
-    private static boolean rainHasInitialValue;
-
-    public static void syncReverbParams() {   //Set the global reverb parameters and apply them to the effect and effectslot
-        if (slots.size() > 0 && slots.get(0).initialised){ for (ReverbSlot slot : slots) { slot.set(); } }
-    }
 
     public static void setupEFX() {
         //Get current context and device
         final long currentContext = ALC10.alcGetCurrentContext();
         final long currentDevice = ALC10.alcGetContextsDevice(currentContext);
         if (ALC10.alcIsExtensionPresent(currentDevice, "ALC_EXT_EFX")) {
-            ResoundingLog.log("EFX Extension recognized.");
+            Resounding.LOGGER.info("EFX Extension recognized.");
         } else {
-            ResoundingLog.logError("EFX Extension not found on current device. Aborting.");
+            Resounding.LOGGER.error("EFX Extension not found on current device. Aborting.");
             return;
         }
         // Delete previous filter if it was there
@@ -66,7 +60,7 @@ public class ResoundingEFX {
         // Create filters
         directFilter0 = EXTEfx.alGenFilters();
         EXTEfx.alFilteri(directFilter0, EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
-        ResoundingLog.logGeneral("directFilter0: " + directFilter0);
+        Resounding.LOGGER.info("Direct filter object created with ID {}", directFilter0);
     }
 
     /**
@@ -79,7 +73,7 @@ public class ResoundingEFX {
      * @param directCutoff output cutoff of the main audio of sound being processed
      * @throws IllegalArgumentException if the number of reverb audio parameters does not match the number of effect slots (sendGain.length, sendCutoff.length != resolution)
      */
-    public static void setEnvironment(
+    public static void setEnv(
             final int sourceID,
             final double @NotNull [] sendGain, final double @NotNull [] sendCutoff,
             final double directGain, final double directCutoff
@@ -87,11 +81,6 @@ public class ResoundingEFX {
         if (sendGain.length != PrecomputedConfig.pC.resolution || sendCutoff.length != PrecomputedConfig.pC.resolution) {
             throw new IllegalArgumentException("Error: Reverb parameter count does not match reverb slot count!");
         }
-        if (PrecomputedConfig.pC.off) return;
-        float absorptionHF = getAbsorptionHF();
-        for (ReverbSlot slot : slots){ slot.airAbsorptionGainHF = absorptionHF; }
-
-        syncReverbParams();
 
         // Set reverb send filter values and set source to send to all reverb fx slots
         for(int i = 0; i < slots.size(); i++){ slots.get(i).applyFilter(sourceID, (float) sendGain[i], (float) sendCutoff[i]); }
@@ -105,67 +94,9 @@ public class ResoundingEFX {
         ResoundingLog.checkErrorLog("Set Environment airAbsorption:");
     }
 
-    // TODO: move rain/absorption code from ALstuff.ResoundingEFX to extras.AdvancedAir
-    public static float getAbsorptionHF() {
-        if(mc == null || mc.world == null || mc.player == null)
-            return 1.0f;
-        double rain = getRain();
-        double rainS = rainAccumulator;
-        double biomeHumidity = mc.world.getBiome(mc.player.getBlockPos()).getDownfall();
-        double biomeTemp = mc.world.getBiome(mc.player.getBlockPos()).getTemperature();
-        double freq = 10000.0d;
-
-        double relhum = 100.0d * MathHelper.lerp(Math.max(rain, rainS), Math.max(biomeHumidity, 0.2d), 1.0d); // convert biomeHumidity and rain gradients into a dynamic relative humidity value
-        double tempK = 25.0d * biomeTemp + 273.15d; // Convert biomeTemp to degrees kelvin
-
-        double hum = relhum*Math.pow(10.0d,4.6151d-6.8346d*Math.pow((273.15d/tempK),1.261d));
-        double tempr = tempK/293.15d; // convert tempK to temperature relative to room temp
-
-        double frO = (24+4.04E+4*hum*(0.02d+hum)/(0.391d+hum));
-        double frN = Math.pow(tempr,-0.5)*(9+280*hum*Math.exp(-4.17d*(Math.pow(tempr,-1.0f/3.0f)-1)));
-        double alpha = 8.686d*freq*freq*(1.84E-11*Math.sqrt(tempr)+Math.pow(tempr,-2.5)*(0.01275d*(Math.exp(-2239.1d/tempK)*1/(frO+freq*freq/frO))+0.1068d*(Math.exp(-3352/tempK)*1/(frN+freq*freq/frN))));
-
-        return (float) Math.pow(10.0d, (alpha * -1.0d * PrecomputedConfig.pC.humidityAbsorption)/20.0d); // convert alpha (decibels per meter of attenuation) into airAbsorptionGainHF value and return
-    }
-
     /* public static void setSoundPos(final int sourceID, final Vec3d pos) {
         if (pC.off) return;
         //System.out.println(pos);//TO DO
         AL10.alSourcefv(sourceID, 4100, new float[]{(float) pos.x, (float) pos.y, (float) pos.z});
     } */ // TODO: DirEval
-
-    public static float getRain(){
-        float tickDelta = 1.0f;
-        return (mc==null || mc.world==null) ? 0.0f : mc.world.getRainGradient(tickDelta);
-    }
-
-    public static void updateSmoothedRain() {
-        if (!rainHasInitialValue) {
-            // There is no smoothing on the first value.
-            // This is not an optimal approach to choosing the initial value:
-            // https://en.wikipedia.org/wiki/Exponential_smoothing#Choosing_the_initial_smoothed_value
-            //
-            // However, it works well enough for now.
-            rainAccumulator = getRain();
-            rainHasInitialValue = true;
-
-            return;
-        }
-
-        // Implements the basic variant of exponential smoothing
-        // https://en.wikipedia.org/wiki/Exponential_smoothing#Basic_(simple)_exponential_smoothing_(Holt_linear)
-
-        // xₜ
-        float newValue = getRain();
-
-        // 𝚫t
-        float tickDelta = 1.0f;
-
-        // Compute the smoothing factor based on our
-        // α = 1 - e^(-𝚫t/τ) = 1 - e^(-k𝚫t)
-        float smoothingFactor = (float) (1.0f - Math.exp(-1*rainDecayConstant*tickDelta));
-
-        // sₜ = αxₜ + (1 - α)sₜ₋₁
-        rainAccumulator = MathHelper.lerp(smoothingFactor, rainAccumulator, newValue);
-    }
 }

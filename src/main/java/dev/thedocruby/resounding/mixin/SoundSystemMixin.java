@@ -1,9 +1,9 @@
 package dev.thedocruby.resounding.mixin;
 
-import dev.thedocruby.resounding.ALstuff.ResoundingEFX;
 import dev.thedocruby.resounding.Resounding;
 import dev.thedocruby.resounding.SourceAccessor;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
+import dev.thedocruby.resounding.effects.AirEffects;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.sound.*;
@@ -39,7 +39,7 @@ public class SoundSystemMixin {
 
     @Inject(method = "tick()V", at = @At(value = "HEAD"))
     private void Ticker(CallbackInfo ci){
-        ResoundingEFX.updateSmoothedRain();}
+        AirEffects.updateSmoothedRain();}
 
     @ModifyArg(method = "getAdjustedVolume", at = @At(value = "INVOKE", target = "net/minecraft/util/math/MathHelper.clamp (FFF)F"), index = 0)
     private float VolumeMultiplierInjector(float vol){

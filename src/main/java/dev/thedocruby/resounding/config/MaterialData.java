@@ -2,9 +2,9 @@ package dev.thedocruby.resounding.config;
 
 @SuppressWarnings("CanBeFinal")
 public class MaterialData {
-    public String example;
-    public double reflectivity;
-    public double absorption;
+    public final String example;
+    public final double reflectivity;
+    public final double absorption;
 
     public MaterialData(String s, double r, double a){
         reflectivity = r; absorption = a; example = s;

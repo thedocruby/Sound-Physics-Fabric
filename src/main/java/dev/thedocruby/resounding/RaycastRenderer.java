@@ -16,6 +16,8 @@ import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 @Environment(EnvType.CLIENT)
 public class RaycastRenderer {
 
+    private RaycastRenderer() {}
+
     private static final List<Ray> rays = Collections.synchronizedList(new ArrayList<>());
 
     public static void renderRays(double x, double y, double z, World world) {

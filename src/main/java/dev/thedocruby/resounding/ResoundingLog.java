@@ -1,22 +1,15 @@
 package dev.thedocruby.resounding;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.lwjgl.openal.AL10;
 
+// TODO: Remove ResoundingLog.java
 public class ResoundingLog {
 
-    private static final String logPrefix = "[RESOUNDING";
-    public static void log(String message) { System.out.println(logPrefix + ": " + message); }
+    private ResoundingLog() {}
 
-    protected static void logOcclusion(String message) { System.out.println(logPrefix + " | OCCLUSION LOG]: " + message); }
-
-    protected static void logEnvironment(String message) { System.out.println(logPrefix + " | ENVIRONMENT LOG]: " + message); }
-
-    public static void logGeneral(String message) { System.out.println(logPrefix + " LOG]: " + message); }
-
-    public static void logError(String errorMessage) { System.out.println(logPrefix + " | ERROR LOG]: " + errorMessage); }
-
-    public static void checkErrorLog(final String errorMessage)
-    {
+    public static void checkErrorLog(final String errorMessage) {
         final int error = AL10.alGetError();
         if (error == AL10.AL_NO_ERROR) {
             return;
@@ -33,7 +26,7 @@ public class ResoundingLog {
             default -> Integer.toString(error);
         };
 
-        logError(errorMessage + " Caused by: OpenAL \"" + errorName + "\" error.");
+        Resounding.LOGGER.error(errorMessage + " Caused by: OpenAL \"" + errorName + "\" error.");
     }
 
 }

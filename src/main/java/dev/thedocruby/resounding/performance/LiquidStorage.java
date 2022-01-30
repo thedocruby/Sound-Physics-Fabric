@@ -1,5 +1,6 @@
 package dev.thedocruby.resounding.performance;
 
+import dev.thedocruby.resounding.Resounding;
 import dev.thedocruby.resounding.ResoundingLog;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -70,7 +71,7 @@ public class LiquidStorage {
 
     //public LiquidStorage(){};
     public LiquidStorage(boolean[][] s, int t, int b, boolean[] sf, WorldChunk ch ){
-        int n = t-b+1; if (s.length != n || sf.length != n) ResoundingLog.logError("Top("+t+") to Bottom("+b+") != "+s.length+" or "+sf.length);
+        int n = t-b+1; if (s.length != n || sf.length != n) Resounding.LOGGER.error("Top("+t+") to Bottom("+b+") != "+s.length+" or "+sf.length);
         full = true; sections = s; top = t; bottom = b; sFull = sf; chunk = ch;
     }
 
@@ -79,7 +80,7 @@ public class LiquidStorage {
     }
 
     public void setBlock(int x, int y, int z, boolean block) { // rare ⇒ can be expensive
-        if (x >= 16 || x < 0 || z >= 16 || z < 0) ResoundingLog.logError("Coords: "+x+", "+z+" are out of bounds");
+        if (x >= 16 || x < 0 || z >= 16 || z < 0 || y >= 320 || y < -64) Resounding.LOGGER.error("Block coords ["+x+", "+y+", "+z+"] are out of bounds!");
         else if (getBlock(x, y, z) != block) {
             getOrCreateSection(y)[x+(z<<4)] = block;
             if (!block) {

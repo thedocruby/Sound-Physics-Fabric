@@ -10,6 +10,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
 public class ConfigChanger {
+    private ConfigChanger() {}
+
     public static void changeConfig(ResoundingConfig config, @Nullable Boolean enabled,
                                     @Nullable Double attenuationFactor, @Nullable Double globalReverbGain, @Nullable Double globalReverbBrightness, @Nullable Double globalBlockAbsorption, @Nullable Double globalBlockReflectance, @Nullable Double soundDistanceAllowance, @Nullable Double airAbsorption, @Nullable Double humidityAbsorption, @Nullable Double rainAbsorption, @Nullable Double underwaterFilter,
                                     @Nullable Boolean skipRainOcclusionTracing, @Nullable Integer environmentEvaluationRays, @Nullable Integer environmentEvaluationRayBounces, @Nullable Boolean simplerSharedAirspaceSimulation,
