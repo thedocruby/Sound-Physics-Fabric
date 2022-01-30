@@ -1,2 +1,2 @@
 # Resounding
-A new minecraft sound mod adding physically-based sound effects to the game using efficient ray-tracing.
+A New Minecraft mod that provides realistic audio physics using parallel wave tracing and an improved physics algorithm.
