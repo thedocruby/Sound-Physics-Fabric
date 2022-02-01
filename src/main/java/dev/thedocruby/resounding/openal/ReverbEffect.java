@@ -1,22 +1,10 @@
 package dev.thedocruby.resounding.openal;
 
-import dev.thedocruby.resounding.Resounding;
-import dev.thedocruby.resounding.ResoundingLog;
-import dev.thedocruby.resounding.config.PrecomputedConfig;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import org.lwjgl.openal.AL10;
-import org.lwjgl.openal.AL11;
-import org.lwjgl.openal.EXTEfx;
 
-@Environment(EnvType.CLIENT)
-@SuppressWarnings("DanglingJavadoc")//!!!!!!!!!!!! Ctrl + Shift + '-' !!!!!!!!!!!!
-public class ReverbSlot {
-    public boolean initialised = false;
-    public int auxSlotId;
-    public int effectId;
-    public int filterId;
-
+@Environment(EnvType.CLIENT) //!!!!!!!!!!!! Ctrl + Shift + '-' !!!!!!!!!!!!
+class ReverbEffect { // TODO: Find a new home for these docs and delete class.
     //<editor-fold desc="Effect properties">
     // from: Effects Guide (p. 66+) and other sources; altered
     /**
@@ -50,7 +38,7 @@ public class ReverbSlot {
      * Although derived for rectangular rooms, the above expressions give good estimates of the modal behaviour for rooms of arbitrary shape, provided that the aspect ratio of the room is not too extreme.
      * </p>
      */
-    public final float density;				// min: 0.0f 	max: 1.0f   (?)                         default: 1.0f
+    public float density;				// min: 0.0f 	max: 1.0f   (?)                         default: 1.0f
     /**
      * The Reverb Diffusion property controls the echo density in the reverberation decay.
      * It is set by default to 1.0, which provides the highest density.
@@ -66,7 +54,7 @@ public class ReverbSlot {
      * As a guide, for clearer more natural sounding mixes, vocals and instruments use low parameter settings.
      * If you’re looking to enhance percussion and drum hits use medium to high settings.
      */
-    public final float diffusion;			// min: 0.0f 	max: 1.0f   (a linear multiplier value) default: 1.0f
+    public float diffusion;			// min: 0.0f 	max: 1.0f   (a linear multiplier value) default: 1.0f
     /**
      * The Reverb Gain property is the master volume control for the reflected sound
      * (both  early  reflections  and  reverberation), that the reverb effect adds to all sound sources.
@@ -74,27 +62,27 @@ public class ReverbSlot {
      * The value of the Reverb Gain property ranges from 1.0 (0db) (the maximum amount)
      * to 0.0 (-100db) (no reflected sound at all).
      */
-    public final float gain;				// min: 0.0f 	max: 1.0f   (Linear gain)               default: 0.32f
+    public float gain;				// min: 0.0f 	max: 1.0f   (Linear gain)               default: 0.32f
     /**
      * The Reverb Gain HF property further tweaks reflected sound by attenuating (gradually fading) it at high frequencies.
      * It controls a low-pass filter that applies globally to the reflected sound of all sound sources feeding the particular instance of the reverb effect.
      * The value of the Reverb Gain HF property ranges from 1.0 (0db) (no filter) to 0.0 (-100db) (virtually no reflected sound).
      * #HF Reference# sets the frequency at which the value of this property is measured.
      */
-    public final float gainHF;			    // min: 0.0f 	max: 1.0f   (Linear gain)               default: 0.89f
+    public float gainHF;			    // min: 0.0f 	max: 1.0f   (Linear gain)               default: 0.89f
     /**
      * The Reverb Gain LF property further tweaks reflected sound by attenuating it at low frequencies.
      * It controls a high-pass filter that applies globally to the reflected sound of all sound sources feeding the particular instance  of the reverb effect.
      * The value of the Reverb Gain LF property ranges from 1.0 (0db) (no filter) to 0.0 (-100db) (virtually no reflected sound).
      * #LF Reference# sets the frequency at which the value of this property is measured.
      */
-    //public final float gainLF;            // min: 0.0f    max: 1.0f   (Linear gain)               default: 0.0f
+    public float gainLF;            // min: 0.0f    max: 1.0f   (Linear gain)               default: 0.0f
     /**
      *  The Decay Time property sets the reverberation decay time.
      *  It ranges from 0.1 (typically a small room with very dead surfaces)
      *  to 20.0 (typically a large room with very live surfaces).
      */
-    public final float decayTime;			// min: 0.1f 	max: 20.0f  (Seconds)                   default: 1.49f
+    public float decayTime;			// min: 0.1f 	max: 20.0f  (Seconds)                   default: 1.49f
     /**
      * The Decay HF Ratio property adjusts the spectral quality of the Decay Time parameter.
      * It is the ratio of high-frequency decay time relative to the time set by Decay Time.
@@ -108,7 +96,7 @@ public class ReverbSlot {
      * so it’s shorter than the decay time of the mid-frequencies.
      * You hear a more natural reverberation.
      */
-    public final float decayHFRatio;		// min: 0.1f 	max: 20.0f  (Linear multiplier)         default: 0.83f
+    public float decayHFRatio;		// min: 0.1f 	max: 20.0f  (Linear multiplier)         default: 0.83f
     /**
      * The Decay LF Ratio property adjusts the spectral quality of the Decay Time parameter.
      * It is the ratio  of  low-frequency  decay  time  relative  to  the  time  set  by  Decay  Time.
@@ -122,7 +110,7 @@ public class ReverbSlot {
      * so it’s shorter than the decay time of the mid-frequencies.
      * You hear a more tinny reverberation.
      */
-    //public final float decayLFRatio;		// min: 0.1f 	max: 20.0f  (Linear multiplier)         default: 1.0f
+    public float decayLFRatio;		// min: 0.1f 	max: 20.0f  (Linear multiplier)         default: 1.0f
     /**
      * The Reflections Gain property controls the overall amount of initial reflections relative to the Gain property.
      * (The Gain property sets the overall amount of reflected sound: both initial reflections and later reverberation.)
@@ -135,14 +123,14 @@ public class ReverbSlot {
      * To simulate open or semi-open environments, you can maintain the amount of early reflections while reducing the value of
      * the Late Reverb Gain property, which controls later reflections.
      */
-    public final float reflectionsGain;		// min: 0.1f 	max: 3.16f  (Linear gain)               default: 0.05
+    public float reflectionsGain;		// min: 0.1f 	max: 3.16f  (Linear gain)               default: 0.05
     /**
      * The Reflections Delay property is the amount of delay between the arrival time of the direct path from the source
      * to the first reflection from the source.  It ranges from 0 to 300 milliseconds.
      * You can reduce or increase "Reflections Delay" to simulate closer or more distant reflective surfaces,
      * and therefore control the perceived size of the room.
      */
-    public final float reflectionsDelay;	// min: 0.0f 	max: 0.3f   (Seconds)                   default: 0.007
+    public float reflectionsDelay;	// min: 0.0f 	max: 0.3f   (Seconds)                   default: 0.007
     /**
      * The Reflections Pan property is a 3D vector that controls the spatial distribution of the cluster of early reflections.
      * The direction of this vector controls the global direction of the reflections,
@@ -157,7 +145,7 @@ public class ReverbSlot {
      * As the magnitude increases, the reflections become more focused in the direction pointed to by the vector.
      * A magnitude of 1.0 would represent the extreme case, where all reflections come from a single direction.
      */
-    //public float[] reflectionsPan;//magnitude min: 0.0f   max: 1.0f   (Vector)                    default: [0f, 0f, 0f]
+    public float[] reflectionsPan;//magnitude min: 0.0f   max: 1.0f   (Vector)                    default: [0f, 0f, 0f]
     /**
      * The Late Reverb Gain property controls the overall amount of later reverberation relative to the Gain property.
      * (The Gain property sets the overall amount of both initial reflections and later reverberation.)
@@ -166,20 +154,20 @@ public class ReverbSlot {
      * If you adjust Decay Time without changing Late Reverb Gain, the total intensity
      * (the averaged square of the amplitude) of the late reverberation remains constant.
      */
-    public final float lateReverbGain;		// min: 0.0f 	max: 10.0f  (Linear gain)               default: 1.26f
+    public float lateReverbGain;		// min: 0.0f 	max: 10.0f  (Linear gain)               default: 1.26f
     /**
      * The Late Reverb Delay property defines the beginning time of the late reverberation
      * relative to the time of the initial reflection (the first of the early reflections). It ranges from 0 to 100 milliseconds.
      * Reducing or increasing Late Reverb Delay is useful for simulating a smaller or larger room.
      */
-    public final float lateReverbDelay;		// min: 0.0f 	max: 0.1f   (Seconds)                   default: 0.011f
+    public float lateReverbDelay;		// min: 0.0f 	max: 0.1f   (Seconds)                   default: 0.011f
     /**
      * The Late Reverb Pan property is a 3D vector that controls the spatial distribution of the late reverb.
      * The direction of this vector controls the global direction of the reverb,
      * while its magnitude controls how focused the reverb are towards this direction.
      * The details under Reflections Pan (above) also apply to Late Reverb Pan.
      */
-    //public float[] lateReverbPan;//magnitude min: 0.0f    max: 1.0f   (Vector)                    default: [0f, 0f, 0f]
+    public float[] lateReverbPan;       //magnitude min: 0.0f    max: 1.0f   (Vector)           default: [0f, 0f, 0f]
     /**
      * Echo Depth introduces a cyclic echo in the reverberation decay, which will be noticeable with transient or percussive sounds.
      * A larger value of Echo Depth will make this effect more prominent.
@@ -196,8 +184,8 @@ public class ReverbSlot {
      *
      * If Diffusion is set to 0.0 and Echo Depth is set to 1.0, the echo will persist distinctly until the end of the reverberation decay.
      */
-    //public float echoTime;                // min: 0.075f  max: 0.25f  (Seconds)                   default: 0.25f
-    //public float echoDepth;               // min: 0.0f    max: 1.0f   (Linear multiplier)         default: 0.0f
+    public float echoTime;                // min: 0.075f  max: 0.25f  (Seconds)                   default: 0.25f
+    public float echoDepth;               // min: 0.0f    max: 1.0f   (Linear multiplier)         default: 0.0f
     /**
      * Using these two properties, you can create a pitch modulation in the reverberant sound.
      * This will be most noticeable applied to sources that have tonal color or pitch.
@@ -207,8 +195,8 @@ public class ReverbSlot {
      * Low values of Diffusion will contribute to reinforcing the perceived effect by
      * reducing the mixing of overlapping reflections in the reverberation decay.
      */
-    //public final float modulationTime;    // min: 0.004f  max: 4.0f   (Seconds)                   default: 0.25f
-    //public final float modulationDepth;   // min: 0.0f    max: 1.0f   (Linear multiplier)         default: 0.0f
+    public float modulationTime;    // min: 0.004f  max: 4.0f   (Seconds)                   default: 0.25f
+    public float modulationDepth;   // min: 0.0f    max: 1.0f   (Linear multiplier)         default: 0.0f
     /**
      * The properties "HF Reference" and "LF Reference" determine respectively the frequencies at which
      * the high-frequency effects and the low-frequency effects created by EAX Reverb properties are measured,
@@ -217,8 +205,8 @@ public class ReverbSlot {
      * low frequency and high frequency properties can be accurately controlled and will produce independent effects.
      * In other words, the LF Reference value should be less than 1/10 of the HF Reference value.
      */
-    //public final float HFReference;       // min: 1000f   max: 20000f (Hertz)                     default: 5000f
-    //public final float LFReference;       // min: 20.0f   max: 1000f  (Hertz)                     default: 250f
+    public float HFReference;       // min: 1000f   max: 20000f (Hertz)                     default: 5000f
+    public float LFReference;       // min: 20.0f   max: 1000f  (Hertz)                     default: 250f
     /**
      * The Room Rolloff Factor property is one of the two methods available to attenuate the reflected sound
      * (containing both reflections and reverberation) according to source-listener distance.
@@ -235,7 +223,7 @@ public class ReverbSlot {
      * (Note that this isn’t the case if the source property flag AL_AUXILIARY_SEND_FILTER_GAIN_AUTO is set to AL_FALSE)
      * You can use Room Rolloff Factor as an option to automatic control, so you can exaggerate or replace the default automatically-controlled rolloff.
      */
-    public final float roomRolloffFactor; 	// min: 0.0f	max: 10.0f  (Linear multiplier)         default: 0.0f
+    public float roomRolloffFactor; 	// min: 0.0f	max: 10.0f  (Linear multiplier)         default: 0.0f
     /**
      * The Air Absorption Gain HF property controls the distance-dependent attenuation at high frequencies caused by the propagation medium.
      * It applies to reflected sound only.
@@ -253,94 +241,9 @@ public class ReverbSlot {
      * value of Decay Time without the risk of getting an unnaturally long decay time at high frequencies.
      * If this flag is set to AL_FALSE, high-frequency decay time isn’t automatically limited.
      */
-    //public final int decayHFLimit;        // min:AL_FALSE max:AL_TRUE (Boolean)                   default: true
+    public int decayHFLimit;        // min:AL_FALSE max:AL_TRUE (Boolean)                   default: true
     //</editor-fold>
 
-    public ReverbSlot(/*<editor-fold desc="Effect_properties">*/float decayTime, float density, float diffusion, float gain, float gainHF, float decayHFRatio, float reflectionsGain, float reflectionsDelay, float lateReverbGain, float lateReverbDelay, float airAbsorptionGainHF, float roomRolloffFactor/*</editor-fold>*/) {
-        this.decayTime = decayTime;
-        this.density = density;
-        this.diffusion = diffusion;
-        this.gain = gain;
-        this.gainHF = gainHF;
-        this.decayHFRatio = decayHFRatio;
-        this.reflectionsGain = reflectionsGain;
-        this.reflectionsDelay = reflectionsDelay;
-        this.lateReverbGain = lateReverbGain;
-        this.lateReverbDelay = lateReverbDelay;
-        this.airAbsorptionGainHF = airAbsorptionGainHF;
-        this.roomRolloffFactor = roomRolloffFactor;
-    }
+    public ReverbEffect(){}
 
-    public ReverbSlot initialize() {
-        if (initialised) delete();
-
-        //<editor-fold desc="auxSlotId = new EXTEfx.alAuxiliaryEffectSlot; effectId = new EXTEfx.alEffect; filterId = new EXTEfx.alFilter;">
-        // Create auxiliary effect slot (secondary audio output)
-        auxSlotId = EXTEfx.alGenAuxiliaryEffectSlots();
-        Resounding.LOGGER.info("Aux slot {} created", auxSlotId);
-        EXTEfx.alAuxiliaryEffectSloti(auxSlotId, EXTEfx.AL_EFFECTSLOT_AUXILIARY_SEND_AUTO, AL10.AL_TRUE);
-        ResoundingLog.checkErrorLog("Failed creating aux slot "+auxSlotId+"!");
-
-        //Create effect objects
-        effectId = EXTEfx.alGenEffects();												    //Create effect object
-        EXTEfx.alEffecti(effectId, EXTEfx.AL_EFFECT_TYPE, EXTEfx.AL_EFFECT_EAXREVERB);		//Set effect object to be reverb
-        ResoundingLog.checkErrorLog("Failed creating reverb effect object "+effectId+"!");
-        Resounding.LOGGER.info("Created effect object {} for aux slot {}.", effectId, auxSlotId);
-
-        filterId = EXTEfx.alGenFilters();
-        EXTEfx.alFilteri(filterId, EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
-        Resounding.LOGGER.info("Created filter object {} for aux slot {}.", filterId, auxSlotId);
-        //</editor-fold>
-
-        initialised = true;
-        return this.set();
-    }
-
-    public void delete() {
-        EXTEfx.alDeleteAuxiliaryEffectSlots(auxSlotId);
-        EXTEfx.alDeleteEffects(effectId);
-        EXTEfx.alDeleteFilters(filterId);
-        initialised = false;
-    }
-
-    private ReverbSlot set() {
-        //<editor-fold desc="setReverbParams();">
-        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_DENSITY, density);
-        ResoundingLog.checkErrorLog("Error while assigning reverb density: " + density);
-        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_DIFFUSION, diffusion);
-        ResoundingLog.checkErrorLog("Error while assigning reverb diffusion: " + diffusion);
-        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_GAIN, gain);
-        ResoundingLog.checkErrorLog("Error while assigning reverb gain: " + gain);
-        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_GAINHF, gainHF);
-        ResoundingLog.checkErrorLog("Error while assigning reverb gainHF: " + gainHF);
-        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_DECAY_TIME, decayTime);
-        ResoundingLog.checkErrorLog("Error while assigning reverb decayTime: " + decayTime);
-        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_DECAY_HFRATIO, decayHFRatio);
-        ResoundingLog.checkErrorLog("Error while assigning reverb decayHFRatio: " + decayHFRatio);
-        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_REFLECTIONS_GAIN, reflectionsGain);
-        ResoundingLog.checkErrorLog("Error while assigning reverb reflectionsGain: " + reflectionsGain);
-        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_REFLECTIONS_DELAY, reflectionsDelay);
-        ResoundingLog.checkErrorLog("Error while assigning reverb reflectionsDelay: " + reflectionsDelay);
-        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_LATE_REVERB_GAIN, lateReverbGain);
-        ResoundingLog.checkErrorLog("Error while assigning reverb lateReverbGain: " + lateReverbGain);
-        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_LATE_REVERB_DELAY, lateReverbDelay);
-        ResoundingLog.checkErrorLog("Error while assigning reverb lateReverbDelay: " + lateReverbDelay);
-        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_AIR_ABSORPTION_GAINHF, airAbsorptionGainHF);
-        ResoundingLog.checkErrorLog("Error while assigning reverb airAbsorptionGainHF: " + airAbsorptionGainHF);
-        EXTEfx.alEffectf(effectId, EXTEfx.AL_EAXREVERB_ROOM_ROLLOFF_FACTOR, (float) (roomRolloffFactor * PrecomputedConfig.defaultAttenuationFactor));
-        ResoundingLog.checkErrorLog("Error while assigning reverb roomRolloffFactor: " + roomRolloffFactor * PrecomputedConfig.defaultAttenuationFactor);
-        //</editor-fold>
-
-        //Attach updated effect object
-        EXTEfx.alAuxiliaryEffectSloti(auxSlotId, EXTEfx.AL_EFFECTSLOT_EFFECT, effectId);
-        return this;
-    }
-
-    public void applyFilter(int sourceID, float gain, float cutoff) {
-        // Set reverb send filter values and set source to send to all reverb fx slots
-        EXTEfx.alFilterf(filterId, EXTEfx.AL_LOWPASS_GAIN, gain);
-        EXTEfx.alFilterf(filterId, EXTEfx.AL_LOWPASS_GAINHF, cutoff);
-        AL11.alSource3i(sourceID, EXTEfx.AL_AUXILIARY_SEND_FILTER, auxSlotId, 1, filterId);
-        ResoundingLog.checkErrorLog("Set Environment filter"+filterId+" to "+auxSlotId+":");
-    }
 }

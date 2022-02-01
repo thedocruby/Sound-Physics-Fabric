@@ -9,10 +9,10 @@ public class ResoundingLog {
 
     private ResoundingLog() {}
 
-    public static void checkErrorLog(final String errorMessage) {
+    public static boolean checkErrorLog(final String errorMessage) {
         final int error = AL10.alGetError();
         if (error == AL10.AL_NO_ERROR) {
-            return;
+            return false;
         }
 
         String errorName;
@@ -27,6 +27,7 @@ public class ResoundingLog {
         };
 
         Resounding.LOGGER.error(errorMessage + " Caused by: OpenAL \"" + errorName + "\" error.");
+        return true;
     }
 
 }

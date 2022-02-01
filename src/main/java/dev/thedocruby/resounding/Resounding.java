@@ -4,7 +4,6 @@ import dev.thedocruby.resounding.openal.ResoundingEFX;
 import dev.thedocruby.resounding.effects.AirEffects;
 import dev.thedocruby.resounding.performance.RaycastFix;
 import dev.thedocruby.resounding.performance.SPHitResult;
-import dev.thedocruby.resounding.config.PrecomputedConfig;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
@@ -12,7 +11,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -30,6 +28,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
+import static dev.thedocruby.resounding.config.PrecomputedConfig.speedOfSound;
+import static dev.thedocruby.resounding.openal.ResoundingEFX.efxEnabled;
 import static java.util.Map.entry;
 
 @SuppressWarnings({"CommentedOutCode"})
@@ -77,58 +78,104 @@ public class Resounding {
 					entry(BlockSoundGroup.LODESTONE, BlockSoundGroup.NETHERITE),
 					entry(BlockSoundGroup.LADDER, BlockSoundGroup.WOOD)
 			);//</editor-fold>
-	public static final Map<String, String> groupMap = //<editor-fold desc="Map.ofEntries()">
+	public static final Map<BlockSoundGroup, String> groupToName = //<editor-fold desc="Map.ofEntries()">
 			Map.ofEntries(
-					entry("field_11528", "Coral"					),		// Coral              		(coral_block)
-					entry("field_11529", "Gravel, Dirt"			),    	// Gravel, Dirt       		(gravel, rooted_dirt)
-					entry("field_27197", "Amethyst"				),    	// Amethyst           		(amethyst_block, small_amethyst_bud, medium_amethyst_bud, large_amethyst_bud, amethyst_cluster)
-					entry("field_11526", "Sand"					),    	// Sand               		(sand)
-					entry("field_27196", "Candle Wax"				),    	// Candle Wax         		(candle)
-					entry("field_22140", "Weeping Vines"			),    	// Weeping Vines      		(weeping_vines, weeping_vines_low_pitch)
-					entry("field_22141", "Soul Sand"				),    	// Soul Sand          		(soul_sand)
-					entry("field_22142", "Soul Soil"				),    	// Soul Soil          		(soul_soil)
-					entry("field_22143", "Basalt"					),    	// Basalt             		(basalt)
-					entry("field_22145", "Netherrack"				),    	// Netherrack         		(netherrack, nether_ore, nether_gold_ore)
-					entry("field_22146", "Nether Brick"			),    	// Nether Brick       		(nether_bricks)
-					entry("field_21214", "Honey"					),    	// Honey              		(honey_block)
-					entry("field_22149", "Bone"					),    	// Bone               		(bone_block)
-					entry("field_17581", "Nether Wart"			),    	// Nether Wart        		(nether_wart, wart_block)
-					entry("field_11535", "Grass, Crops, Foliage"	),    	// Grass, Crops, Foliage  	(grass, crop, bamboo_sapling, sweet_berry_bush)
-					entry("field_11533", "Metal"					),    	// Metal              		(metal, copper, anvil)
-					entry("field_11534", "Aquatic Foliage"		),    	// Aquatic Foliage    		(wet_grass, lily_pad)
-					entry("field_11537", "Glass, Ice"				),    	// Glass, Ice         		(glass)
-					entry("field_28116", "Sculk Sensor"			),    	// Sculk Sensor       		(sculk_sensor)
-					entry("field_22138", "Nether Foliage"			),    	// Nether Foliage     		(roots, nether_sprouts)
-					entry("field_22139", "Shroomlight"			),    	// Shroomlight        		(shroomlight)
-					entry("field_24119", "Chain"					),    	// Chain              		(chain)
-					entry("field_29033", "Deepslate"				),    	// Deepslate          		(deepslate)
-					entry("field_11547", "Wood"					),    	// Wood               		(wood, ladder)
-					entry("field_29035", "Deepslate Tiles"		),    	// Deepslate Tiles    		(deepslate_tiles)
-					entry("field_11544", "Stone, Blackstone"		),    	// Stone, Blackstone  		(stone, calcite, gilded_blackstone)
-					entry("field_11545", "Slime"					),    	// Slime              		(slime_block)
-					entry("field_29036", "Polished Deepslate"		),    	// Polished Deepslate 		(polished_deepslate, deepslate_bricks)
-					entry("field_11548", "Snow"					),    	// Snow               		(snow)
-					entry("field_28702", "Azalea Leaves"			),    	// Azalea Leaves      		(azalea_leaves)
-					entry("field_11542", "Bamboo"					),    	// Bamboo             		(bamboo, scaffolding)
-					entry("field_18852", "Mushroom Stems"			),    	// Mushroom Stems     		(stem)
-					entry("field_11543", "Wool"					),    	// Wool               		(wool)
-					entry("field_23083", "Dry Foliage"			),    	// Dry Foliage        		(vine, hanging_roots, glow_lichen)
-					entry("field_28694", "Azalea Bush"			),    	// Azalea Bush        		(azalea)
-					entry("field_28692", "Lush Cave Foliage"		),    	// Lush Cave Foliage       	(cave_vines, spore_blossom, small_dripleaf, big_dripleaf)
-					entry("field_22150", "Netherite"				),    	// Netherite          		(netherite_block, lodestone)
-					entry("field_22151", "Ancient Debris"			),    	// Ancient Debris     		(ancient_debris)
-					entry("field_22152", "Nether Fungus Stem"		),    	// Nether Fungus Stem 		(nether_stem)
-					entry("field_27884", "Powder Snow"			),    	// Powder Snow        		(powder_snow)
-					entry("field_27202", "Tuff"					),    	// Tuff               		(tuff)
-					entry("field_28697", "Moss"					),    	// Moss               		(moss, moss_carpet)
-					entry("field_22153", "Nylium"					),    	// Nylium             		(nylium)
-					entry("field_22154", "Nether Mushroom"		),    	// Nether Mushroom      	(fungus)
-					entry("field_17734", "Lanterns"				),    	// Lanterns           		(lantern)
-					entry("field_28060", "Dripstone"				),    	// Dripstone          		(dripstone_block, pointed_dripstone)
-					entry("DEFAULT"    , "Default Material"		)     	// Default Material   		()
+					entry(BlockSoundGroup.CORAL			, "Coral"			),	// Coral			(coral_block)
+					entry(BlockSoundGroup.GRAVEL		, "Gravel, Dirt"		),	// Gravel, Dirt		(gravel, rooted_dirt)
+					entry(BlockSoundGroup.AMETHYST_BLOCK, "Amethyst"			),	// Amethyst			(amethyst_block, small_amethyst_bud, medium_amethyst_bud, large_amethyst_bud, amethyst_cluster)
+					entry(BlockSoundGroup.SAND			, "Sand"				),	// Sand				(sand)
+					entry(BlockSoundGroup.CANDLE		, "Candle Wax"		),	// Candle Wax		(candle)
+					entry(BlockSoundGroup.WEEPING_VINES	, "Weeping Vines"	),	// Weeping Vines	(weeping_vines, weeping_vines_low_pitch)
+					entry(BlockSoundGroup.SOUL_SAND		, "Soul Sand"		),	// Soul Sand		(soul_sand)
+					entry(BlockSoundGroup.SOUL_SOIL		, "Soul Soil"		),	// Soul Soil		(soul_soil)
+					entry(BlockSoundGroup.BASALT		, "Basalt"			),	// Basalt			(basalt)
+					entry(BlockSoundGroup.NETHERRACK	, "Netherrack"		),	// Netherrack		(netherrack, nether_ore, nether_gold_ore)
+					entry(BlockSoundGroup.NETHER_BRICKS	, "Nether Brick"		),	// Nether Brick		(nether_bricks)
+					entry(BlockSoundGroup.HONEY			, "Honey"			),	// Honey			(honey_block)
+					entry(BlockSoundGroup.BONE			, "Bone"				),	// Bone				(bone_block)
+					entry(BlockSoundGroup.NETHER_WART	, "Nether Wart"		),	// Nether Wart		(nether_wart, wart_block)
+					entry(BlockSoundGroup.GRASS			, "Grass, Foliage"	),	// Grass, Foliage	(grass, crop, bamboo_sapling, sweet_berry_bush)
+					entry(BlockSoundGroup.METAL			, "Metal"			),	// Metal			(metal, copper, anvil)
+					entry(BlockSoundGroup.WET_GRASS		, "Aquatic Foliage"	),	// Aquatic Foliage	(wet_grass, lily_pad)
+					entry(BlockSoundGroup.GLASS			, "Glass, Ice"		),	// Glass, Ice		(glass)
+					entry(BlockSoundGroup.SCULK_SENSOR	, "Sculk Sensor"		),	// Sculk Sensor		(sculk_sensor)
+					entry(BlockSoundGroup.ROOTS			, "Nether Foliage"	),	// Nether Foliage	(roots, nether_sprouts)
+					entry(BlockSoundGroup.SHROOMLIGHT	, "Shroomlight"		),	// Shroomlight		(shroomlight)
+					entry(BlockSoundGroup.CHAIN			, "Chain"			),	// Chain			(chain)
+					entry(BlockSoundGroup.DEEPSLATE		, "Deepslate"		),	// Deepslate		(deepslate)
+					entry(BlockSoundGroup.WOOD			, "Wood"				),	// Wood				(wood, ladder)
+					entry(BlockSoundGroup.DEEPSLATE_TILES,"Deepslate Tiles"	),	// Deepslate Tiles	(deepslate_tiles)
+					entry(BlockSoundGroup.STONE			, "Stone, Blackstone"),	// Stone, Blackstone(stone, calcite, gilded_blackstone)
+					entry(BlockSoundGroup.SLIME			, "Slime"			),	// Slime			(slime_block)
+					entry(BlockSoundGroup.POLISHED_DEEPSLATE,"Polished Deepslate"),// Polished Deepslate(polished_deepslate, deepslate_bricks)
+					entry(BlockSoundGroup.SNOW			, "Snow"				),	// Snow				(snow)
+					entry(BlockSoundGroup.AZALEA_LEAVES	, "Azalea Leaves"	),	// Azalea Leaves	(azalea_leaves)
+					entry(BlockSoundGroup.BAMBOO		, "Bamboo"			),	// Bamboo			(bamboo, scaffolding)
+					entry(BlockSoundGroup.STEM			, "Mushroom Stems"	),	// Mushroom Stems	(stem)
+					entry(BlockSoundGroup.WOOL			, "Wool"				),	// Wool				(wool)
+					entry(BlockSoundGroup.VINE			, "Dry Foliage"		),	// Dry Foliage		(vine, hanging_roots, glow_lichen)
+					entry(BlockSoundGroup.AZALEA		, "Azalea Bush"		),	// Azalea Bush		(azalea)
+					entry(BlockSoundGroup.CAVE_VINES	, "Lush Cave Foliage"),	// Lush Cave Foliage(cave_vines, spore_blossom, small_dripleaf, big_dripleaf)
+					entry(BlockSoundGroup.NETHERITE		, "Netherite"		),	// Netherite		(netherite_block, lodestone)
+					entry(BlockSoundGroup.ANCIENT_DEBRIS, "Ancient Debris"	),	// Ancient Debris	(ancient_debris)
+					entry(BlockSoundGroup.NETHER_STEM	,"Nether Fungus Stem"),	//Nether Fungus Stem(nether_stem)
+					entry(BlockSoundGroup.POWDER_SNOW	, "Powder Snow"		),	// Powder Snow		(powder_snow)
+					entry(BlockSoundGroup.TUFF			, "Tuff"				),	// Tuff				(tuff)
+					entry(BlockSoundGroup.MOSS_BLOCK	, "Moss"				),	// Moss				(moss_block, moss_carpet)
+					entry(BlockSoundGroup.NYLIUM		, "Nylium"			),	// Nylium			(nylium)
+					entry(BlockSoundGroup.FUNGUS		, "Nether Mushroom"	),	// Nether Mushroom	(fungus)
+					entry(BlockSoundGroup.LANTERN		, "Lanterns"			),	// Lanterns			(lantern)
+					entry(BlockSoundGroup.DRIPSTONE_BLOCK,"Dripstone"		)	// Dripstone		(dripstone_block, pointed_dripstone)
 			);/*</editor-fold>*/
-	public static Map<BlockSoundGroup, Pair<String, String>> blockSoundGroups;
-	public static Map<String, BlockSoundGroup> groupSoundBlocks;
+	public static final Map<String, BlockSoundGroup> nameToGroup = //<editor-fold desc="Map.ofEntries()">
+			Map.ofEntries(
+					entry("Coral"			, BlockSoundGroup.CORAL			),	// Coral			(coral_block)
+					entry("Gravel, Dirt"		, BlockSoundGroup.GRAVEL		),	// Gravel, Dirt		(gravel, rooted_dirt)
+					entry("Amethyst"			, BlockSoundGroup.AMETHYST_BLOCK),	// Amethyst			(amethyst_block, small_amethyst_bud, medium_amethyst_bud, large_amethyst_bud, amethyst_cluster)
+					entry("Sand"				, BlockSoundGroup.SAND			),	// Sand				(sand)
+					entry("Candle Wax"		, BlockSoundGroup.CANDLE		),	// Candle Wax		(candle)
+					entry("Weeping Vines"	, BlockSoundGroup.WEEPING_VINES	),	// Weeping Vines	(weeping_vines, weeping_vines_low_pitch)
+					entry("Soul Sand"		, BlockSoundGroup.SOUL_SAND		),	// Soul Sand		(soul_sand)
+					entry("Soul Soil"		, BlockSoundGroup.SOUL_SOIL		),	// Soul Soil		(soul_soil)
+					entry("Basalt"			, BlockSoundGroup.BASALT		),	// Basalt			(basalt)
+					entry("Netherrack"		, BlockSoundGroup.NETHERRACK	),	// Netherrack		(netherrack, nether_ore, nether_gold_ore)
+					entry("Nether Brick"		, BlockSoundGroup.NETHER_BRICKS	),	// Nether Brick		(nether_bricks)
+					entry("Honey"			, BlockSoundGroup.HONEY			),	// Honey			(honey_block)
+					entry("Bone"				, BlockSoundGroup.BONE			),	// Bone				(bone_block)
+					entry("Nether Wart"		, BlockSoundGroup.NETHER_WART	),	// Nether Wart		(nether_wart, wart_block)
+					entry("Grass, Foliage"	, BlockSoundGroup.GRASS			),	// Grass, Foliage	(grass, crop, bamboo_sapling, sweet_berry_bush)
+					entry("Metal"			, BlockSoundGroup.METAL			),	// Metal			(metal, copper, anvil)
+					entry("Aquatic Foliage"	, BlockSoundGroup.WET_GRASS		),	// Aquatic Foliage	(wet_grass, lily_pad)
+					entry("Glass, Ice"		, BlockSoundGroup.GLASS			),	// Glass, Ice		(glass)
+					entry("Sculk Sensor"		, BlockSoundGroup.SCULK_SENSOR	),	// Sculk Sensor		(sculk_sensor)
+					entry("Nether Foliage"	, BlockSoundGroup.ROOTS			),	// Nether Foliage	(roots, nether_sprouts)
+					entry("Shroomlight"		, BlockSoundGroup.SHROOMLIGHT	),	// Shroomlight		(shroomlight)
+					entry("Chain"			, BlockSoundGroup.CHAIN			),	// Chain			(chain)
+					entry("Deepslate"		, BlockSoundGroup.DEEPSLATE		),	// Deepslate		(deepslate)
+					entry("Wood"				, BlockSoundGroup.WOOD			),	// Wood				(wood, ladder)
+					entry("Deepslate Tiles"	,BlockSoundGroup.DEEPSLATE_TILES),	// Deepslate Tiles	(deepslate_tiles)
+					entry("Stone, Blackstone", BlockSoundGroup.STONE			),	// Stone, Blackstone(stone, calcite, gilded_blackstone)
+					entry("Slime"			, BlockSoundGroup.SLIME			),	// Slime			(slime_block)
+					entry("Polished Deepslate",BlockSoundGroup.POLISHED_DEEPSLATE),// Polished Deepslate(polished_deepslate, deepslate_bricks)
+					entry("Snow"				, BlockSoundGroup.SNOW			),	// Snow				(snow)
+					entry("Azalea Leaves"	, BlockSoundGroup.AZALEA_LEAVES	),	// Azalea Leaves	(azalea_leaves)
+					entry("Bamboo"			, BlockSoundGroup.BAMBOO		),	// Bamboo			(bamboo, scaffolding)
+					entry("Mushroom Stems"	, BlockSoundGroup.STEM			),	// Mushroom Stems	(stem)
+					entry("Wool"				, BlockSoundGroup.WOOL			),	// Wool				(wool)
+					entry("Dry Foliage"		, BlockSoundGroup.VINE			),	// Dry Foliage		(vine, hanging_roots, glow_lichen)
+					entry("Azalea Bush"		, BlockSoundGroup.AZALEA		),	// Azalea Bush		(azalea)
+					entry("Lush Cave Foliage", BlockSoundGroup.CAVE_VINES	),	// Lush Cave Foliage(cave_vines, spore_blossom, small_dripleaf, big_dripleaf)
+					entry("Netherite"		, BlockSoundGroup.NETHERITE		),	// Netherite		(netherite_block, lodestone)
+					entry("Ancient Debris"	, BlockSoundGroup.ANCIENT_DEBRIS),	// Ancient Debris	(ancient_debris)
+					entry("Nether Fungus Stem",BlockSoundGroup.NETHER_STEM	),	//Nether Fungus Stem(nether_stem)
+					entry("Powder Snow"		, BlockSoundGroup.POWDER_SNOW	),	// Powder Snow		(powder_snow)
+					entry("Tuff"				, BlockSoundGroup.TUFF			),	// Tuff				(tuff)
+					entry("Moss"				, BlockSoundGroup.MOSS_BLOCK	),	// Moss				(moss_block, moss_carpet)
+					entry("Nylium"			, BlockSoundGroup.NYLIUM		),	// Nylium			(nylium)
+					entry("Nether Mushroom"	, BlockSoundGroup.FUNGUS		),	// Nether Mushroom	(fungus)
+					entry("Lanterns"			, BlockSoundGroup.LANTERN		),	// Lanterns			(lantern)
+					entry("Dripstone"		,BlockSoundGroup.DRIPSTONE_BLOCK)	// Dripstone		(dripstone_block, pointed_dripstone)
+			);//</editor-fold>
 	public static Set<Vec3d> rays;
 
 	public static MinecraftClient mc;
@@ -143,7 +190,7 @@ public class Resounding {
 	@Environment(EnvType.CLIENT)
 	public static void init() {
 		LOGGER.info("Initializing Resounding...");
-		ResoundingEFX.setupEFX();
+		ResoundingEFX.setupEXTEfx();
 		LOGGER.info("OpenAL EFX successfully primed for Resounding effects");
 		mc = MinecraftClient.getInstance();
 		updateRays();
@@ -158,17 +205,17 @@ public class Resounding {
 		final double gRatio = 1.618033988;
 		final double epsilon;
 
-		if (PrecomputedConfig.pC.nRays >= 600000) { epsilon = 214d; }
-		else if (PrecomputedConfig.pC.nRays >= 400000) { epsilon = 75d; }
-		else if (PrecomputedConfig.pC.nRays >= 11000) { epsilon = 27d; }
-		else if (PrecomputedConfig.pC.nRays >= 890) { epsilon = 10d; }
-		else if (PrecomputedConfig.pC.nRays >= 177) { epsilon = 3.33d; }
-		else if (PrecomputedConfig.pC.nRays >= 24) { epsilon = 1.33d; }
+		if (pC.nRays >= 600000) { epsilon = 214d; }
+		else if (pC.nRays >= 400000) { epsilon = 75d; }
+		else if (pC.nRays >= 11000) { epsilon = 27d; }
+		else if (pC.nRays >= 890) { epsilon = 10d; }
+		else if (pC.nRays >= 177) { epsilon = 3.33d; }
+		else if (pC.nRays >= 24) { epsilon = 1.33d; }
 		else { epsilon = 0.33d; }
 
-		rays = IntStream.range(0, PrecomputedConfig.pC.nRays).parallel().unordered().mapToObj(i -> {
+		rays = IntStream.range(0, pC.nRays).parallel().unordered().mapToObj(i -> {
 			final double theta = 2d * Math.PI * i / gRatio;
-			final double phi = Math.acos(1d - 2d * (i + epsilon) / (PrecomputedConfig.pC.nRays - 1d + 2d * epsilon));
+			final double phi = Math.acos(1d - 2d * (i + epsilon) / (pC.nRays - 1d + 2d * epsilon));
 
 			return new Vec3d(
 					Math.cos(theta) * Math.sin(phi),
@@ -191,21 +238,21 @@ public class Resounding {
 
 	@Environment(EnvType.CLIENT)
 	public static void playSound(double posX, double posY, double posZ, int sourceID, boolean auxOnly) {
-		if (PrecomputedConfig.pC.off) return;
+		if (!efxEnabled || pC.off) return;
 
-		if (PrecomputedConfig.pC.dLog) {
-			LOGGER.info("Playing sound!\n      Source ID:      {}\n Source Pos:     {}\n      Sound category: {}\n      Sound name:     {}", sourceID, new double[] {posX, posY, posZ}, lastSoundCategory, lastSoundName);
+		if (pC.dLog) {
+			LOGGER.info("Playing sound!\n      Source ID:      {}\n      Source Pos:     {}\n      Sound category: {}\n      Sound name:     {}", sourceID, new double[] {posX, posY, posZ}, lastSoundCategory, lastSoundName);
 		} else {
-			LOGGER.debug("Playing sound!\n      Source ID:      {}\n Source Pos:     {}\n      Sound category: {}\n      Sound name:     {}", sourceID, new double[] {posX, posY, posZ}, lastSoundCategory, lastSoundName);
+			LOGGER.debug("Playing sound!\n      Source ID:      {}\n      Source Pos:     {}\n      Sound category: {}\n      Sound name:     {}", sourceID, new double[] {posX, posY, posZ}, lastSoundCategory, lastSoundName);
 		}
 
 		long startTime = 0;
 		long endTime;
-		if (PrecomputedConfig.pC.pLog) startTime = System.nanoTime();
+		if (pC.pLog) startTime = System.nanoTime();
 
 		evalEnv(sourceID, posX, posY, posZ, auxOnly);
 
-		if (PrecomputedConfig.pC.pLog) { endTime = System.nanoTime();
+		if (pC.pLog) { endTime = System.nanoTime();
 			LOGGER.info("Total calculation time for sound {}: {} milliseconds", lastSoundName, (double)(endTime - startTime)/(double)1000000);
 		}
 
@@ -215,10 +262,11 @@ public class Resounding {
 	private static double getBlockReflectivity(final @NotNull BlockState blockState) {
 		BlockSoundGroup soundType = blockState.getSoundGroup();
 		String blockName = blockState.getBlock().getTranslationKey();
-		if (PrecomputedConfig.pC.blockWhiteSet.contains(blockName)) return PrecomputedConfig.pC.blockWhiteMap.get(blockName).reflectivity;
+		if (pC.blockWhiteSet.contains(blockName)) return pC.blockWhiteMap.get(blockName).reflectivity;
 
-		double r = PrecomputedConfig.pC.reflectivityMap.getOrDefault(soundType, Double.NaN);
-		return Double.isNaN(r) ? PrecomputedConfig.pC.defaultReflectivity : r;
+		if (redirectMap.containsKey(soundType)) { soundType = redirectMap.get(soundType);	}
+		double r = pC.reflectivityMap.getOrDefault(soundType, Double.NaN);
+		return Double.isNaN(r) ? pC.defaultReflectivity : r;
 	}
 /*
 	@Environment(EnvType.CLIENT)
@@ -243,13 +291,13 @@ public class Resounding {
 
 		SPHitResult rayHit = RaycastFix.fixedRaycast(
 				soundPos,
-				soundPos.add(dir.multiply(PrecomputedConfig.pC.maxDistance)),
+				soundPos.add(dir.multiply(pC.maxDistance)),
 				mc.world,
 				soundBlockPos,
 				soundChunk
 		);
 
-		if (PrecomputedConfig.pC.dRays) RaycastRenderer.addSoundBounceRay(soundPos, rayHit.getPos(), Formatting.GREEN.getColorValue());
+		if (pC.dRays) RaycastRenderer.addSoundBounceRay(soundPos, rayHit.getPos(), Formatting.GREEN.getColorValue());
 
 		if (rayHit.isMissed()) {
 			result.totalReflectivity = 1;
@@ -281,36 +329,36 @@ public class Resounding {
 			color = Formatting.WHITE.getColorValue();
 			result.shared[0] = 1;
 		}
-		if (PrecomputedConfig.pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
+		if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
 
 		// Secondary ray bounces
-		for (int i = 1; i < PrecomputedConfig.pC.nRayBounces; i++) {
+		for (int i = 1; i < pC.nRayBounces; i++) {
 
 			final Vec3d newRayDir = pseudoReflect(lastRayDir, lastHitNormal);
-			rayHit = RaycastFix.fixedRaycast(lastHitPos, lastHitPos.add(newRayDir.multiply(PrecomputedConfig.pC.maxDistance - result.totalDistance)), mc.world, lastHitBlock, rayHit.chunk);
+			rayHit = RaycastFix.fixedRaycast(lastHitPos, lastHitPos.add(newRayDir.multiply(pC.maxDistance - result.totalDistance)), mc.world, lastHitBlock, rayHit.chunk);
 			// log("New ray dir: " + newRayDir.xCoord + ", " + newRayDir.yCoord + ", " + newRayDir.zCoord);
 
 			if (rayHit.isMissed()) {
-				if (PrecomputedConfig.pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, rayHit.getPos(), Formatting.DARK_RED.getColorValue());
-				result.missed = Math.pow(result.totalReflectivity, PrecomputedConfig.pC.globalReflRcp);
+				if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, rayHit.getPos(), Formatting.DARK_RED.getColorValue());
+				result.missed = Math.pow(result.totalReflectivity, pC.globalReflRcp);
 				break;
 			}
 
 			final Vec3d newRayHitPos = rayHit.getPos();
 			final double newRayLength = lastHitPos.distanceTo(newRayHitPos);
 			result.totalDistance += newRayLength;
-			if (PrecomputedConfig.pC.maxDistance - result.totalDistance < newRayHitPos.distanceTo(playerPos))
+			if (pC.maxDistance - result.totalDistance < newRayHitPos.distanceTo(playerPos))
 			{
-				if (PrecomputedConfig.pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
-				result.missed = Math.pow(result.totalReflectivity, PrecomputedConfig.pC.globalReflRcp);
+				if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
+				result.missed = Math.pow(result.totalReflectivity, pC.globalReflRcp);
 				break;
 			}
 
 			final double newBlockReflectivity = getBlockReflectivity(rayHit.getBlockState());
 			result.totalReflectivity *= newBlockReflectivity;
-			if (Math.pow(result.totalReflectivity, PrecomputedConfig.pC.globalReflRcp) < PrecomputedConfig.pC.minEnergy) { if (PrecomputedConfig.pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_BLUE.getColorValue()); break; }
+			if (Math.pow(result.totalReflectivity, pC.globalReflRcp) < pC.minEnergy) { if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_BLUE.getColorValue()); break; }
 
-			if (PrecomputedConfig.pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.BLUE.getColorValue());
+			if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.BLUE.getColorValue());
 
 			lastBlockReflectivity = newBlockReflectivity;
 			lastHitPos = newRayHitPos;
@@ -335,13 +383,13 @@ public class Resounding {
 				color = Formatting.WHITE.getColorValue();
 				result.shared[i] = 1;
 			}
-			if (PrecomputedConfig.pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
+			if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
 		}
 		if (result.missed == 1) return result;
 		for(int i = 0; i <= result.lastBounce; i++){
 			if (result.shared[i] > 0) continue;
 			double accumulator = 1;
-			for(int j = i; result.shared[j] == 0 && j < PrecomputedConfig.pC.nRayBounces - 1; j++){
+			for(int j = i; result.shared[j] == 0 && j < pC.nRayBounces - 1; j++){
 				accumulator *= result.bounceReflectivity[j+1];
 			}
 			result.shared[i] = accumulator;
@@ -351,13 +399,13 @@ public class Resounding {
 
 	@Environment(EnvType.CLIENT)
 	private static void evalEnv(final int sourceID, double posX, double posY, double posZ, boolean auxOnly) {
-		if (PrecomputedConfig.pC.off) return;
+		if (pC.off) return;
 
-		if (mc.player == null || mc.world == null || posY <= mc.world.getBottomY() || (PrecomputedConfig.pC.recordsDisable && lastSoundCategory == SoundCategory.RECORDS) || uiPattern.matcher(lastSoundName).matches() || (posX == 0.0 && posY == 0.0 && posZ == 0.0))
+		if (mc.player == null || mc.world == null || posY <= mc.world.getBottomY() || (pC.recordsDisable && lastSoundCategory == SoundCategory.RECORDS) || uiPattern.matcher(lastSoundName).matches() || (posX == 0.0 && posY == 0.0 && posZ == 0.0))
 		{
 			//logDetailed("Menu sound!");
 			try {
-				ResoundingEFX.setEnv(sourceID, new double[]{0f, 0f, 0f, 0f}, new double[]{1f, 1f, 1f, 1f}, auxOnly ? 0f : 1f, 1f);
+				ResoundingEFX.setEnv(sourceID, new double[pC.resolution], new double[pC.resolution], auxOnly ? 0f : 1f, 1f);
 			} catch (IllegalArgumentException e) { e.printStackTrace(); }
 			return;
 		}
@@ -367,10 +415,10 @@ public class Resounding {
 		boolean block = blockPattern.matcher(lastSoundName).matches() && !stepPattern.matcher(lastSoundName).matches();
 		if (lastSoundCategory == SoundCategory.RECORDS){posX+=0.5;posY+=0.5;posZ+=0.5;block = true;}
 
-		if (PrecomputedConfig.pC.skipRainOcclusionTracing && isRain)
+		if (pC.skipRainOcclusionTracing && isRain)
 		{
 			try {
-				ResoundingEFX.setEnv(sourceID, new double[]{0f, 0f, 0f, 0f}, new double[]{1f, 1f, 1f, 1f}, auxOnly ? 0f : 1f, 1f);
+				ResoundingEFX.setEnv(sourceID, new double[pC.resolution], new double[pC.resolution], auxOnly ? 0f : 1f, 1f);
 			} catch (IllegalArgumentException e) { e.printStackTrace(); }
 			return;
 		}
@@ -520,7 +568,7 @@ public class Resounding {
 		if (mc.player.isSubmergedInWater()) { inWater = true; }
 
 		if (results == null) {
-			try { ResoundingEFX.setEnv(sourceID, new double[PrecomputedConfig.pC.resolution], new double[PrecomputedConfig.pC.resolution], directGain, directGain * PrecomputedConfig.pC.globalAbsorptionBrightness);
+			try { ResoundingEFX.setEnv(sourceID, new double[pC.resolution], new double[pC.resolution], directGain, directGain * pC.globalAbsorptionBrightness);
 			} catch (IllegalArgumentException e) { e.printStackTrace(); }
 			return;
 		}
@@ -536,33 +584,33 @@ public class Resounding {
 			for (int j = 0; j <= result.lastBounce; j++)
 				sharedAirspaceSum += result.shared[j];
 		}
-		missedSum *= PrecomputedConfig.pC.rcpNRays;
+		missedSum *= pC.rcpNRays;
 		sharedAirspaceSum /= bounceCount;
 
 		// TODO: Does this perform better in parallel?
 		// TODO: this is not really done correctly but its the best I can do without dynamic effects
-		double[] sendGain = new double[PrecomputedConfig.pC.resolution];
+		double[] sendGain = new double[pC.resolution];
 		for (RayResult result : results) {
 			if (result.missed == 1.0D) continue;
 			for (int j = 0; j <= result.lastBounce; j++) {
 				double energy = result.totalBounceReflectivity[j] / Math.pow(result.totalBounceDistance[j], (2.0D * missedSum) + 1 - airAbsorptionHF);
-				int t = (int) (Math.pow(MathHelper.clamp(logBase(PrecomputedConfig.pC.minEnergy, 1.0D / energy) * -1.0D * result.totalBounceDistance[j] / PrecomputedConfig.speedOfSound * PrecomputedConfig.pC.maxDecayTime, 0.0D, 1.0D), PrecomputedConfig.pC.warpFactor) * (PrecomputedConfig.pC.resolution - 1));
+				int t = (int) (Math.pow(MathHelper.clamp(logBase(pC.minEnergy, 1.0D / energy) * -1.0D * result.totalBounceDistance[j] / speedOfSound, 0.0D, 1.0D), pC.warpFactor) * (pC.resolution - 1));
 				sendGain[t] += energy;
 			}
 		}
 		// TODO: tailor shared to each effect slot, like it used to be
-		directGain = inWater ? sharedAirspaceSum * PrecomputedConfig.pC.underwaterFilter : sharedAirspaceSum; //TODO: Replace this with occlusion calculation. Maybe add an occlusion mode toggle?
-		double directCutoff = Math.pow(directGain, PrecomputedConfig.pC.globalAbsorptionBrightness);
-		double[] sendCutoff = new double[PrecomputedConfig.pC.resolution];
-		for (int i = 0; i < PrecomputedConfig.pC.resolution; i++) {
-			sendGain[i] = Math.pow(sendGain[i] * (inWater ? sharedAirspaceSum * PrecomputedConfig.pC.underwaterFilter : sharedAirspaceSum)/ bounceCount, PrecomputedConfig.pC.globalReverbGain); // TODO: should I use `rcpTotalRays` here? would make reverb quieter
-			sendCutoff[i] = Math.pow(sendGain[i], PrecomputedConfig.pC.globalReverbBrightness);
+		directGain = inWater ? sharedAirspaceSum * pC.underwaterFilter : sharedAirspaceSum; //TODO: Replace this with occlusion calculation. Maybe add an occlusion mode toggle?
+		double directCutoff = directGain * pC.globalAbsorptionBrightness;
+		double[] sendCutoff = new double[pC.resolution];
+		for (int i = 0; i < pC.resolution; i++) {
+			sendGain[i] = sendGain[i] * (inWater ? sharedAirspaceSum * pC.underwaterFilter : sharedAirspaceSum)/ bounceCount * pC.globalReverbGain; // TODO: should I use `rcpTotalRays` here? would make reverb quieter
+			sendCutoff[i] = sendGain[i] * pC.globalReverbBrightness;
 		}
 
 		//logDetailed("HitRatio0: " + hitRatioBounce1 + " HitRatio1: " + hitRatioBounce2 + " HitRatio2: " + hitRatioBounce3 + " HitRatio3: " + hitRatioBounce4);
 		//logEnvironment("Bounce reflectivity 0: " + bounceReflectivityRatio[0] + " bounce reflectivity 1: " + bounceReflectivityRatio[1] + " bounce reflectivity 2: " + bounceReflectivityRatio[2] + " bounce reflectivity 3: " + bounceReflectivityRatio[3]);
 
-		if (PrecomputedConfig.pC.eLog) {
+		if (pC.eLog || pC.dLog) {
 			LOGGER.info("Final environment settings:\n      Source Gain:    {}\n      Source Gain HF: {}\n      Reverb Gain:    {}\n      Reverb Gain HF: {}", directGain, directCutoff, sendGain, sendCutoff);
 		} else {
 			LOGGER.debug("Final environment settings:\n      Source Gain:    {}\n      Source Gain HF: {}\n      Reverb Gain:    {}\n      Reverb Gain HF: {}", directGain, directCutoff, sendGain, sendCutoff);

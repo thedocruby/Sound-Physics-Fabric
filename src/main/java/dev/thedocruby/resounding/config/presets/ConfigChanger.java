@@ -22,8 +22,8 @@ public class ConfigChanger {
         setGeneral(config.General, attenuationFactor, globalReverbGain, globalReverbBrightness, globalBlockAbsorption, globalBlockReflectance, soundDistanceAllowance, airAbsorption, humidityAbsorption, rainAbsorption, underwaterFilter);
         if(Resounding.env == EnvType.SERVER) return;
         setPerformance(config.Performance, skipRainOcclusionTracing, environmentEvaluationRays, environmentEvaluationRayBounces, simplerSharedAirspaceSimulation);
-        setMaterial_Properties(config.Materials, materialProperties);
-        setVlads_Tweaks(config.Vlads_Tweaks, continuousRefreshRate, maxDirectOcclusionFromBlocks, _9RayDirectOcclusion, soundDirectionEvaluation, directRaysDirEvalMultiplier, notOccludedNoRedirect);
+        setMaterialProperties(config.Materials, materialProperties);
+        setMisc(config.Misc, continuousRefreshRate, maxDirectOcclusionFromBlocks, _9RayDirectOcclusion, soundDirectionEvaluation, directRaysDirEvalMultiplier, notOccludedNoRedirect);
         config.preset = ConfigPresets.LOAD_SUCCESS;
     }
 
@@ -49,25 +49,23 @@ public class ConfigChanger {
     }
 
     @Environment(EnvType.CLIENT)
-    public static void setMaterial_Properties(ResoundingConfig.Materials materials, @Nullable Map<String, MaterialData> materialProperties) {
+    public static void setMaterialProperties(ResoundingConfig.Materials materials, @Nullable Map<String, MaterialData> materialProperties) {
         if (materialProperties != null) materialProperties.forEach((s, newData) -> materials.materialProperties.compute(s, (k, v) -> (v == null) ?
-                new MaterialData( hasExample(s) ? getExample(s) : "error",
+                new MaterialData( s,
                         newData.getReflectivity() == -1 ? 0.5 : newData.getReflectivity(),
                         newData.getAbsorption() == -1 ? 0.5 : newData.getAbsorption())
-              : new MaterialData( (v.getExample() == null) ? (hasExample(s) ? getExample(s) : "error") : v.getExample(),
+              : new MaterialData( (v.getExample() == null) ? s : v.getExample(),
                         newData.getReflectivity() == -1 ? v.getReflectivity() : newData.getReflectivity(),
                         newData.getAbsorption() == -1 ? v.getAbsorption() : newData.getAbsorption())));
     }
 
     @Environment(EnvType.CLIENT)
-    public static void setVlads_Tweaks(ResoundingConfig.Vlads_Tweaks vlads_tweaks, @Nullable Integer continuousRefreshRate, @Nullable Double maxDirectOcclusionFromBlocks, @Nullable Boolean _9RayDirectOcclusion, @Nullable Boolean soundDirectionEvaluation, @Nullable Double directRaysDirEvalMultiplier, @Nullable Boolean notOccludedNoRedirect) {
-        if (continuousRefreshRate != null) vlads_tweaks.continuousRefreshRate = continuousRefreshRate;
-        if (maxDirectOcclusionFromBlocks != null) vlads_tweaks.maxDirectOcclusionFromBlocks = maxDirectOcclusionFromBlocks;
-        if (_9RayDirectOcclusion != null) vlads_tweaks._9RayDirectOcclusion = _9RayDirectOcclusion;
-        if (soundDirectionEvaluation != null) vlads_tweaks.soundDirectionEvaluation = soundDirectionEvaluation;
-        if (directRaysDirEvalMultiplier != null) vlads_tweaks.directRaysDirEvalMultiplier = directRaysDirEvalMultiplier;
-        if (notOccludedNoRedirect != null) vlads_tweaks.notOccludedNoRedirect = notOccludedNoRedirect;
+    public static void setMisc(ResoundingConfig.Misc misc, @Nullable Integer continuousRefreshRate, @Nullable Double maxDirectOcclusionFromBlocks, @Nullable Boolean _9RayDirectOcclusion, @Nullable Boolean soundDirectionEvaluation, @Nullable Double directRaysDirEvalMultiplier, @Nullable Boolean notOccludedNoRedirect) {
+        if (continuousRefreshRate != null) misc.continuousRefreshRate = continuousRefreshRate;
+        if (maxDirectOcclusionFromBlocks != null) misc.maxDirectOcclusionFromBlocks = maxDirectOcclusionFromBlocks;
+        if (_9RayDirectOcclusion != null) misc._9RayDirectOcclusion = _9RayDirectOcclusion;
+        if (soundDirectionEvaluation != null) misc.soundDirectionEvaluation = soundDirectionEvaluation;
+        if (directRaysDirEvalMultiplier != null) misc.directRaysDirEvalMultiplier = directRaysDirEvalMultiplier;
+        if (notOccludedNoRedirect != null) misc.notOccludedNoRedirect = notOccludedNoRedirect;
     }
-    public static String getExample(String s) {return Resounding.groupMap.get(s);}
-    public static boolean hasExample(String s) {return Resounding.groupMap.containsKey(s);}
 }

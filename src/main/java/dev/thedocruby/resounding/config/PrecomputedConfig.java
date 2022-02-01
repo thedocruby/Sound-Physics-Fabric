@@ -1,7 +1,6 @@
 package dev.thedocruby.resounding.config;
 
 import dev.thedocruby.resounding.Resounding;
-import dev.thedocruby.resounding.ResoundingLog;
 import it.unimi.dsi.fastutil.objects.Reference2DoubleOpenHashMap;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -10,6 +9,8 @@ import net.minecraft.util.Pair;
 
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static dev.thedocruby.resounding.Resounding.nameToGroup;
 
 /*
     Values, which remain constant after the config has changed
@@ -25,8 +26,13 @@ public class PrecomputedConfig {
     public final boolean off;
 
     public final float globalReverbGain;
+    public final double minEnergy;
+    public final int resolution;
+    public final double warpFactor;
     public final float globalReverbBrightness;
+    public final double reverbCondensationFactor;
     public final double globalBlockAbsorption;
+    public final double globalAbsorptionBrightness;
     public final double globalBlockReflectance;
     public final double globalReflRcp;
     public final float airAbsorption;
@@ -44,6 +50,8 @@ public class PrecomputedConfig {
     public int nRayBounces;
     @Environment(EnvType.CLIENT)
     public double rcpTotRays;
+    @Environment(EnvType.CLIENT)
+    public double maxDistance;
     @Environment(EnvType.CLIENT)
     public boolean simplerSharedAirspaceSimulation;
 
@@ -81,14 +89,6 @@ public class PrecomputedConfig {
     public final boolean pLog;
     public final boolean dRays;
 
-    public final int resolution;
-    public final double warpFactor;
-    public final double globalAbsorptionBrightness;
-    public final double maxDecayTime;
-    public final int traceRange;
-    public final double minEnergy;
-    public final double maxDistance;
-
     private boolean active = true;
 
     public PrecomputedConfig(ResoundingConfig c) throws CloneNotSupportedException {
@@ -96,10 +96,15 @@ public class PrecomputedConfig {
         off = !c.enabled;
 
         defaultAttenuationFactor = c.General.attenuationFactor;
-        globalReverbGain = (float) (1 / c.General.globalReverbGain);
+        globalReverbGain = (float) c.General.globalReverbGain;
+        minEnergy = Math.exp(-1 * c.General.globalReverbStrength);
+        resolution = c.General.reverbResolution;
+        warpFactor = c.General.reverbWarpFactor;
         globalReverbBrightness = (float) c.General.globalReverbBrightness;
+        reverbCondensationFactor = 1 - c.General.globalReverbSmoothness;
         globalBlockAbsorption = c.General.globalBlockAbsorption;
-        soundDistanceAllowance = c.General.soundDistanceAllowance;
+        globalAbsorptionBrightness = c.General.globalAbsorptionBrightness;
+        soundDistanceAllowance = c.General.soundDistanceAllowance; // TODO: Refactor to sound render distance
         globalBlockReflectance = c.General.globalBlockReflectance;
         globalReflRcp = 1 / globalBlockReflectance;
         airAbsorption = (float) c.General.airAbsorption;
@@ -113,6 +118,7 @@ public class PrecomputedConfig {
             rcpNRays = 1d / nRays;
             nRayBounces = c.Performance.environmentEvaluationRayBounces;
             rcpTotRays = rcpNRays / nRayBounces;
+            maxDistance = c.Performance.traceRange * nRayBounces * Math.sqrt(2 * (16*16)) * 2;
             simplerSharedAirspaceSimulation = c.Performance.simplerSharedAirspaceSimulation;
 
             blockWhiteSet = new HashSet<>(c.Materials.blockWhiteList);
@@ -133,13 +139,13 @@ public class PrecomputedConfig {
             absorptionMap = new Reference2DoubleOpenHashMap<>();
             final List<String> wrong = new java.util.ArrayList<>();
             final List<String> toRemove = new java.util.ArrayList<>();
-            c.Materials.materialProperties.forEach((k, v) -> {
-                BlockSoundGroup bsg = Resounding.groupSoundBlocks.get(k);
-                if (bsg != null) {
+            c.Materials.materialProperties.forEach((k, v) -> { //TODO Materials need to be reworked.
+                if (nameToGroup.containsKey(k)) {
+                    BlockSoundGroup bsg = nameToGroup.get(k);
                     reflectivityMap.put(bsg, v.reflectivity);
-                    absorptionMap.put(bsg, v.absorption * 2);
+                    absorptionMap.put(bsg, v.absorption);
                 } else {
-                    if (!k.equals("DEFAULT") && !blockWhiteSet.contains(k)) {
+                    if (!blockWhiteSet.contains(k) && !k.equals("DEFAULT")) {
                         wrong.add(k + " (" + v.example + ")");
                         toRemove.add(k);
                     }
@@ -150,28 +156,20 @@ public class PrecomputedConfig {
                 toRemove.forEach(c.Materials.materialProperties::remove);
             }
 
-            recordsDisable = c.Vlads_Tweaks.recordsDisable;
-            continuousRefreshRate = c.Vlads_Tweaks.continuousRefreshRate;
-            maxDirectOcclusionFromBlocks = c.Vlads_Tweaks.maxDirectOcclusionFromBlocks;
-            _9Ray = c.Vlads_Tweaks._9RayDirectOcclusion;
-            soundDirectionEvaluation = c.Vlads_Tweaks.soundDirectionEvaluation;
-            directRaysDirEvalMultiplier = Math.pow(c.Vlads_Tweaks.directRaysDirEvalMultiplier, 10.66);
-            notOccludedRedirect = !c.Vlads_Tweaks.notOccludedNoRedirect;
+            recordsDisable = c.Misc.recordsDisable;
+            continuousRefreshRate = c.Misc.continuousRefreshRate;
+            maxDirectOcclusionFromBlocks = c.Misc.maxDirectOcclusionFromBlocks;
+            _9Ray = c.Misc._9RayDirectOcclusion;
+            soundDirectionEvaluation = c.Misc.soundDirectionEvaluation; // TODO: DirEval
+            directRaysDirEvalMultiplier = Math.pow(c.Misc.directRaysDirEvalMultiplier, 10.66); // TODO: DirEval
+            notOccludedRedirect = !c.Misc.notOccludedNoRedirect;
         }
 
-        dLog = c.Misc.debugLogging;
-        oLog = c.Misc.occlusionLogging;
-        eLog = c.Misc.environmentLogging;
-        pLog = c.Misc.performanceLogging;
-        dRays = c.Misc.raytraceParticles;
-
-        resolution = 4;
-        warpFactor = 4;
-        globalAbsorptionBrightness = 1d / 1d;
-        maxDecayTime = Math.min(20, 4.142);
-        traceRange = 256;
-        minEnergy = Math.exp(-1 * c.Misc.minEnergy);
-        maxDistance = traceRange * nRayBounces;
+        dLog = c.Debug.debugLogging;
+        oLog = c.Debug.occlusionLogging;
+        eLog = c.Debug.environmentLogging;
+        pLog = c.Debug.performanceLogging;
+        dRays = c.Debug.raytraceParticles;
     }
 
     public void deactivate(){ active = false;}
