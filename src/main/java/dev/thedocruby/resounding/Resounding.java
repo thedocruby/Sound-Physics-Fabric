@@ -36,6 +36,7 @@ import static dev.thedocruby.resounding.openal.ResoundingEFX.efxEnabled;
 import static java.util.Map.entry;
 
 @SuppressWarnings({"CommentedOutCode"})
+// TODO: do more Javadoc
 public class Resounding {
 
 	private Resounding() { }
@@ -44,7 +45,7 @@ public class Resounding {
 	public static final Logger LOGGER = LogManager.getLogger("Resounding");
 	private static final Pattern rainPattern = Pattern.compile(".*rain.*");
 	// public static final Pattern stepPattern = Pattern.compile(".*step.*"); // TODO: step sounds
-	private static final Pattern blockPattern = Pattern.compile(".*block..*");
+	// private static final Pattern blockPattern = Pattern.compile(".*block..*");TODO: Occlusion
 	private static final Pattern uiPattern = Pattern.compile("ui..*");
 
 	public static final Map<BlockSoundGroup, BlockSoundGroup> redirectMap = //<editor-fold desc="Map.ofEntries()">
@@ -252,7 +253,7 @@ public class Resounding {
 		long endTime;
 		if (mc.player == null || mc.world == null || posY <= mc.world.getBottomY() || (pC.recordsDisable && lastSoundCategory == SoundCategory.RECORDS) || uiPattern.matcher(lastSoundName).matches() || (posX == 0.0 && posY == 0.0 && posZ == 0.0))  {
 			//logDetailed("Menu sound!");
-			try { setEnv(new double[pC.resolution], new double[pC.resolution], auxOnly ? 0f : 1f, 1f);
+			try { setEnv(new SoundProfile(auxOnly ? 0f : 1f, 1f, new double[pC.resolution], new double[pC.resolution]));
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
 
@@ -271,27 +272,24 @@ public class Resounding {
 		soundBlockPos = new BlockPos(soundPos.x, soundPos.y,soundPos.z);
 		timeT = mc.world.getTime();
 
-		if (Math.max(playerPos.distanceTo(soundPos), listenerPos.distanceTo(soundPos)) > maxDist)
-		{
-			try { setEnv(new double[pC.resolution], new double[pC.resolution], 0f , 1f);
+		if (Math.max(playerPos.distanceTo(soundPos), listenerPos.distanceTo(soundPos)) > maxDist) {
+			try { setEnv(new SoundProfile(0d , 1d, new double[pC.resolution], new double[pC.resolution]));
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
 		if (/*pC.skipRainOcclusionTracing && */isRain) { // TODO: Occlusion
-			try { setEnv(new double[pC.resolution], new double[pC.resolution], auxOnly ? 0f : 1f, 1f);
+			try { setEnv(new SoundProfile(auxOnly ? 0d : 1d, 1d, new double[pC.resolution], new double[pC.resolution]));
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
-
-
 		if (pC.dLog) {
 			LOGGER.info("Playing sound!\n      Source ID:      {}\n      Source Pos:     {}\n      Sound category: {}\n      Sound name:     {}", sourceID, new double[] {posX, posY, posZ}, lastSoundCategory, lastSoundName);
 		} else {
 			LOGGER.debug("Playing sound!\n      Source ID:      {}\n      Source Pos:     {}\n      Sound category: {}\n      Sound name:     {}", sourceID, new double[] {posX, posY, posZ}, lastSoundCategory, lastSoundName);
 		}
+		try { ///////////////////////////////////////
 
+			setEnv(processEnv(evalEnv()));
 
-		processEnv(evalEnv());
-
-
+		} catch (Exception e) { e.printStackTrace(); }
 		if (pC.pLog) { endTime = System.nanoTime();
 			LOGGER.info("Total calculation time for sound {}: {} milliseconds", lastSoundName, (double)(endTime - startTime)/(double)1000000);
 		}
@@ -320,7 +318,7 @@ public class Resounding {
 
 	@Contract("_, _ -> new")
 	@Environment(EnvType.CLIENT)
-	private static @NotNull Vec3d pseudoReflect(Vec3d dir, @NotNull Vec3i normal)
+	private static @NotNull Vec3d pseudoReflect(Vec3d dir, @NotNull Vec3i normal) // TODO: I think this breaks with faces not aligned to the grid
 	{return new Vec3d(normal.getX() == 0 ? dir.x : -dir.x, normal.getY() == 0 ? dir.y : -dir.y, normal.getZ() == 0 ? dir.z : -dir.z);}
 
 	@Environment(EnvType.CLIENT)
@@ -554,16 +552,17 @@ public class Resounding {
 		return rays.stream().parallel().unordered().map(Resounding::throwEnvRay).collect(Collectors.toSet());
 	}
 
+	@Contract("_ -> new")
 	@Environment(EnvType.CLIENT)
-	private static void processEnv(@Nullable Set<RayResult> results) {
+	private static @NotNull SoundProfile processEnv(final @Nullable Set<RayResult> results) {
 		// Calculate reverb parameters for this sound
 		double directGain = auxOnly ? 0 : 1; // TODO: fix occlusion so i don't have to override this.
 
 		// TODO: DirEval is on hold while I rewrite, will be re-added later
 		// Take weighted (on squared distance) average of the directions sound reflection came from
 		//doDirEval = pC.soundDirectionEvaluation && (occlusionAccumulation > 0 || pC.notOccludedRedirect); // TODO: DirEval
-		dirEval:  // TODO: this block can be converted to another multithreaded iterator
-		{/*
+		// dirEval:  TODO: this block can be converted to another multithreaded iterator
+		/* {
 			if (directions.isEmpty()) break dirEval;
 
 			if (pC.pLog) log("Evaluating direction from " + sharedAirspace + " entries...");
@@ -580,7 +579,7 @@ public class Resounding {
 
 			// Vec3d pos = sum.normalize().multiply(soundPos.distanceTo(playerPos)).add(playerPos);
 			// mc.world.addParticle(ParticleTypes.END_ROD, false, pos.getX(), pos.getY(), pos.getZ(), 0,0,0);
-		*/}
+		}*/
 		boolean inWater = false;
 		double airAbsorptionHF = AirEffects.getAbsorptionHF();
 
@@ -588,9 +587,7 @@ public class Resounding {
 		if (mc.player.isSubmergedInWater()) { inWater = true; }
 
 		if (results == null) {
-			try { setEnv(new double[pC.resolution], new double[pC.resolution], directGain, directGain * pC.globalAbsorptionBrightness);
-			} catch (IllegalArgumentException e) { e.printStackTrace(); }
-			return;
+			return new SoundProfile(directGain, directGain * pC.globalAbsorptionBrightness, new double[pC.resolution], new double[pC.resolution]);
 		}
 
 		// TODO: Does this perform better in parallel?
@@ -619,7 +616,7 @@ public class Resounding {
 			}
 		}
 		// TODO: tailor shared to each effect slot, like it used to be
-		directGain = inWater ? sharedAirspaceSum * pC.underwaterFilter : sharedAirspaceSum; //TODO: Replace this with occlusion calculation. Maybe add an occlusion mode toggle?
+		directGain = inWater ? sharedAirspaceSum * pC.underwaterFilter : sharedAirspaceSum; //TODO: Replace this with occlusion calculation, and add an occlusion mode toggle?
 		double directCutoff = directGain * pC.globalAbsorptionBrightness;
 		double[] sendCutoff = new double[pC.resolution];
 		for (int i = 0; i < pC.resolution; i++) {
@@ -631,40 +628,24 @@ public class Resounding {
 		//logEnvironment("Bounce reflectivity 0: " + bounceReflectivityRatio[0] + " bounce reflectivity 1: " + bounceReflectivityRatio[1] + " bounce reflectivity 2: " + bounceReflectivityRatio[2] + " bounce reflectivity 3: " + bounceReflectivityRatio[3]);
 
 		if (pC.eLog || pC.dLog) {
-			LOGGER.info("Final environment settings:\n      Source Gain:    {}\n      Source Gain HF: {}\n      Reverb Gain:    {}\n      Reverb Gain HF: {}", directGain, directCutoff, sendGain, sendCutoff);
+			LOGGER.info("Final sound profile:\n      Source Gain:    {}\n      Source Gain HF: {}\n      Reverb Gain:    {}\n      Reverb Gain HF: {}", directGain, directCutoff, sendGain, sendCutoff);
 		} else {
-			LOGGER.debug("Final environment settings:\n      Source Gain:    {}\n      Source Gain HF: {}\n      Reverb Gain:    {}\n      Reverb Gain HF: {}", directGain, directCutoff, sendGain, sendCutoff);
+			LOGGER.debug("Final sound profile:\n      Source Gain:    {}\n      Source Gain HF: {}\n      Reverb Gain:    {}\n      Reverb Gain HF: {}", directGain, directCutoff, sendGain, sendCutoff);
 		}
 
-		try {
-			setEnv(sendGain, sendCutoff, directGain, directCutoff); // TODO: make filter values a record return like in `evalEnv`
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
-		}
+		return new SoundProfile(directGain, directCutoff, sendGain, sendCutoff);
 	}
 
-	// TODO: do more Javadoc
-	/**
-	 * Registers the calculated reverb environment with OpenAL.
-	 *
-	 * @param sendGain output gain of the reverb audio from the effect slots
-	 * @param sendCutoff output cutoff of the reverb audio from the effect slots
-	 * @param directGain output gain of the main audio of sound being processed
-	 * @param directCutoff output cutoff of the main audio of sound being processed
-	 * @throws IllegalArgumentException if the number of reverb audio parameters does not match the number of effect slots (sendGain.length, sendCutoff.length != resolution)
-	 */
-	public static void setEnv(
-			final double @NotNull [] sendGain, final double @NotNull [] sendCutoff,
-			final double directGain, final double directCutoff
-	) {
-		if (sendGain.length != pC.resolution || sendCutoff.length != pC.resolution) {
+	@Environment(EnvType.CLIENT)
+	public static void setEnv(final @NotNull SoundProfile profile) {
+		if (profile.sendGain().length != pC.resolution || profile.sendCutoff().length != pC.resolution) {
 			throw new IllegalArgumentException("Error: Reverb parameter count does not match reverb slot count!");
 		}
 
 		// Set reverb send filter values and set source to send to all reverb fx slots
-		for(int i = 0; i < pC.resolution; i++){ ResoundingEFX.setFilter(i, sourceID, (float) sendGain[i], (float) sendCutoff[i]); }
+		for(int i = 0; i < pC.resolution; i++){ ResoundingEFX.setFilter(i, sourceID, (float) profile.sendGain()[i], (float) profile.sendCutoff()[i]); }
 
 		// Set direct filter values
-		ResoundingEFX.setDirectFilter(sourceID, (float) directGain, (float) directCutoff);
+		ResoundingEFX.setDirectFilter(sourceID, (float) profile.directGain(), (float) profile.directCutoff());
 	}
 }
