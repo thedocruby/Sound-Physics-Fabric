@@ -24,7 +24,7 @@ public class ConfigManager {
 
     private static ConfigHolder<ResoundingConfig> holder;
 
-    public static String configVersion = "1.0.0-alpha.2";
+    public static String configVersion = "1.0.0-alpha.3";
 
     @Environment(EnvType.CLIENT)
     public static final ResoundingConfig DEFAULT = Resounding.env == EnvType.CLIENT ? new ResoundingConfig(){{

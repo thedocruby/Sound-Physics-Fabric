@@ -18,7 +18,6 @@ import static dev.thedocruby.resounding.Resounding.nameToGroup;
  */
 public class PrecomputedConfig {
     public final static float globalVolumeMultiplier = 4f;
-    public static double soundDistanceAllowance = 6;
     public static double defaultAttenuationFactor = 1;
     public static double speedOfSound = 343.3;
     public static PrecomputedConfig pC = null;
@@ -33,6 +32,7 @@ public class PrecomputedConfig {
     public final double reverbCondensationFactor;
     public final double globalBlockAbsorption;
     public final double globalAbsorptionBrightness;
+    public final int soundSimulationDistance;
     public final double globalBlockReflectance;
     public final double globalReflRcp;
     public final float airAbsorption;
@@ -97,14 +97,14 @@ public class PrecomputedConfig {
 
         defaultAttenuationFactor = c.General.attenuationFactor;
         globalReverbGain = (float) c.General.globalReverbGain;
-        minEnergy = Math.exp(-1 * c.General.globalReverbStrength);
+        minEnergy = Math.exp(-4 * c.General.globalReverbStrength);
         resolution = c.General.reverbResolution;
         warpFactor = c.General.reverbWarpFactor;
         globalReverbBrightness = (float) c.General.globalReverbBrightness;
         reverbCondensationFactor = 1 - c.General.globalReverbSmoothness;
         globalBlockAbsorption = c.General.globalBlockAbsorption;
         globalAbsorptionBrightness = c.General.globalAbsorptionBrightness;
-        soundDistanceAllowance = c.General.soundDistanceAllowance; // TODO: Refactor to sound render distance
+        soundSimulationDistance = c.General.soundSimulationDistance;
         globalBlockReflectance = c.General.globalBlockReflectance;
         globalReflRcp = 1 / globalBlockReflectance;
         airAbsorption = (float) c.General.airAbsorption;
@@ -118,7 +118,7 @@ public class PrecomputedConfig {
             rcpNRays = 1d / nRays;
             nRayBounces = c.Performance.environmentEvaluationRayBounces;
             rcpTotRays = rcpNRays / nRayBounces;
-            maxDistance = c.Performance.traceRange * nRayBounces * Math.sqrt(2 * (16*16)) * 2;
+            maxDistance = c.Performance.traceRange * nRayBounces * 16 * Math.sqrt(2);
             simplerSharedAirspaceSimulation = c.Performance.simplerSharedAirspaceSimulation;
 
             blockWhiteSet = new HashSet<>(c.Materials.blockWhiteList);

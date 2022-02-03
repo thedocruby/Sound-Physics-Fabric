@@ -230,32 +230,10 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         initEAXReverb();
     }
 
-    // TODO: do more Javadoc
-    /**
-     * Registers the calculated reverb environment with OpenAL.
-     *
-     * @param sourceID ID of the source of the sound being processed
-     * @param sendGain output gain of the reverb audio from the effect slots
-     * @param sendCutoff output cutoff of the reverb audio from the effect slots
-     * @param directGain output gain of the main audio of sound being processed
-     * @param directCutoff output cutoff of the main audio of sound being processed
-     * @throws IllegalArgumentException if the number of reverb audio parameters does not match the number of effect slots (sendGain.length, sendCutoff.length != resolution)
-     */
-    public static void setEnv(
-            final int sourceID,
-            final double @NotNull [] sendGain, final double @NotNull [] sendCutoff,
-            final double directGain, final double directCutoff
-    ) {
-        if (sendGain.length != pC.resolution || sendCutoff.length != pC.resolution) {
-            throw new IllegalArgumentException("Error: Reverb parameter count does not match reverb slot count!");
-        }
-
-        // Set reverb send filter values and set source to send to all reverb fx slots
-        for(int i = 0; i < pC.resolution; i++){ setFilter(i, sourceID, (float) sendGain[i], (float) sendCutoff[i]); }
-
-        EXTEfx.alFilterf(directFilter, EXTEfx.AL_LOWPASS_GAIN, (float) directGain);
+    public static void setDirectFilter(int sourceID, float directGain, float directCutoff) {
+        EXTEfx.alFilterf(directFilter, EXTEfx.AL_LOWPASS_GAIN, directGain);
         ResoundingLog.checkErrorLog("Error while assigning \"gain\" property to direct filter object! Attempted to assign value of \""+directGain+"\".");
-        EXTEfx.alFilterf(directFilter, EXTEfx.AL_LOWPASS_GAINHF, (float) directCutoff);
+        EXTEfx.alFilterf(directFilter, EXTEfx.AL_LOWPASS_GAINHF, directCutoff);
         ResoundingLog.checkErrorLog("Error while assigning \"cutoff\" property to direct filter object! Attempted to assign value of \""+directCutoff+"\".");
         AL10.alSourcei(sourceID, EXTEfx.AL_DIRECT_FILTER, directFilter);
         ResoundingLog.checkErrorLog("Error applying direct filter object to source "+sourceID+"!");

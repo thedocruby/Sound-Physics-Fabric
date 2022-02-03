@@ -25,10 +25,12 @@ public class EntityMixin {
 
     private static double calculateEntitySoundOffset(float standingEyeHeight, SoundEvent sound)
     {
-        if (Resounding.stepPattern.matcher(sound.getId().getPath()).matches())
+        /*
+        if (Resounding.stepPattern.matcher(sound.getId().getPath()).matches()) TODO: step sounds
         {
             return 0.01;
         }
+        */
         return standingEyeHeight;
     }
 }

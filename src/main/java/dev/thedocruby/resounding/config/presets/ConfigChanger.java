@@ -13,13 +13,13 @@ public class ConfigChanger {
     private ConfigChanger() {}
 
     public static void changeConfig(ResoundingConfig config, @Nullable Boolean enabled,
-                                    @Nullable Double attenuationFactor, @Nullable Double globalReverbGain, @Nullable Double globalReverbBrightness, @Nullable Double globalBlockAbsorption, @Nullable Double globalBlockReflectance, @Nullable Double soundDistanceAllowance, @Nullable Double airAbsorption, @Nullable Double humidityAbsorption, @Nullable Double rainAbsorption, @Nullable Double underwaterFilter,
+                                    @Nullable Double attenuationFactor, @Nullable Double globalReverbGain, @Nullable Double globalReverbBrightness, @Nullable Double globalBlockAbsorption, @Nullable Double globalBlockReflectance, @Nullable Integer soundSimulationDistance, @Nullable Double airAbsorption, @Nullable Double humidityAbsorption, @Nullable Double rainAbsorption, @Nullable Double underwaterFilter,
                                     @Nullable Boolean skipRainOcclusionTracing, @Nullable Integer environmentEvaluationRays, @Nullable Integer environmentEvaluationRayBounces, @Nullable Boolean simplerSharedAirspaceSimulation,
                                     @Nullable Map<String, MaterialData> materialProperties,
                                     @Nullable Integer continuousRefreshRate, @Nullable Double maxDirectOcclusionFromBlocks, @Nullable Boolean _9RayDirectOcclusion, @Nullable Boolean soundDirectionEvaluation, @Nullable Double directRaysDirEvalMultiplier, @Nullable Boolean notOccludedNoRedirect
     ) {
         if (enabled != null) config.enabled = enabled;
-        setGeneral(config.General, attenuationFactor, globalReverbGain, globalReverbBrightness, globalBlockAbsorption, globalBlockReflectance, soundDistanceAllowance, airAbsorption, humidityAbsorption, rainAbsorption, underwaterFilter);
+        setGeneral(config.General, attenuationFactor, globalReverbGain, globalReverbBrightness, globalBlockAbsorption, globalBlockReflectance, soundSimulationDistance, airAbsorption, humidityAbsorption, rainAbsorption, underwaterFilter);
         if(Resounding.env == EnvType.SERVER) return;
         setPerformance(config.Performance, skipRainOcclusionTracing, environmentEvaluationRays, environmentEvaluationRayBounces, simplerSharedAirspaceSimulation);
         setMaterialProperties(config.Materials, materialProperties);
@@ -27,13 +27,13 @@ public class ConfigChanger {
         config.preset = ConfigPresets.LOAD_SUCCESS;
     }
 
-    public static void setGeneral(ResoundingConfig.General general, @Nullable Double attenuationFactor, @Nullable Double globalReverbGain, @Nullable Double globalReverbBrightness, @Nullable Double globalBlockAbsorption, @Nullable Double globalBlockReflectance, @Nullable Double soundDistanceAllowance, @Nullable Double airAbsorption, @Nullable Double humidityAbsorption, @Nullable Double rainAbsorption, @Nullable Double underwaterFilter) {
+    public static void setGeneral(ResoundingConfig.General general, @Nullable Double attenuationFactor, @Nullable Double globalReverbGain, @Nullable Double globalReverbBrightness, @Nullable Double globalBlockAbsorption, @Nullable Double globalBlockReflectance, @Nullable Integer soundSimulationDistance, @Nullable Double airAbsorption, @Nullable Double humidityAbsorption, @Nullable Double rainAbsorption, @Nullable Double underwaterFilter) {
         if (attenuationFactor != null) general.attenuationFactor = attenuationFactor;
         if (globalReverbGain != null) general.globalReverbGain = globalReverbGain;
         if (globalReverbBrightness != null) general.globalReverbBrightness = globalReverbBrightness;
         if (globalBlockAbsorption != null) general.globalBlockAbsorption = globalBlockAbsorption;
         if (globalBlockReflectance != null) general.globalBlockReflectance = globalBlockReflectance;
-        if (soundDistanceAllowance != null) general.soundDistanceAllowance = soundDistanceAllowance;
+        if (soundSimulationDistance != null) general.soundSimulationDistance = soundSimulationDistance;
         if (airAbsorption != null) general.airAbsorption = airAbsorption;
         if (humidityAbsorption != null) general.humidityAbsorption = humidityAbsorption;
         if (rainAbsorption != null) general.rainAbsorption = rainAbsorption;

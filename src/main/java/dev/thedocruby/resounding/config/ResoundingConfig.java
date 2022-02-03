@@ -48,8 +48,8 @@ public class ResoundingConfig implements ConfigData {
         public double globalReverbGain = 1.0;
         @ConfigEntry.BoundedDiscrete(max = 32, min = 4)
         public int reverbResolution = 12;
-        public double globalReverbStrength = 5.0;
-        public double reverbWarpFactor = 4;
+        public double globalReverbStrength = 1.0;
+        public double reverbWarpFactor = 3;
         public double globalReverbSmoothness = 0.62;
         @Comment("The brightness of reverberation.\nHigher values result in more high frequencies in reverberation.\nLower values give a more muffled sound to the reverb.\n0.1 - 2.0")
         public double globalReverbBrightness = 1.0;
@@ -60,8 +60,9 @@ public class ResoundingConfig implements ConfigData {
         public double globalAbsorptionBrightness = 1.0;
         @Comment("The global amount of sound reflectance energy of all blocks.\nLower values result in more conservative reverb simulation with shorter reverb tails.\nHigher values result in more generous reverb simulation with higher reverb tails.\n0.1 - 4.0")
         public double globalBlockReflectance = 1.0;
-        @Comment("Minecraft won't allow sounds to play past a certain distance;\nResounding makes that configurable by multiplying this parameter by the default distance.\nValues too high can cause polyphony issues.\n1.0 - 6.0")
-        public double soundDistanceAllowance = 6.0;
+        @Comment("Minecraft won't allow sounds to play past a certain distance;\nResounding makes that configurable by multiplying this parameter by the default distance.\nValues too high can cause polyphony issues, and increasing it past the simulation/render distance has no effect.\n1 - 32")
+        @ConfigEntry.BoundedDiscrete(max = 32, min = 1)
+        public int soundSimulationDistance = 10;
         @Comment("Represents how aggressively air absorbs high frequencies over distance.\nA value of 1.0 is physically correct for air with normal humidity and temperature.\nHigher values mean air will absorb more high frequencies with distance.\nA value of 0.0 disables this effect. 0.0 - 10.0")
         public double airAbsorption = 1.0;
         @Comment("How much humidity contributes to the air absorption.\nA value of 1.0 is physically correct.\nHigher values mean air will absorb more high frequencies with distance, depending on the local humidity.\nA value of 0.0 disables this effect. 0.0 - 4.0")
@@ -86,7 +87,7 @@ public class ResoundingConfig implements ConfigData {
         @ConfigEntry.BoundedDiscrete(max = 32, min = 2)
         public int environmentEvaluationRayBounces = 12;
         @Environment(EnvType.CLIENT)
-        public double traceRange = 6;
+        public double traceRange = 16;
         @Environment(EnvType.CLIENT)
         @ConfigEntry.Gui.Excluded // TODO: Remove
         @Comment("If true, enables a simpler technique for determining when the player and a sound source share airspace.\nMight sometimes miss recognizing shared airspace, but it's faster to calculate.")
@@ -147,7 +148,8 @@ public class ResoundingConfig implements ConfigData {
     }
 
     // TODO: change preset back to "Balanced" when performance permits
-    @ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
+    @ConfigEntry.Gui.Excluded // TODO: update presets and config changer
+    // @ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
     @Comment("Soft presets. Some of these can be applied one after another to stack effects onto a base profile.")
     public ConfigPresets preset = ConfigPresets.DEFAULT_PERFORMANCE;
 

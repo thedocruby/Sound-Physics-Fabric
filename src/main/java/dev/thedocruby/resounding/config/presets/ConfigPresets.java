@@ -19,7 +19,7 @@ public enum ConfigPresets {
     DEFAULT_BALANCED("Balanced (Base)", (ResoundingConfig c) -> ConfigChanger.changeConfig(c, true,
 
             1.0, 1.0, 1.0, 1.0,
-            1.0, 4.0, 1.0, 1.0, 1.0, 0.8,
+            1.0, 4, 1.0, 1.0, 1.0, 0.8,
 
             true, 224, 12, false,
 
@@ -31,7 +31,7 @@ public enum ConfigPresets {
     DEFAULT_PERFORMANCE("Performance (Base)", (ResoundingConfig c) -> ConfigChanger.changeConfig(c, true,
 
             1.0, 1.0, 1.0, 1.0,
-            1.0, 4.0, 1.0, 1.0, 1.0, 0.8,
+            1.0, 4, 1.0, 1.0, 1.0, 0.8,
 
             true, 96, 6, true,
 
@@ -43,7 +43,7 @@ public enum ConfigPresets {
     DEFAULT_QUALITY("Quality (Base)", (ResoundingConfig c) -> ConfigChanger.changeConfig(c, true,
 
             1.0, 1.0, 1.0, 1.0,
-            1.0, 4.0, 1.0, 1.0, 1.0, 0.8,
+            1.0, 4, 1.0, 1.0, 1.0, 0.8,
 
             false, 512, 24, false,
 
