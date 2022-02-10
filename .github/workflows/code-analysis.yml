@@ -34,12 +34,12 @@ jobs:
         language: [ 'java' ]
         # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
         # Learn more about CodeQL language support at https://git.io/codeql-language-support
- ​       ​java​: ​[ 
- ​         17,​    ​#​ Current Java LTS & minimum supported by Minecraft 
- ​       ​] 
- ​       #​ and run on both Linux and Windows 
- ​       os​: ​[ubuntu-20.04, windows-2022] 
- ​   ​runs-on​: ​${{ matrix.os }}
+        ​java​: ​[
+          17,​    ​#​ Current Java LTS & minimum supported by Minecraft
+        ]
+        #​ and run on both Linux and Windows
+        os​: ​[ubuntu-20.04, windows-2022]
+    runs-on​: ​${{ matrix.os }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -56,18 +56,17 @@ jobs:
 
     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
     # If this step fails, then you should remove it and run the build manually (see below)
-     
- ​   - ​name​: ​validate gradle wrapper 
- ​     ​uses​: ​gradle/wrapper-validation-action@v1 
- ​   - ​name​: ​setup jdk ${{ matrix.java }} 
- ​     uses​: ​actions/setup-java@v1 
- ​     ​with​: 
- ​       ​java-version​: ​${{ matrix.java }} 
- ​   - ​name​: ​make gradle wrapper executable 
- ​     if​: ​${{ runner.os != 'Windows' }} 
- ​     run​: ​chmod +x ./gradlew 
- ​   - ​name​: ​build 
- ​     run​: ​./gradlew build
+    - ​name​: ​validate gradle wrapper
+      uses​: ​gradle/wrapper-validation-action@v1
+    - ​name​: ​setup jdk ${{ matrix.java }}
+      uses​: ​actions/setup-java@v1
+      with:
+        java-version​: ​${{ matrix.java }}
+    - ​name​: ​make gradle wrapper executable
+      if​: ​${{ runner.os != 'Windows' }}
+      run​: ​chmod +x ./gradlew
+    - ​name​: ​build
+      run​: ​./gradlew build
 
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 https://git.io/JvXDl
