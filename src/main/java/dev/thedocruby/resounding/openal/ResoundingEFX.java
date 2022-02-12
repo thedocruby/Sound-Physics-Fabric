@@ -56,8 +56,8 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         ResoundingLog.checkErrorLog("Error while assigning \"density\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+density+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_DIFFUSION, diffusion);
         ResoundingLog.checkErrorLog("Error while assigning \"diffusion\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+diffusion+"\".");
-        EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_GAIN, 0.89f);
-        ResoundingLog.checkErrorLog("Error while assigning \"gain\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+0.89f+"\".");
+        EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_GAIN, pC.globalReverbGain);
+        ResoundingLog.checkErrorLog("Error while assigning \"gain\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+ pC.globalReverbGain+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_GAINHF, gainHF);
         ResoundingLog.checkErrorLog("Error while assigning \"gainHF\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+gainHF+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_DECAY_TIME, decayTime);

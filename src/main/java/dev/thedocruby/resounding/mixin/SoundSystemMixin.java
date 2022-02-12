@@ -54,7 +54,7 @@ public class SoundSystemMixin {
     @SuppressWarnings("InvalidInjectorMethodSignature")
     @Inject(method = "tick()V", at = @At(value = "JUMP", opcode = Opcodes.IFEQ, ordinal = 3), locals = LocalCapture.CAPTURE_FAILHARD)
     private void recalculate(CallbackInfo ci, Iterator<?> iterator, Map.Entry<?, ?> entry, Channel.SourceManager f, SoundInstance g, float vec3d){
-        if (mc.world != null && mc.world.getTime()%pC.continuousRefreshRate==0){
+        if (mc.world != null && mc.world.getTime()%pC.sourceRefreshRate ==0){
             f.run((s) -> ((SourceAccessor)s).calculateReverb(g, this.listener));
         }
             //((SourceAccessor)null)

@@ -6,6 +6,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.Pair;
+import net.minecraft.util.math.MathHelper;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -17,28 +18,45 @@ import static dev.thedocruby.resounding.Resounding.nameToGroup;
     Only one instance allowed
  */
 public class PrecomputedConfig {
+    @Environment(EnvType.CLIENT)
     public final static float globalVolumeMultiplier = 4f;
+    @Environment(EnvType.CLIENT)
     public static double defaultAttenuationFactor = 1;
+    @Environment(EnvType.CLIENT)
     public static double speedOfSound = 343.3;
     public static PrecomputedConfig pC = null;
 
     public final boolean off;
 
-    public final float globalReverbGain;
-    public final double minEnergy;
-    public final int resolution;
-    public final double warpFactor;
-    public final float globalReverbBrightness;
-    public final double reverbCondensationFactor;
-    public final double globalBlockAbsorption;
-    public final double globalAbsorptionBrightness;
+    @Environment(EnvType.CLIENT)
+    public float globalReverbGain;
+    @Environment(EnvType.CLIENT)
+    public double minEnergy;
+    @Environment(EnvType.CLIENT)
+    public int resolution;
+    @Environment(EnvType.CLIENT)
+    public double warpFactor;
+    @Environment(EnvType.CLIENT)
+    public float globalReverbBrightness;
+    @Environment(EnvType.CLIENT)
+    public double reverbCondensationFactor;
+    @Environment(EnvType.CLIENT)
+    public double globalBlockAbsorption;
+    @Environment(EnvType.CLIENT)
+    public double globalAbsorptionBrightness;
     public final int soundSimulationDistance;
-    public final double globalBlockReflectance;
-    public final double globalReflRcp;
-    public final float airAbsorption;
-    public final float humidityAbsorption;
-    public final float rainAbsorption;
-    public final double underwaterFilter;
+    @Environment(EnvType.CLIENT)
+    public double globalBlockReflectance;
+    @Environment(EnvType.CLIENT)
+    public double globalReflRcp;
+    @Environment(EnvType.CLIENT)
+    public float airAbsorption;
+    @Environment(EnvType.CLIENT)
+    public float humidityAbsorption;
+    @Environment(EnvType.CLIENT)
+    public float rainAbsorption;
+    @Environment(EnvType.CLIENT)
+    public double underwaterFilter;
 
     @Environment(EnvType.CLIENT)
     public boolean skipRainOcclusionTracing;
@@ -71,11 +89,11 @@ public class PrecomputedConfig {
     @Environment(EnvType.CLIENT)
     public boolean recordsDisable;
     @Environment(EnvType.CLIENT)
-    public int continuousRefreshRate;
+    public int sourceRefreshRate;
     @Environment(EnvType.CLIENT)
     public double maxDirectOcclusionFromBlocks;
     @Environment(EnvType.CLIENT)
-    public boolean _9Ray;
+    public boolean nineRay;
     @Environment(EnvType.CLIENT)
     public boolean soundDirectionEvaluation;
     @Environment(EnvType.CLIENT)
@@ -84,9 +102,13 @@ public class PrecomputedConfig {
     public boolean notOccludedRedirect;
 
     public final boolean dLog;
+    @Environment(EnvType.CLIENT)
     public final boolean oLog;
+    @Environment(EnvType.CLIENT)
     public final boolean eLog;
+    @Environment(EnvType.CLIENT)
     public final boolean pLog;
+    @Environment(EnvType.CLIENT)
     public final boolean dRays;
 
     private boolean active = true;
@@ -95,42 +117,43 @@ public class PrecomputedConfig {
         if (pC != null && pC.active) throw new CloneNotSupportedException("Tried creating second instance of precomputedConfig");
         off = !c.enabled;
 
-        defaultAttenuationFactor = c.General.attenuationFactor;
-        globalReverbGain = (float) c.General.globalReverbGain;
-        minEnergy = Math.exp(-4 * c.General.globalReverbStrength);
-        resolution = c.General.reverbResolution;
-        warpFactor = c.General.reverbWarpFactor;
-        globalReverbBrightness = (float) c.General.globalReverbBrightness;
-        reverbCondensationFactor = 1 - c.General.globalReverbSmoothness;
-        globalBlockAbsorption = c.General.globalBlockAbsorption;
-        globalAbsorptionBrightness = c.General.globalAbsorptionBrightness;
-        soundSimulationDistance = c.General.soundSimulationDistance;
-        globalBlockReflectance = c.General.globalBlockReflectance;
-        globalReflRcp = 1 / globalBlockReflectance;
-        airAbsorption = (float) c.General.airAbsorption;
-        humidityAbsorption = (float) c.General.humidityAbsorption;
-        rainAbsorption = (float) c.General.rainAbsorption;
-        underwaterFilter = 1 - c.General.underwaterFilter;
+        soundSimulationDistance = c.quality.soundSimulationDistance;
 
-        if(Resounding.env == EnvType.CLIENT) {
-            skipRainOcclusionTracing = c.Performance.skipRainOcclusionTracing;
-            nRays = c.Performance.environmentEvaluationRays;
+        if(Resounding.env == EnvType.CLIENT) { // TODO: organize
+            defaultAttenuationFactor = c.general.attenuationFactor;
+            globalReverbGain = (float) MathHelper.clamp(c.general.globalReverbGain, 0.0, 1.0);
+            minEnergy = Math.exp(-4 * Math.max(c.general.globalReverbStrength, 0));
+            resolution = c.quality.reverbResolution;
+            warpFactor = MathHelper.clamp(c.misc.reverbBias, 1.0, 5.0);
+            globalReverbBrightness = (float) MathHelper.clamp(c.general.globalReverbBrightness,0.1, 2.0);
+            reverbCondensationFactor = 1 - MathHelper.clamp(c.general.globalReverbSmoothness, 0.0, 1.0);
+            globalBlockAbsorption = c.general.globalBlockAbsorption;
+            globalAbsorptionBrightness = c.general.globalAbsorptionBrightness;
+            globalBlockReflectance = c.general.globalBlockReflectance;
+            globalReflRcp = 1 / globalBlockReflectance;
+            airAbsorption = (float) MathHelper.clamp(c.effects.airAbsorption, 0.0, 10.0);
+            humidityAbsorption = (float) MathHelper.clamp(c.effects.humidityAbsorption, 0.0, 4.0);
+            rainAbsorption = (float) MathHelper.clamp(c.effects.rainAbsorption, 0.0, 2.0);
+            underwaterFilter = 1 - MathHelper.clamp(c.effects.underwaterFilter, 0.0, 1.0);
+
+            skipRainOcclusionTracing = c.misc.skipRainOcclusionTracing;
+            nRays = c.quality.envEvalRays;
             rcpNRays = 1d / nRays;
-            nRayBounces = c.Performance.environmentEvaluationRayBounces;
+            nRayBounces = c.quality.envEvalRayBounces;
             rcpTotRays = rcpNRays / nRayBounces;
-            maxDistance = c.Performance.traceRange * nRayBounces * 16 * Math.sqrt(2);
-            simplerSharedAirspaceSimulation = c.Performance.simplerSharedAirspaceSimulation;
+            maxDistance = MathHelper.clamp(c.quality.traceRange, 1.0, 16.0) * nRayBounces * 16 * Math.sqrt(2);
+            simplerSharedAirspaceSimulation = c.misc.simplerSharedAirspaceSimulation;
 
-            blockWhiteSet = new HashSet<>(c.Materials.blockWhiteList);
-            defaultReflectivity = c.Materials.materialProperties.get("DEFAULT").reflectivity;
-            defaultAbsorption = c.Materials.materialProperties.get("DEFAULT").absorption;
-            blockWhiteMap = c.Materials.blockWhiteList.stream()
-                    .map(a -> new Pair<>(a, c.Materials.materialProperties.get(a)))
+            blockWhiteSet = new HashSet<>(c.materials.blockWhiteList);
+            defaultReflectivity = c.materials.materialProperties.get("DEFAULT").reflectivity;
+            defaultAbsorption = c.materials.materialProperties.get("DEFAULT").absorption;
+            blockWhiteMap = c.materials.blockWhiteList.stream()
+                    .map(a -> new Pair<>(a, c.materials.materialProperties.get(a)))
                     .map(e -> {
                         if (e.getRight() != null) return e;
                         Resounding.LOGGER.error("Missing material data for {}, Default entry created.", e.getLeft());
                         final MaterialData newData = new MaterialData(e.getLeft(), defaultReflectivity, defaultAbsorption);
-                        c.Materials.materialProperties.put(e.getLeft(), newData);
+                        c.materials.materialProperties.put(e.getLeft(), newData);
                         e.setRight(newData);
                         return e;
                     }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
@@ -139,7 +162,7 @@ public class PrecomputedConfig {
             absorptionMap = new Reference2DoubleOpenHashMap<>();
             final List<String> wrong = new java.util.ArrayList<>();
             final List<String> toRemove = new java.util.ArrayList<>();
-            c.Materials.materialProperties.forEach((k, v) -> { //TODO Materials need to be reworked.
+            c.materials.materialProperties.forEach((k, v) -> { //TODO Materials need to be reworked.
                 if (nameToGroup.containsKey(k)) {
                     BlockSoundGroup bsg = nameToGroup.get(k);
                     reflectivityMap.put(bsg, v.reflectivity);
@@ -153,23 +176,23 @@ public class PrecomputedConfig {
             });
             if (!wrong.isEmpty()) {
                 Resounding.LOGGER.error("Material Data map contains {} extra entries:\n{}\nPatching Material Data...", wrong.size(), Arrays.toString(new List[]{wrong}));
-                toRemove.forEach(c.Materials.materialProperties::remove);
+                toRemove.forEach(c.materials.materialProperties::remove);
             }
 
-            recordsDisable = c.Misc.recordsDisable;
-            continuousRefreshRate = c.Misc.continuousRefreshRate;
-            maxDirectOcclusionFromBlocks = c.Misc.maxDirectOcclusionFromBlocks;
-            _9Ray = c.Misc._9RayDirectOcclusion;
-            soundDirectionEvaluation = c.Misc.soundDirectionEvaluation; // TODO: DirEval
-            directRaysDirEvalMultiplier = Math.pow(c.Misc.directRaysDirEvalMultiplier, 10.66); // TODO: DirEval
-            notOccludedRedirect = !c.Misc.notOccludedNoRedirect;
+            recordsDisable = c.misc.recordsDisable;
+            sourceRefreshRate = Math.max(c.quality.sourceRefreshRate, 1);
+            maxDirectOcclusionFromBlocks = c.quality.maxBlockOcclusion;
+            nineRay = c.quality.nineRayBlockOcclusion;
+            soundDirectionEvaluation = c.effects.soundDirectionEvaluation; // TODO: DirEval
+            directRaysDirEvalMultiplier = Math.pow(c.effects.directRaysDirEvalMultiplier, 10.66); // TODO: DirEval
+            notOccludedRedirect = !c.misc.notOccludedNoRedirect;
         }
 
-        dLog = c.Debug.debugLogging;
-        oLog = c.Debug.occlusionLogging;
-        eLog = c.Debug.environmentLogging;
-        pLog = c.Debug.performanceLogging;
-        dRays = c.Debug.raytraceParticles;
+        dLog = c.debug.debugLogging;
+        oLog = c.debug.occlusionLogging;
+        eLog = c.debug.environmentLogging;
+        pLog = c.debug.performanceLogging;
+        dRays = c.debug.raytraceParticles;
     }
 
     public void deactivate(){ active = false;}

@@ -31,7 +31,7 @@ public class ConfigManager {
         Map<String, MaterialData> map = Resounding.nameToGroup.keySet().stream()
                 .collect(Collectors.toMap(e -> e, e -> new MaterialData(e, 0.5, 0.5)));
         map.putIfAbsent("DEFAULT", new MaterialData("DEFAULT", 0.5, 0.5));
-        Materials.materialProperties = map;
+        materials.materialProperties = map;
     }} : null;
 
     public static void registerAutoConfig() {
@@ -67,19 +67,19 @@ public class ConfigManager {
         Resounding.LOGGER.error("Critical materialProperties error. Resetting materialProperties");
         ResoundingConfig fallback = DEFAULT;
         ConfigPresets.RESET_MATERIALS.configChanger.accept(fallback);
-        c.Materials.materialProperties = fallback.Materials.materialProperties;
-        c.Materials.blockWhiteList = List.of("block.minecraft.water");
+        c.materials.materialProperties = fallback.materials.materialProperties;
+        c.materials.blockWhiteList = List.of("block.minecraft.water");
     }
 
     public static void handleUnstableConfig( ResoundingConfig c ){
         Resounding.LOGGER.error("Error: Config file is not from a compatible version! Resetting the config...");
-        ConfigPresets.DEFAULT_PERFORMANCE.configChanger.accept(c);
+        // ConfigPresets.DEFAULT_PERFORMANCE.configChanger.accept(c); // TODO: add back
         ConfigPresets.RESET_MATERIALS.configChanger.accept(c);
         c.version = configVersion;
     }
 
     public static ActionResult onSave(ResoundingConfig c) {
-        if (Resounding.env == EnvType.CLIENT && (c.Materials.materialProperties == null || c.Materials.materialProperties.get("DEFAULT") == null)) handleBrokenMaterials(c);
+        if (Resounding.env == EnvType.CLIENT && (c.materials.materialProperties == null || c.materials.materialProperties.get("DEFAULT") == null)) handleBrokenMaterials(c);
         if (Resounding.env == EnvType.CLIENT && c.preset != ConfigPresets.LOAD_SUCCESS) c.preset.configChanger.accept(c);
         if (c.version == null || !Objects.equals(c.version, configVersion)) handleUnstableConfig(c);
         if (PrecomputedConfig.pC != null) PrecomputedConfig.pC.deactivate();
