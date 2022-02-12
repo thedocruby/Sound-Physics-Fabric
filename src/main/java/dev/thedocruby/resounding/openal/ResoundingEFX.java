@@ -35,6 +35,7 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
     private static int directFilter;
     public static boolean efxEnabled = false;
     private static boolean initialized = false;
+    static long lastDevice;
 
     public static void setEffect//<editor-fold desc="(Effect_properties)">
     (
@@ -222,6 +223,16 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         //Get current context and device
         final long currentContext = ALC10.alcGetCurrentContext();
         final long currentDevice = ALC10.alcGetContextsDevice(currentContext);
+        if(currentDevice != lastDevice){
+            Resounding.LOGGER.info("OpenAL device change detected!");
+            initialized = false;
+            efxEnabled = false;
+            slots = new int[0];
+            effects = new int[0];
+            filters = new int[0];
+            directFilter = 0;
+            lastDevice = currentDevice;
+        }
         if (!ALC10.alcIsExtensionPresent(currentDevice, "ALC_EXT_EFX")) {
             Resounding.LOGGER.error("EFX Extension not found on current device, Aborting.");
         }

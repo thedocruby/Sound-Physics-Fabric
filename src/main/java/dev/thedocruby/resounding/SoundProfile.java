@@ -8,6 +8,7 @@ import java.util.Objects;
 
 @Environment(EnvType.CLIENT)
 public record SoundProfile(
+        int sourceID,
         double directGain,
         double directCutoff,
         double[] sendGain,
@@ -17,25 +18,27 @@ public record SoundProfile(
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        SoundProfile result = (SoundProfile) o;
-        return               directGain   == result.directGain
-            &&               directCutoff == result.directCutoff
-            && Arrays.equals(sendGain,       result.sendGain     )
-            && Arrays.equals(sendCutoff,     result.sendCutoff   );
+        SoundProfile profile = (SoundProfile) o;
+        return               sourceID     == profile.sourceID
+            &&               directGain   == profile.directGain
+            &&               directCutoff == profile.directCutoff
+            && Arrays.equals(sendGain,       profile.sendGain     )
+            && Arrays.equals(sendCutoff,     profile.sendCutoff   );
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(directGain, directCutoff);
-        result = 31 * result + Arrays.hashCode(sendGain);
-        result = 31 * result + Arrays.hashCode(sendCutoff);
-        return result;
+        int hash = Objects.hash(sourceID, directGain, directCutoff);
+        hash = 31 * hash + Arrays.hashCode(sendGain);
+        hash = 31 * hash + Arrays.hashCode(sendCutoff);
+        return hash;
     }
 
     @Override
     public String toString() {
         return "SoundProfile{"   +
-                "directGain="    +                 directGain     +
+                "sourceID="      +                 sourceID       +
+                ";directGain="   +                 directGain     +
                 ";directCutoff=" +                 directCutoff   +
                 ";sendGain="     + Arrays.toString(sendGain     ) +
                 ";sendCutoff="   + Arrays.toString(sendCutoff   ) +
