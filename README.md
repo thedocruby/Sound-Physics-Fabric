@@ -10,9 +10,11 @@
 
 **Resounding** is the evolution of sound physics in Minecraft. It aims to build on previous attempts with enhanced algorithms and extra features, for a more performant and immersive audio experience. Resounding is built to be a client-side Fabric mod. Every part of the mod is fully configurable, and it is all is completely compatible with vanilla gameplay.
 
-**NOTE:** Resounding is currently in ALPHA. Critical bugs and missing features are expected. For more information see [this page](https://github.com/thedocruby/resounding/wiki/FAQ#what-are-resounding-alpha-versions).
+### NOTE: Resounding is currently in ALPHA. Critical bugs and missing features are expected. For more information see [this page](https://github.com/thedocruby/resounding/wiki/FAQ#what-are-resounding-alpha-versions).
 
-A full README and website are coming soon. For now, deferr to the following links:
+---
+
+A full README and website are coming soon. For now, defer to the following links:
 
 - [FAQ](https://github.com/thedocruby/resounding/wiki/FAQ)
 - [Roadmap](https://github.com/thedocruby/resounding/wiki/Roadmap)
