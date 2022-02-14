@@ -40,14 +40,14 @@ public record RayResult(
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(lastBounce, missed, totalDistance, totalReflectivity);
-        result = 31 * result + Arrays.hashCode(shared);
-        result = 31 * result + Arrays.hashCode(energyToPlayer);
-        result = 31 * result + Arrays.hashCode(bounceDistance);
-        result = 31 * result + Arrays.hashCode(totalBounceDistance);
-        result = 31 * result + Arrays.hashCode(bounceReflectivity);
-        result = 31 * result + Arrays.hashCode(totalBounceReflectivity);
-        return result;
+        int hash = Objects.hash(lastBounce, missed, totalDistance, totalReflectivity);
+        hash = 31 * hash + Arrays.hashCode(shared);
+        hash = 31 * hash + Arrays.hashCode(energyToPlayer);
+        hash = 31 * hash + Arrays.hashCode(bounceDistance);
+        hash = 31 * hash + Arrays.hashCode(totalBounceDistance);
+        hash = 31 * hash + Arrays.hashCode(bounceReflectivity);
+        hash = 31 * hash + Arrays.hashCode(totalBounceReflectivity);
+        return hash;
     }
 
     @Override

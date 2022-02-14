@@ -10,6 +10,7 @@
   "client": [
     "RendererMixin",
     "SoundSystemMixin",
+    "SoundEngineMixin",
     "SourceMixin",
     "WorldChunkMixin",
     "WorldChunkMixin$Unloaded"

@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
+// TODO: Add back
 public class ConfigChanger {
     private ConfigChanger() {}
 
@@ -19,14 +20,15 @@ public class ConfigChanger {
                                     @Nullable Integer continuousRefreshRate, @Nullable Double maxDirectOcclusionFromBlocks, @Nullable Boolean _9RayDirectOcclusion, @Nullable Boolean soundDirectionEvaluation, @Nullable Double directRaysDirEvalMultiplier, @Nullable Boolean notOccludedNoRedirect
     ) {
         if (enabled != null) config.enabled = enabled;
-        setGeneral(config.General, attenuationFactor, globalReverbGain, globalReverbBrightness, globalBlockAbsorption, globalBlockReflectance, soundSimulationDistance, airAbsorption, humidityAbsorption, rainAbsorption, underwaterFilter);
+        // setGeneral(config.general, attenuationFactor, globalReverbGain, globalReverbBrightness, globalBlockAbsorption, globalBlockReflectance, soundSimulationDistance, airAbsorption, humidityAbsorption, rainAbsorption, underwaterFilter);
         if(Resounding.env == EnvType.SERVER) return;
-        setPerformance(config.Performance, skipRainOcclusionTracing, environmentEvaluationRays, environmentEvaluationRayBounces, simplerSharedAirspaceSimulation);
-        setMaterialProperties(config.Materials, materialProperties);
-        setMisc(config.Misc, continuousRefreshRate, maxDirectOcclusionFromBlocks, _9RayDirectOcclusion, soundDirectionEvaluation, directRaysDirEvalMultiplier, notOccludedNoRedirect);
+        // setPerformance(config.Performance, skipRainOcclusionTracing, environmentEvaluationRays, environmentEvaluationRayBounces, simplerSharedAirspaceSimulation);
+        setMaterialProperties(config.materials, materialProperties);
+        // setMisc(config.misc, continuousRefreshRate, maxDirectOcclusionFromBlocks, _9RayDirectOcclusion, soundDirectionEvaluation, directRaysDirEvalMultiplier, notOccludedNoRedirect);
         config.preset = ConfigPresets.LOAD_SUCCESS;
     }
 
+    /*
     public static void setGeneral(ResoundingConfig.General general, @Nullable Double attenuationFactor, @Nullable Double globalReverbGain, @Nullable Double globalReverbBrightness, @Nullable Double globalBlockAbsorption, @Nullable Double globalBlockReflectance, @Nullable Integer soundSimulationDistance, @Nullable Double airAbsorption, @Nullable Double humidityAbsorption, @Nullable Double rainAbsorption, @Nullable Double underwaterFilter) {
         if (attenuationFactor != null) general.attenuationFactor = attenuationFactor;
         if (globalReverbGain != null) general.globalReverbGain = globalReverbGain;
@@ -47,6 +49,7 @@ public class ConfigChanger {
         if (environmentEvaluationRayBounces != null) performance.environmentEvaluationRayBounces = environmentEvaluationRayBounces;
         if (simplerSharedAirspaceSimulation != null) performance.simplerSharedAirspaceSimulation = simplerSharedAirspaceSimulation;
     }
+    */
 
     @Environment(EnvType.CLIENT)
     public static void setMaterialProperties(ResoundingConfig.Materials materials, @Nullable Map<String, MaterialData> materialProperties) {
@@ -59,6 +62,7 @@ public class ConfigChanger {
                         newData.getAbsorption() == -1 ? v.getAbsorption() : newData.getAbsorption())));
     }
 
+    /*
     @Environment(EnvType.CLIENT)
     public static void setMisc(ResoundingConfig.Misc misc, @Nullable Integer continuousRefreshRate, @Nullable Double maxDirectOcclusionFromBlocks, @Nullable Boolean _9RayDirectOcclusion, @Nullable Boolean soundDirectionEvaluation, @Nullable Double directRaysDirEvalMultiplier, @Nullable Boolean notOccludedNoRedirect) {
         if (continuousRefreshRate != null) misc.continuousRefreshRate = continuousRefreshRate;
@@ -68,4 +72,6 @@ public class ConfigChanger {
         if (directRaysDirEvalMultiplier != null) misc.directRaysDirEvalMultiplier = directRaysDirEvalMultiplier;
         if (notOccludedNoRedirect != null) misc.notOccludedNoRedirect = notOccludedNoRedirect;
     }
+
+     */
 }

@@ -29,23 +29,15 @@ import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 @Mixin(SoundSystem.class)
 public class SoundSystemMixin {
 
-    @Final
-    @Shadow
-    private SoundListener listener;
-
-    @Inject(method = "start", at = @At(value = "INVOKE", target = "net/minecraft/client/sound/SoundListener.init ()V"))
-    private void ResoundingInitInjector(CallbackInfo ci){
-            Resounding.init();
-    }
+    @Shadow @Final private SoundListener listener;
 
     @Inject(method = "play(Lnet/minecraft/client/sound/SoundInstance;)V", at = @At(value = "FIELD", target = "net/minecraft/client/sound/SoundSystem.sounds : Lcom/google/common/collect/Multimap;"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void SoundInfoYeeter(SoundInstance sound, CallbackInfo ci, WeightedSoundSet weightedSoundSet, Identifier identifier, Sound sound2, float f, float g, SoundCategory soundCategory){
-        Resounding.updateYeetedSoundInfo(sound, this.listener);
+        Resounding.updateYeetedSoundInfo(sound, this.listener); // TODO: do this better maybe
     }
 
     @Inject(method = "tick()V", at = @At(value = "HEAD"))
-    private void Ticker(CallbackInfo ci){
-        AirEffects.updateSmoothedRain();}
+    private void Ticker(CallbackInfo ci){ AirEffects.updateSmoothedRain(); }
 
     @ModifyArg(method = "getAdjustedVolume", at = @At(value = "INVOKE", target = "net/minecraft/util/math/MathHelper.clamp (FFF)F"), index = 0)
     private float VolumeMultiplierInjector(float vol){
@@ -54,7 +46,7 @@ public class SoundSystemMixin {
     @SuppressWarnings("InvalidInjectorMethodSignature")
     @Inject(method = "tick()V", at = @At(value = "JUMP", opcode = Opcodes.IFEQ, ordinal = 3), locals = LocalCapture.CAPTURE_FAILHARD)
     private void recalculate(CallbackInfo ci, Iterator<?> iterator, Map.Entry<?, ?> entry, Channel.SourceManager f, SoundInstance g, float vec3d){
-        if (mc.world != null && mc.world.getTime()%pC.continuousRefreshRate==0){
+        if (mc.world != null && mc.world.getTime()%pC.sourceRefreshRate ==0){
             f.run((s) -> ((SourceAccessor)s).calculateReverb(g, this.listener));
         }
             //((SourceAccessor)null)

@@ -8,6 +8,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.sound.SoundEngine;
 import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundListener;
 import net.minecraft.sound.BlockSoundGroup;
@@ -200,12 +201,18 @@ public class Resounding {
 	// private static boolean doDirEval; // TODO: DirEval
 
 	@Environment(EnvType.CLIENT)
-	public static void init() {
-		LOGGER.info("Initializing Resounding...");
+	public static void start() {
+		LOGGER.info("Starting Resounding engine...");
 		ResoundingEFX.setupEXTEfx();
 		LOGGER.info("OpenAL EFX successfully primed for Resounding effects");
 		mc = MinecraftClient.getInstance();
 		updateRays();
+	}
+
+	@Environment(EnvType.CLIENT)
+	public static void stop() {
+		LOGGER.info("Stopping Resounding engine...");
+		ResoundingEFX.cleanUpEXTEfx();
 	}
 
 	public static <T> double logBase(T x, T b) {
@@ -251,9 +258,11 @@ public class Resounding {
 		long startTime = 0;
 		if (pC.pLog) startTime = System.nanoTime();
 		long endTime;
-		if (mc.player == null || mc.world == null || posY <= mc.world.getBottomY() || (pC.recordsDisable && lastSoundCategory == SoundCategory.RECORDS) || uiPattern.matcher(lastSoundName).matches() || (posX == 0.0 && posY == 0.0 && posZ == 0.0))  {
-			//logDetailed("Menu sound!");
-			try { setEnv(new SoundProfile(auxOnly ? 0f : 1f, 1f, new double[pC.resolution], new double[pC.resolution]));
+		if (mc.player == null || mc.world == null || uiPattern.matcher(lastSoundName).matches()) {
+			return; // Menu sound!
+		}
+		if (posY <= mc.world.getBottomY() || posY >= mc.world.getTopY() || (pC.recordsDisable && lastSoundCategory == SoundCategory.RECORDS))  {
+			try { setEnv(new SoundProfile(sourceID, auxOnly ? 0f : 1f, 1f, new double[pC.resolution], new double[pC.resolution]));
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
 
@@ -273,11 +282,11 @@ public class Resounding {
 		timeT = mc.world.getTime();
 
 		if (Math.max(playerPos.distanceTo(soundPos), listenerPos.distanceTo(soundPos)) > maxDist) {
-			try { setEnv(new SoundProfile(0d , 1d, new double[pC.resolution], new double[pC.resolution]));
+			try { setEnv(new SoundProfile(sourceID, 0d , 1d, new double[pC.resolution], new double[pC.resolution]));
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
 		if (/*pC.skipRainOcclusionTracing && */isRain) { // TODO: Occlusion
-			try { setEnv(new SoundProfile(auxOnly ? 0d : 1d, 1d, new double[pC.resolution], new double[pC.resolution]));
+			try { setEnv(new SoundProfile(sourceID, auxOnly ? 0d : 1d, 1d, new double[pC.resolution], new double[pC.resolution]));
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
 		if (pC.dLog) {
@@ -285,7 +294,7 @@ public class Resounding {
 		} else {
 			LOGGER.debug("Playing sound!\n      Source ID:      {}\n      Source Pos:     {}\n      Sound category: {}\n      Sound name:     {}", sourceID, new double[] {posX, posY, posZ}, lastSoundCategory, lastSoundName);
 		}
-		try { ///////////////////////////////////////
+		try {  ////////  CORE SOUND PIPELINE  ////////
 
 			setEnv(processEnv(evalEnv()));
 
@@ -587,7 +596,7 @@ public class Resounding {
 		if (mc.player.isSubmergedInWater()) { inWater = true; }
 
 		if (results == null) {
-			return new SoundProfile(directGain, directGain * pC.globalAbsorptionBrightness, new double[pC.resolution], new double[pC.resolution]);
+			return new SoundProfile(sourceID, directGain, directGain * pC.globalAbsorptionBrightness, new double[pC.resolution], new double[pC.resolution]);
 		}
 
 		// TODO: Does this perform better in parallel?
@@ -633,19 +642,20 @@ public class Resounding {
 			LOGGER.debug("Final sound profile:\n      Source Gain:    {}\n      Source Gain HF: {}\n      Reverb Gain:    {}\n      Reverb Gain HF: {}", directGain, directCutoff, sendGain, sendCutoff);
 		}
 
-		return new SoundProfile(directGain, directCutoff, sendGain, sendCutoff);
+		return new SoundProfile(sourceID, directGain, directCutoff, sendGain, sendCutoff);
 	}
 
 	@Environment(EnvType.CLIENT)
 	public static void setEnv(final @NotNull SoundProfile profile) {
 		if (profile.sendGain().length != pC.resolution || profile.sendCutoff().length != pC.resolution) {
-			throw new IllegalArgumentException("Error: Reverb parameter count does not match reverb slot count!");
+			throw new IllegalArgumentException("Error: Reverb parameter count does not match reverb resolution!");
 		}
 
 		// Set reverb send filter values and set source to send to all reverb fx slots
-		for(int i = 0; i < pC.resolution; i++){ ResoundingEFX.setFilter(i, sourceID, (float) profile.sendGain()[i], (float) profile.sendCutoff()[i]); }
+		for(int i = 0; i < pC.resolution; i++){ ResoundingEFX.setFilter(i, profile.sourceID(), (float) profile.sendGain()[i], (float) profile.sendCutoff()[i]); }
 
 		// Set direct filter values
-		ResoundingEFX.setDirectFilter(sourceID, (float) profile.directGain(), (float) profile.directCutoff());
+		ResoundingEFX.setDirectFilter(profile.sourceID(), (float) profile.directGain(), (float) profile.directCutoff());
 	}
+
 }

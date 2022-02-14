@@ -55,8 +55,8 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         ResoundingLog.checkErrorLog("Error while assigning \"density\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+density+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_DIFFUSION, diffusion);
         ResoundingLog.checkErrorLog("Error while assigning \"diffusion\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+diffusion+"\".");
-        EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_GAIN, 0.89f);
-        ResoundingLog.checkErrorLog("Error while assigning \"gain\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+0.89f+"\".");
+        EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_GAIN, pC.globalReverbGain);
+        ResoundingLog.checkErrorLog("Error while assigning \"gain\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+ pC.globalReverbGain+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_GAINHF, gainHF);
         ResoundingLog.checkErrorLog("Error while assigning \"gainHF\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+gainHF+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_DECAY_TIME, decayTime);
@@ -92,102 +92,88 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         ResoundingLog.checkErrorLog("Error applying Filter object "+filters[id]+" and aux slot "+slots[id]+" to source "+sourceID+"!");
     }
 
-    private static int[] initAuxiliaryEffectSlots() {
-        if (slots.length < pC.resolution) { return createAuxiliaryEffectSlots(); }
-        return slots;
+    private static void deleteAuxiliaryEffectSlots(){       // Remove unused OpenAL Auxiliary Effect slots
+        if (pC.dLog) Resounding.LOGGER.info("Removing {} Auxiliary Effect slots...", slots.length);
+        EXTEfx.alDeleteAuxiliaryEffectSlots(slots.clone());
+        for (int j : slots) {
+            if (EXTEfx.alIsAuxiliaryEffectSlot(j)) { Resounding.LOGGER.error("Failed to delete Auxiliary Effect slot {}!", j); }
+            else {
+                slots = ArrayUtils.removeElement(slots, j);
+                if (pC.dLog) { Resounding.LOGGER.info("Auxiliary Effect slot {} deleted.", j); }
+            }
+        }
     }
 
-    /*private static int[] deleteAuxiliaryEffectSlots(){       // Remove unused OpenAL Auxiliary Effect slots
-        int[] slotsToRemove = ArrayUtils.subarray(slots, pC.resolution, slots.length);
-        if (pC.dLog) Resounding.LOGGER.info("Removing {} extra Auxiliary Effect slots...", slotsToRemove.length);
-        EXTEfx.alDeleteAuxiliaryEffectSlots(slotsToRemove);
-        for (int j : slotsToRemove) {
-            if (EXTEfx.alIsAuxiliaryEffectSlot(j)) { Resounding.LOGGER.error("Failed to delete Auxiliary Effect slot {}!", j); }
-            else if (pC.dLog) { Resounding.LOGGER.info("Auxiliary Effect slot {} deleted.", j); }
-        }
-        return ArrayUtils.subarray(slots  , 0, pC.resolution);
-    }*/
-
-    private static int[] createAuxiliaryEffectSlots(){       // Create new OpenAL Auxiliary Effect slots
-        int[] newSlots = new int[pC.resolution - slots.length];
-        if (pC.dLog) Resounding.LOGGER.info("Creating {} new Auxiliary Effect slots...", newSlots.length);
-        EXTEfx.alGenAuxiliaryEffectSlots(newSlots);
-        for(int i = 0; i < newSlots.length; i++) {
-            if(EXTEfx.alIsAuxiliaryEffectSlot(newSlots[i])){
-                if (pC.dLog) Resounding.LOGGER.info("Auxiliary Effect slot {} created", newSlots[i]);
-                EXTEfx.alAuxiliaryEffectSloti(newSlots[i], EXTEfx.AL_EFFECTSLOT_AUXILIARY_SEND_AUTO, AL10.AL_TRUE);
-                ResoundingLog.checkErrorLog("Failed to initialize Auxiliary Effect slot "+newSlots[i]+"!");
+    private static void createAuxiliaryEffectSlots(){       // Create new OpenAL Auxiliary Effect slots
+        slots = new int[pC.resolution];
+        if (pC.dLog) Resounding.LOGGER.info("Creating {} new Auxiliary Effect slots...", pC.resolution);
+        EXTEfx.alGenAuxiliaryEffectSlots(slots);
+        for(int i = 0; i < pC.resolution; i++) {
+            if(EXTEfx.alIsAuxiliaryEffectSlot(slots[i])){
+                if (pC.dLog) Resounding.LOGGER.info("Auxiliary Effect slot {} created!", slots[i]);
+                EXTEfx.alAuxiliaryEffectSloti(slots[i], EXTEfx.AL_EFFECTSLOT_AUXILIARY_SEND_AUTO, AL10.AL_TRUE); // Set effect type to EAX Reverb
+                ResoundingLog.checkErrorLog("Failed to initialize Auxiliary Effect slot "+slots[i]+"!");
             } else { Resounding.LOGGER.error("Failed to create Auxiliary Effect slot! (index {})", i); }
         }
-        return ArrayUtils.addAll(slots, newSlots);
     }
 
-    private static int[] initEffectObjects(){
-        if (effects.length < pC.resolution) { return createEffectObjects(); }
-        return effects;
-    }
-
-    /* private static int[] deleteEffectObjects(){       // Remove unused OpenAL Effect objects
-        int[] effectsToRemove = ArrayUtils.subarray(effects, pC.resolution, effects.length);
-        if (pC.dLog) Resounding.LOGGER.info("Removing {} extra Effect objects...", effectsToRemove.length);
-        EXTEfx.alDeleteEffects(effectsToRemove);
-        for (int j : effectsToRemove) {
+    private static void deleteEffectObjects(){       // Remove unused OpenAL Effect objects
+        if (pC.dLog) Resounding.LOGGER.info("Removing {} Effect objects...", effects.length);
+        EXTEfx.alDeleteEffects(effects.clone());
+        for (int j : effects) {
             if (EXTEfx.alIsEffect(j)) { Resounding.LOGGER.error("Failed to delete Effect object {}!", j); }
-            else if (pC.dLog) { Resounding.LOGGER.info("Effect object {} deleted.", j); }
+            else {
+                effects = ArrayUtils.removeElement(effects, j);
+                if (pC.dLog) { Resounding.LOGGER.info("Effect object {} deleted.", j); }
+            }
         }
-        return ArrayUtils.subarray(effects, 0, pC.resolution);
-    }*/
+    }
 
-    private static int[] createEffectObjects(){       // Create new OpenAL Effect objects
-        int[] newEffects = new int[pC.resolution - effects.length];
-        if (pC.dLog) Resounding.LOGGER.info("Creating {} new Effect objects...", newEffects.length);
-        EXTEfx.alGenEffects(newEffects);
-        for(int i = 0; i < newEffects.length; i++) {
-            if(EXTEfx.alIsEffect(newEffects[i])){
-                if (pC.dLog) Resounding.LOGGER.info("Effect object {} created!", newEffects[i]);
-                EXTEfx.alEffecti(newEffects[i], EXTEfx.AL_EFFECT_TYPE, EXTEfx.AL_EFFECT_EAXREVERB);		//Set effect object to be reverb
-                ResoundingLog.checkErrorLog("Failed to initialize Effect object "+newEffects[i]+"!");
+    private static void createEffectObjects(){       // Create new OpenAL Effect objects
+        effects = new int[pC.resolution];
+        if (pC.dLog) Resounding.LOGGER.info("Creating {} new Effect objects...", pC.resolution);
+        EXTEfx.alGenEffects(effects);
+        for(int i = 0; i < pC.resolution; i++) {
+            if(EXTEfx.alIsEffect(effects[i])){
+                if (pC.dLog) Resounding.LOGGER.info("Effect object {} created!", effects[i]);
+                EXTEfx.alEffecti(effects[i], EXTEfx.AL_EFFECT_TYPE, EXTEfx.AL_EFFECT_EAXREVERB); // Set effect type to EAX Reverb
+                ResoundingLog.checkErrorLog("Failed to initialize Effect object "+effects[i]+"!");
             } else { Resounding.LOGGER.error("Failed to create Effect object! (index {})", i); }
         }
-        return ArrayUtils.addAll(effects, newEffects);
     }
 
-    private static int[] initFilterObjects(){
-        if (filters.length < pC.resolution) { return createFilterObjects(); }
-        return filters;
-    }
-
-    /* private static int[] deleteFilterObjects(){      // Remove unused OpenAL Filter objects
-        int[] filtersToRemove = ArrayUtils.subarray(filters, pC.resolution, filters.length);
-        if (pC.dLog) Resounding.LOGGER.info("Removing {} extra Filter objects...", filtersToRemove.length);
-        EXTEfx.alDeleteFilters(filtersToRemove);
-        for (int j : filtersToRemove) {
+    private static void deleteFilterObjects(){      // Remove unused OpenAL Filter objects
+        if (pC.dLog) Resounding.LOGGER.info("Removing {} Filter objects...", filters.length);
+        EXTEfx.alDeleteFilters(filters.clone());
+        for (int j : filters) {
             if (EXTEfx.alIsFilter(j)) { Resounding.LOGGER.error("Failed to delete Filter object {}!", j); }
-            else if (pC.dLog) { Resounding.LOGGER.info("Filter object {} deleted.", j); }
+            else {
+                filters = ArrayUtils.removeElement(filters, j);
+                if (pC.dLog) { Resounding.LOGGER.info("Filter object {} deleted.", j); }
+            }
         }
-        return ArrayUtils.subarray(filters, 0, pC.resolution);
-    } */
+    }
 
-    private static int[] createFilterObjects(){       // Create new OpenAL Filter objects
-        int[] newFilters = new int[pC.resolution - filters.length];
-        if (pC.dLog) Resounding.LOGGER.info("Creating {} new Filter objects...", newFilters.length);
-        EXTEfx.alGenFilters(newFilters);
-        for(int i = 0; i < newFilters.length; i++) {
-            if(EXTEfx.alIsFilter(newFilters[i])){
-                if (pC.dLog) Resounding.LOGGER.info("Filter object {} created!", newFilters[i]);
-                EXTEfx.alFilteri(newFilters[i], EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
-                ResoundingLog.checkErrorLog("Failed to initialize Filter object "+newFilters[i]+"!");
+    private static void createFilterObjects(){       // Create new OpenAL Filter objects
+        filters = new int[pC.resolution];
+        if (pC.dLog) Resounding.LOGGER.info("Creating {} new Filter objects...", pC.resolution);
+        EXTEfx.alGenFilters(filters);
+        for(int i = 0; i < pC.resolution; i++) {
+            if(EXTEfx.alIsFilter(filters[i])){
+                if (pC.dLog) Resounding.LOGGER.info("Filter object {} created!", filters[i]);
+                EXTEfx.alFilteri(filters[i], EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
+                ResoundingLog.checkErrorLog("Failed to initialize Filter object "+filters[i]+"!");
             } else { Resounding.LOGGER.error("Failed to create Filter object! (index {})", i); }
         }
-        return ArrayUtils.addAll(filters, newFilters);
     }
 
-    public static void initEAXReverb(){ // TODO: Figure out how to properly delete aux slots
-        if (!efxEnabled || pC.off) return;
+    public static void initEAXReverb(){
+        if (!efxEnabled || pC.off || initialized) return;
+        if (pC.resolution == slots.length) return;
 
-        slots   = initAuxiliaryEffectSlots();
-        effects = initEffectObjects();
-        filters = initFilterObjects();
+        createAuxiliaryEffectSlots();
+        createEffectObjects();
+        createFilterObjects();
 
         for(int i = 0; i < pC.resolution; i++){
             double t = Math.pow((double) i  / pC.resolution, pC.warpFactor);
@@ -204,18 +190,14 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
                     (float) (t1 * 0.01)
             );
         }
+        directFilter = EXTEfx.alGenFilters();
+        if(!EXTEfx.alIsFilter(directFilter)) { Resounding.LOGGER.error("Failed to create direct filter object!"); }
+        else if(pC.dLog){ Resounding.LOGGER.info("Direct filter object created with ID {}", directFilter); }
+        EXTEfx.alFilteri(directFilter, EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
+        ResoundingLog.checkErrorLog("Failed to initialize direct filter object!");
 
-        if (!initialized){
-            // Create filters
-            directFilter = EXTEfx.alGenFilters();
-            if(!EXTEfx.alIsFilter(directFilter)) { Resounding.LOGGER.error("Failed to create direct filter object!"); }
-            else if(pC.dLog){ Resounding.LOGGER.info("Direct filter object created with ID {}", directFilter); }
-            EXTEfx.alFilteri(directFilter, EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
-            ResoundingLog.checkErrorLog("Failed to initialize direct filter object!");
-
-            initialized = true;
-            Resounding.LOGGER.info("Finished initializing OpenAL Auxiliary Effect slots!");
-        } else if (pC.dLog) { Resounding.LOGGER.info("Finished re-initializing OpenAL Auxiliary Effect slots!"); }
+        initialized = true;
+        Resounding.LOGGER.info("Finished initializing OpenAL Auxiliary Effect slots!");
     }
 
     public static void setupEXTEfx() {
@@ -230,6 +212,18 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         initEAXReverb();
     }
 
+    public static void cleanUpEXTEfx() {
+        deleteAuxiliaryEffectSlots();
+        deleteEffectObjects();
+        deleteFilterObjects();
+        EXTEfx.alDeleteFilters(directFilter);
+        if(EXTEfx.alIsFilter(directFilter)) { Resounding.LOGGER.error("Failed to delete direct filter object!"); }
+        else if(pC.dLog){ Resounding.LOGGER.info("Direct filter object deleted with ID {}", directFilter); }
+
+        initialized = false;
+        efxEnabled = false;
+    }
+
     public static void setDirectFilter(int sourceID, float directGain, float directCutoff) {
         EXTEfx.alFilterf(directFilter, EXTEfx.AL_LOWPASS_GAIN, directGain);
         ResoundingLog.checkErrorLog("Error while assigning \"gain\" property to direct filter object! Attempted to assign value of \""+directGain+"\".");
@@ -238,6 +232,7 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         AL10.alSourcei(sourceID, EXTEfx.AL_DIRECT_FILTER, directFilter);
         ResoundingLog.checkErrorLog("Error applying direct filter object to source "+sourceID+"!");
     }
+
 
     /* public static void setSoundPos(final int sourceID, final Vec3d pos) {
         if (pC.off) return;

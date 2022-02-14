@@ -15,6 +15,7 @@ import java.lang.String;
 public enum ConfigPresets {
     // Press ctrl+shift+numpad_'-' to collapse all
     LOAD_SUCCESS("Choose", null),
+    /*
     //<editor-fold desc="DEFAULT_BALANCED,">
     DEFAULT_BALANCED("Balanced (Base)", (ResoundingConfig c) -> ConfigChanger.changeConfig(c, true,
 
@@ -51,7 +52,6 @@ public enum ConfigPresets {
 
             4, 10.0, true, true, 0.5, false
     )),//</editor-fold>
-    /*
     //<editor-fold desc="THEDOCRUBY,">
     THEDOCRUBY("Dr. Rubisco's Signature Sound", (ResoundingConfig c) -> ConfigChanger.changeConfig(c, true,
 
@@ -115,7 +115,6 @@ public enum ConfigPresets {
             4, 10.0, true, true, 0.5, false
 
     )),//</editor-fold>
-     */ // TODO add back
     //<editor-fold desc="SUPER_REVERB,">
     SUPER_REVERB("Super Reverb", (ResoundingConfig c) -> ConfigChanger.changeConfig(c, true,
             null, 1.8, null, null,
@@ -202,6 +201,7 @@ public enum ConfigPresets {
 
             null, 10.0,  null, null, null, null
     )),//</editor-fold>
+     */ // TODO add back
     //<editor-fold desc="RESET_MATERIALS;">
     RESET_MATERIALS("Reset Materials", (ResoundingConfig c) -> ConfigChanger.changeConfig(c, true,
 
