@@ -1,5 +1,3 @@
-# ![Resounding](https://user-images.githubusercontent.com/76263371/153949378-753b5e61-dad7-48bd-b9bc-a36c1836551d.png)
-
 [![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/thedocruby/resounding?include_prereleases&sort=semver&style=for-the-badge)](https://github.com/thedocruby/resounding/releases/latest)
 [![Last Commit](https://img.shields.io/github/last-commit/thedocruby/resounding/master?style=for-the-badge)](https://github.com/thedocruby/resounding/commits/master)
 [![Test](https://img.shields.io/github/workflow/status/thedocruby/resounding/verify?label=Test&style=for-the-badge)](https://github.com/thedocruby/resounding/actions/workflows/verify.yml)
