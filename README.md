@@ -8,8 +8,6 @@
 [![Milestone 3](https://img.shields.io/github/milestones/progress-percent/thedocruby/resounding/4?style=for-the-badge)](https://github.com/thedocruby/resounding/milestone/4)
 [![Milestone 4](https://img.shields.io/github/milestones/progress-percent/thedocruby/resounding/5?style=for-the-badge)](https://github.com/thedocruby/resounding/milestone/5)
 
-> A New Minecraft mod that provides realistic audio physics using parallel wave tracing and an improved physics algorithm.
-
 **Resounding** is the evolution of sound physics in Minecraft. It aims to build on previous attempts with enhanced algorithms and extra features, for a more performant and immersive audio experience. Resounding is built to be a client-side Fabric mod. Every part of the mod is fully configurable, and it is all is completely compatible with vanilla gameplay.
 
 ### NOTE: Resounding is currently in ALPHA. Critical bugs and missing features are expected. For more information see [this page](https://github.com/thedocruby/resounding/wiki/FAQ#what-are-resounding-alpha-versions).
