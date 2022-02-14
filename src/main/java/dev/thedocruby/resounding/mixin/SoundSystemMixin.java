@@ -29,16 +29,11 @@ import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 @Mixin(SoundSystem.class)
 public class SoundSystemMixin {
 
-    @Final
-    @Shadow
-    private SoundListener listener;
-
-    @Inject(method = "start", at = @At(value = "INVOKE", target = "net/minecraft/client/sound/SoundListener.init ()V"))
-    private void ResoundingInitInjector(CallbackInfo ci){ Resounding.init(); }
+    @Shadow @Final private SoundListener listener;
 
     @Inject(method = "play(Lnet/minecraft/client/sound/SoundInstance;)V", at = @At(value = "FIELD", target = "net/minecraft/client/sound/SoundSystem.sounds : Lcom/google/common/collect/Multimap;"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void SoundInfoYeeter(SoundInstance sound, CallbackInfo ci, WeightedSoundSet weightedSoundSet, Identifier identifier, Sound sound2, float f, float g, SoundCategory soundCategory){
-        Resounding.updateYeetedSoundInfo(sound, this.listener);
+        Resounding.updateYeetedSoundInfo(sound, this.listener); // TODO: do this better maybe
     }
 
     @Inject(method = "tick()V", at = @At(value = "HEAD"))

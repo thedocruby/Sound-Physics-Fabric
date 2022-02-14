@@ -8,6 +8,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.sound.SoundEngine;
 import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundListener;
 import net.minecraft.sound.BlockSoundGroup;
@@ -200,12 +201,18 @@ public class Resounding {
 	// private static boolean doDirEval; // TODO: DirEval
 
 	@Environment(EnvType.CLIENT)
-	public static void init() {
-		LOGGER.info("Initializing Resounding...");
+	public static void start() {
+		LOGGER.info("Starting Resounding engine...");
 		ResoundingEFX.setupEXTEfx();
 		LOGGER.info("OpenAL EFX successfully primed for Resounding effects");
 		mc = MinecraftClient.getInstance();
 		updateRays();
+	}
+
+	@Environment(EnvType.CLIENT)
+	public static void stop() {
+		LOGGER.info("Stopping Resounding engine...");
+		ResoundingEFX.cleanUpEXTEfx();
 	}
 
 	public static <T> double logBase(T x, T b) {
@@ -251,7 +258,10 @@ public class Resounding {
 		long startTime = 0;
 		if (pC.pLog) startTime = System.nanoTime();
 		long endTime;
-		if (mc.player == null || mc.world == null || posY <= mc.world.getBottomY() || posY >= mc.world.getTopY() || (pC.recordsDisable && lastSoundCategory == SoundCategory.RECORDS) || uiPattern.matcher(lastSoundName).matches() || (posX == 0.0 && posY == 0.0 && posZ == 0.0))  {
+		if (mc.player == null || mc.world == null || uiPattern.matcher(lastSoundName).matches()) {
+			return; // Menu sound!
+		}
+		if (posY <= mc.world.getBottomY() || posY >= mc.world.getTopY() || (pC.recordsDisable && lastSoundCategory == SoundCategory.RECORDS))  {
 			try { setEnv(new SoundProfile(sourceID, auxOnly ? 0f : 1f, 1f, new double[pC.resolution], new double[pC.resolution]));
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
@@ -647,4 +657,5 @@ public class Resounding {
 		// Set direct filter values
 		ResoundingEFX.setDirectFilter(profile.sourceID(), (float) profile.directGain(), (float) profile.directCutoff());
 	}
+
 }

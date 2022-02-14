@@ -84,9 +84,9 @@ public class ConfigManager {
         if (c.version == null || !Objects.equals(c.version, configVersion)) handleUnstableConfig(c);
         if (PrecomputedConfig.pC != null) PrecomputedConfig.pC.deactivate();
         try {PrecomputedConfig.pC = new PrecomputedConfig(c);} catch (CloneNotSupportedException e) {e.printStackTrace(); return ActionResult.FAIL;}
-        if (Resounding.env == EnvType.CLIENT) {
+        if (Resounding.env == EnvType.CLIENT && Resounding.mc != null) {
             Resounding.updateRays();
-            ResoundingEFX.initEAXReverb();
+            Resounding.mc.getSoundManager().reloadSounds();
         }
         return ActionResult.SUCCESS;
     }
