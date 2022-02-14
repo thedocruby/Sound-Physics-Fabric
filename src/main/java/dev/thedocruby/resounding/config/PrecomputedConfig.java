@@ -141,7 +141,7 @@ public class PrecomputedConfig {
             rcpNRays = 1d / nRays;
             nRayBounces = c.quality.envEvalRayBounces;
             rcpTotRays = rcpNRays / nRayBounces;
-            maxDistance = MathHelper.clamp(c.quality.traceRange, 1.0, 16.0) * nRayBounces * 16 * Math.sqrt(2);
+            maxDistance = MathHelper.clamp(c.quality.rayLength, 1.0, 16.0) * nRayBounces * 16 * Math.sqrt(2);
             simplerSharedAirspaceSimulation = c.misc.simplerSharedAirspaceSimulation;
 
             blockWhiteSet = new HashSet<>(c.materials.blockWhiteList);

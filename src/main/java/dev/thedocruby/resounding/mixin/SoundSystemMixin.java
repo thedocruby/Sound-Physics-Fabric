@@ -34,9 +34,7 @@ public class SoundSystemMixin {
     private SoundListener listener;
 
     @Inject(method = "start", at = @At(value = "INVOKE", target = "net/minecraft/client/sound/SoundListener.init ()V"))
-    private void ResoundingInitInjector(CallbackInfo ci){
-            Resounding.init();
-    }
+    private void ResoundingInitInjector(CallbackInfo ci){ Resounding.init(); }
 
     @Inject(method = "play(Lnet/minecraft/client/sound/SoundInstance;)V", at = @At(value = "FIELD", target = "net/minecraft/client/sound/SoundSystem.sounds : Lcom/google/common/collect/Multimap;"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void SoundInfoYeeter(SoundInstance sound, CallbackInfo ci, WeightedSoundSet weightedSoundSet, Identifier identifier, Sound sound2, float f, float g, SoundCategory soundCategory){
@@ -44,8 +42,7 @@ public class SoundSystemMixin {
     }
 
     @Inject(method = "tick()V", at = @At(value = "HEAD"))
-    private void Ticker(CallbackInfo ci){
-        AirEffects.updateSmoothedRain();}
+    private void Ticker(CallbackInfo ci){ AirEffects.updateSmoothedRain(); }
 
     @ModifyArg(method = "getAdjustedVolume", at = @At(value = "INVOKE", target = "net/minecraft/util/math/MathHelper.clamp (FFF)F"), index = 0)
     private float VolumeMultiplierInjector(float vol){

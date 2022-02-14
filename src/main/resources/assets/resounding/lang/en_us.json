@@ -1,51 +1,48 @@
 {
   "text.autoconfig.resounding.title": "Resounding Config",
 
-  "text.autoconfig.resounding.option.enabled": "Enable rendering",
+  "text.autoconfig.resounding.option.enabled": "Enable Resounding",
 
-  "text.autoconfig.resounding.option.General": "General options:",
-  "text.autoconfig.resounding.option.Performance": "Performance options:",
-  "text.autoconfig.resounding.option.Materials": "Materials:",
-  "text.autoconfig.resounding.option.Misc": "Other options:",
-  "text.autoconfig.resounding.option.Debug": "Debug options:",
+  "text.autoconfig.resounding.option.general": "Generic preferences",
+  "text.autoconfig.resounding.option.quality": "Quality settings",
+  "text.autoconfig.resounding.option.effects": "Extra effects",
+  "text.autoconfig.resounding.option.materials": "Material properties",
+  "text.autoconfig.resounding.option.misc": "Miscellaneous options",
+  "text.autoconfig.resounding.option.debug": "Debug toggles",
 
-  "text.autoconfig.resounding.option.General.attenuationFactor": "Attenuation (fade over distance) factor",
-  "text.autoconfig.resounding.option.General.globalReverbGain": "Reverb volume gain",
-  "text.autoconfig.resounding.option.General.globalReverbBrightness": "Reverb brightness",
-  "text.autoconfig.resounding.option.General.globalBlockAbsorption": "Block passthrough sound absorption",
-  "text.autoconfig.resounding.option.General.globalBlockReflectance": "Block reflectance multiplier",
-  "text.autoconfig.resounding.option.General.soundDistanceAllowance": "Sound max distance multiplier",
-  "text.autoconfig.resounding.option.General.airAbsorption": "Sound absorption by air",
-  "text.autoconfig.resounding.option.General.humidityAbsorption": "Sound absorption by humidity",
-  "text.autoconfig.resounding.option.General.rainAbsorption": "Sound absorption by rain drops",
-  "text.autoconfig.resounding.option.General.underwaterFilter": "Underwater filter strength",
+  "text.autoconfig.resounding.option.general.globalReverbGain": "Reverb volume",
+  "text.autoconfig.resounding.option.general.globalReverbStrength": "Reverb strength",
+  "text.autoconfig.resounding.option.general.globalReverbSmoothness": "Reverb smoothness",
+  "text.autoconfig.resounding.option.general.globalReverbBrightness": "Reverb brightness",
 
-  "text.autoconfig.resounding.option.Performance.skipRainOcclusionTracing": "Skip tracing for rain sounds",
-  "text.autoconfig.resounding.option.Performance.environmentEvaluationRays": "Rays per sound",
-  "text.autoconfig.resounding.option.Performance.environmentEvaluationRayBounces": "Reflections per ray",
-  "text.autoconfig.resounding.option.Performance.simplerSharedAirspaceSimulation": "Cheap shared airspace detection",
+  "text.autoconfig.resounding.option.quality.reverbResolution": "Reverb resolution",
+  "text.autoconfig.resounding.option.quality.envEvalRays": "Rays per sound",
+  "text.autoconfig.resounding.option.quality.envEvalRayBounces": "Reflections per ray",
+  "text.autoconfig.resounding.option.quality.soundSimulationDistance": "Sound simulation distance",
+  "text.autoconfig.resounding.option.quality.rayLength": "Ray length",
+  "text.autoconfig.resounding.option.quality.sourceRefreshRate": "Sound refresh interval",
 
-  "text.autoconfig.resounding.option.Materials.materialProperties": "Material Properties",
-  "text.autoconfig.resounding.option.Materials.blockWhiteList": "Block Whitelist",
+  "text.autoconfig.resounding.option.effects.airAbsorption": "Sound absorption by air",
+  "text.autoconfig.resounding.option.effects.humidityAbsorption": "Sound absorption by humidity",
+  "text.autoconfig.resounding.option.effects.rainAbsorption": "Sound absorption by rain drops",
+  "text.autoconfig.resounding.option.effects.underwaterFilter": "Underwater filter strength",
 
-  "text.autoconfig.resounding.option.Misc.recordsDisable": "Skip Jukebox/Note Block occlusion",
-  "text.autoconfig.resounding.option.Misc.continuousRefreshRate": "Continuous sources refresh interval",
-  "text.autoconfig.resounding.option.Misc.maxDirectOcclusionFromBlocks": "Maximum direct occlusion",
-  "text.autoconfig.resounding.option.Misc._9RayDirectOcclusion": "9 ray direct occlusion calculation",
-  "text.autoconfig.resounding.option.Misc.soundDirectionEvaluation": "Re-calculate sound direction",
-  "text.autoconfig.resounding.option.Misc.directRaysDirEvalMultiplier": "Sound reflection bias",
-  "text.autoconfig.resounding.option.Misc.notOccludedNoRedirect": "Skip redirecting visible blocks",
+  "text.autoconfig.resounding.option.materials.materialProperties": "By category",
+  "text.autoconfig.resounding.option.materials.blockWhiteList": "By block (whitelist)",
 
-  "text.autoconfig.resounding.option.Debug.debugLogging": "Logging",
-  "text.autoconfig.resounding.option.Debug.occlusionLogging": "Occlusion logging",
-  "text.autoconfig.resounding.option.Debug.environmentLogging": "Environment logging",
-  "text.autoconfig.resounding.option.Debug.performanceLogging": "Performance logging",
-  "text.autoconfig.resounding.option.Debug.raytraceParticles": "Raytracing Particles",
-
-  "text.autoconfig.resounding.option.preset": "Preset",
-
-  "text.autoconfig.resounding.option.MaterialData": "Set material properties:",
+  "text.autoconfig.resounding.option.MaterialData": "Entry",
   "text.autoconfig.resounding.option.MaterialData.example": "Material",
   "text.autoconfig.resounding.option.MaterialData.reflectivity": "Reflectivity",
-  "text.autoconfig.resounding.option.MaterialData.absorption": "Occlusion density"
+  "text.autoconfig.resounding.option.MaterialData.absorption": "Occlusion density",
+
+  "text.autoconfig.resounding.option.misc.recordsDisable": "Skip Jukebox/Note Block occlusion",
+  "text.autoconfig.resounding.option.misc.reverbBias": "Reverb bias",
+
+  "text.autoconfig.resounding.option.debug.debugLogging": "General Logging",
+  "text.autoconfig.resounding.option.debug.occlusionLogging": "Occlusion logging",
+  "text.autoconfig.resounding.option.debug.environmentLogging": "Environment logging",
+  "text.autoconfig.resounding.option.debug.performanceLogging": "Performance logging",
+  "text.autoconfig.resounding.option.debug.raytraceParticles": "Raytracing Particles",
+
+  "text.autoconfig.resounding.option.preset": "Config Preset"
 }
