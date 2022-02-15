@@ -250,6 +250,14 @@ public class Resounding {
 		auxOnly = auxOnlyIn;
 		sourceID = sourceIDIn;
 
+		if (mc.player == null || mc.world == null || uiPattern.matcher(lastSoundName).matches()) {
+			if (pC.dLog) {
+				LOGGER.info("Skipped playing sound \"{}\": Not a world sound.", lastSoundName);
+			} else {
+				LOGGER.debug("Skipped playing sound \"{}\": Not a world sound.", lastSoundName);
+			}
+			return;
+		}
 
 		// isBlock = blockPattern.matcher(lastSoundName).matches(); // && !stepPattern.matcher(lastSoundName).matches(); //  TODO: Occlusion, step sounds
 		if (lastSoundCategory == SoundCategory.RECORDS){posX+=0.5;posY+=0.5;posZ+=0.5;/*isBlock = true;*/} // TODO: Occlusion
@@ -266,14 +274,6 @@ public class Resounding {
 		soundBlockPos = new BlockPos(soundPos.x, soundPos.y,soundPos.z);
 		timeT = mc.world.getTime();
 
-		if (mc.player == null || mc.world == null || uiPattern.matcher(lastSoundName).matches()) {
-			if (pC.dLog) {
-				LOGGER.info("Skipped playing sound \"{}\": Not a world sound.", lastSoundName);
-			} else {
-				LOGGER.debug("Skipped playing sound \"{}\": Not a world sound.", lastSoundName);
-			}
-			return;
-		}
 		if ( /* <editor-fold desc="Outside Block Grid"> */
 				posY          <= bottom || posY          >= top ||
 						playerPos.y   <= bottom || playerPos.y   >= top ||
