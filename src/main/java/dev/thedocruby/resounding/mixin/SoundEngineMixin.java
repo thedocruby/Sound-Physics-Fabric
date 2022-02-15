@@ -17,7 +17,7 @@ import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 @Mixin(SoundEngine.class)
 public class SoundEngineMixin {
     @Inject(method = "init", at = @At(value = "INVOKE_ASSIGN", target = "Lnet/minecraft/client/sound/AlUtil;checkErrors(Ljava/lang/String;)Z", ordinal = 0))
-    private void ResoundingStartInjector(CallbackInfo ci){
+    private void resoundingStartInjector(CallbackInfo ci){
         if (Resounding.isActive) throw new IllegalStateException("Resounding has already been started! You may need to reload the sound system using SoundManager.reloadSounds()");
         Resounding.isActive = pC.enabled;
         if (!Resounding.isActive){
@@ -37,7 +37,7 @@ public class SoundEngineMixin {
     }
 
     @Inject(method = "close", at = @At(value = "INVOKE", target = "Lorg/lwjgl/openal/ALC10;alcDestroyContext(J)V", ordinal = 0))
-    private void ResoundingStopInjector(CallbackInfo ci){
+    private void resoundingStopInjector(CallbackInfo ci){
         if (!Resounding.isActive) return;
         Resounding.LOGGER.info("Stopping Resounding engine...");
         ResoundingEFX.cleanUpEXTEfx();

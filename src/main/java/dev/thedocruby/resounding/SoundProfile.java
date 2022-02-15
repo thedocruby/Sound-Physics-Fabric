@@ -37,12 +37,12 @@ public record SoundProfile(
 
     @Override
     public @NotNull String toString() {
-        return "SoundProfile{"   +
-                "sourceID="      +                 sourceID       +
-                ";directGain="   +                 directGain     +
-                ";directCutoff=" +                 directCutoff   +
-                ";sendGain="     + Arrays.toString(sendGain     ) +
-                ";sendCutoff="   + Arrays.toString(sendCutoff   ) +
-                ";}";
+        return "    SoundProfile {\n"   +
+                   "        sourceID = "     +                 sourceID       +
+                ";\n        directGain = "   +                 directGain     +
+                ";\n        directCutoff = " +                 directCutoff   +
+                ";\n        sendGain = "     + Arrays.toString(sendGain     ) +
+                ";\n        sendCutoff = "   + Arrays.toString(sendCutoff   ) +
+                ";\n    }";
     }
 }

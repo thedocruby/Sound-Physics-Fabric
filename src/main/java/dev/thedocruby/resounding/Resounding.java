@@ -22,8 +22,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -234,7 +234,7 @@ public class Resounding {
 
 	@Environment(EnvType.CLIENT)
 	public static void updateYeetedSoundInfo(SoundInstance sound, SoundListener listener) {
-		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
+		if (!isActive) throw new IllegalStateException("Resounding must be started first! ");
 		lastSoundInstance = sound;
 		lastSoundCategory = lastSoundInstance.getCategory();
 		lastSoundName = lastSoundInstance.getId().getPath();
@@ -242,26 +242,22 @@ public class Resounding {
 	}
 
 	@Environment(EnvType.CLIENT)
-	public static void playSound(double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) {
-		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
+	public static void playSound(double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) { // The heart of the Resounding audio pipeline
+		if (!isActive) throw new IllegalStateException("Resounding must be started first! ");
 		long startTime = 0;
 		if (pC.pLog) startTime = System.nanoTime();
 		long endTime;
-		if (mc.player == null || mc.world == null || uiPattern.matcher(lastSoundName).matches()) {
-			return; // Menu sound!
-		}
-		if (posY <= mc.world.getBottomY() || posY >= mc.world.getTopY() || (pC.recordsDisable && lastSoundCategory == SoundCategory.RECORDS))  {
-			try { setEnv(new SoundProfile(sourceID, auxOnly ? 0f : 1f, 1f, new double[pC.resolution], new double[pC.resolution]));
-			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
-		}
-
 		auxOnly = auxOnlyIn;
 		sourceID = sourceIDIn;
+
+
+		// isBlock = blockPattern.matcher(lastSoundName).matches(); // && !stepPattern.matcher(lastSoundName).matches(); //  TODO: Occlusion, step sounds
+		if (lastSoundCategory == SoundCategory.RECORDS){posX+=0.5;posY+=0.5;posZ+=0.5;/*isBlock = true;*/} // TODO: Occlusion
 		Vec3d playerPosOld = mc.player.getPos();
 		playerPos = new Vec3d(playerPosOld.x, playerPosOld.y + mc.player.getEyeHeight(mc.player.getPose()), playerPosOld.z);
 		listenerPos = lastSoundListener.getPos();
-		// isBlock = blockPattern.matcher(lastSoundName).matches(); // && !stepPattern.matcher(lastSoundName).matches(); //  TODO: Occlusion, step sounds
-		if (lastSoundCategory == SoundCategory.RECORDS){posX+=0.5;posY+=0.5;posZ+=0.5;/*isBlock = true;*/} // TODO: Occlusion
+		final int bottom = mc.world.getBottomY();
+		final int top = mc.world.getTopY();
 		isRain = rainPattern.matcher(lastSoundName).matches();
 		soundPos = new Vec3d(posX, posY, posZ);
 		viewDist = mc.options.getViewDistance();
@@ -270,12 +266,52 @@ public class Resounding {
 		soundBlockPos = new BlockPos(soundPos.x, soundPos.y,soundPos.z);
 		timeT = mc.world.getTime();
 
+		if (mc.player == null || mc.world == null || uiPattern.matcher(lastSoundName).matches()) {
+			if (pC.dLog) {
+				LOGGER.info("Skipped playing sound \"{}\": Not a world sound.", lastSoundName);
+			} else {
+				LOGGER.debug("Skipped playing sound \"{}\": Not a world sound.", lastSoundName);
+			}
+			return;
+		}
+		if ( /* <editor-fold desc="Outside Block Grid"> */
+				posY          <= bottom || posY          >= top ||
+						playerPos.y   <= bottom || playerPos.y   >= top ||
+						listenerPos.y <= bottom || listenerPos.y >= top
+			/* </editor-fold> */ ) {
+			if (pC.dLog) {
+				LOGGER.info("Skipped playing sound \"{}\": Cannot trace sounds outside the block grid.", lastSoundName);
+			} else {
+				LOGGER.info("Skipped playing sound \"{}\": Cannot trace sounds outside the block grid.", lastSoundName);
+			}
+			try { setEnv(new SoundProfile(sourceID, auxOnly ? 0f : 1f, 1f, new double[pC.resolution], new double[pC.resolution])); // TODO: Should be processEnv()
+			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
+		}
 		if (Math.max(playerPos.distanceTo(soundPos), listenerPos.distanceTo(soundPos)) > maxDist) {
-			try { setEnv(new SoundProfile(sourceID, 0d , 1d, new double[pC.resolution], new double[pC.resolution]));
+			if (pC.dLog) {
+				LOGGER.info("Skipped environment sampling for sound \"{}\": Sound is outside the maximum traceable distance with the current settings.", lastSoundName);
+			} else {
+				LOGGER.debug("Skipped environment sampling for sound \"{}\": Sound is outside the maximum traceable distance with the current settings.", lastSoundName);
+			}
+			try { setEnv(processEnv(new EnvData(Collections.emptySet(), Collections.emptySet())));
+			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
+		}
+		if (pC.recordsDisable && lastSoundCategory == SoundCategory.RECORDS){
+			if (pC.dLog) {
+				LOGGER.info("Skipped environment sampling for sound \"{}\": Disabled sound.", lastSoundName);
+			} else {
+				LOGGER.debug("Skipped environment sampling for sound \"{}\": Disabled sound.", lastSoundName);
+			}
+			try { setEnv(processEnv(new EnvData(Collections.emptySet(), Collections.emptySet())));
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
 		if (/*pC.skipRainOcclusionTracing && */isRain) { // TODO: Occlusion
-			try { setEnv(new SoundProfile(sourceID, auxOnly ? 0d : 1d, 1d, new double[pC.resolution], new double[pC.resolution]));
+			if (pC.dLog) {
+				LOGGER.info("Skipped environment sampling for sound \"{}\": Rain sound", lastSoundName);
+			} else {
+				LOGGER.debug("Skipped environment sampling for sound \"{}\": Rain sound", lastSoundName);
+			}
+			try { setEnv(processEnv(new EnvData(Collections.emptySet(), Collections.emptySet())));
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
 		if (pC.dLog) {
@@ -295,7 +331,7 @@ public class Resounding {
 
 	@Environment(EnvType.CLIENT)
 	private static double getBlockReflectivity(final @NotNull BlockState blockState) {
-		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
+		if (!isActive) throw new IllegalStateException("Resounding must be started first! ");
 		BlockSoundGroup soundType = blockState.getSoundGroup();
 		String blockName = blockState.getBlock().getTranslationKey();
 		if (pC.blockWhiteSet.contains(blockName)) return pC.blockWhiteMap.get(blockName).reflectivity;
@@ -316,8 +352,8 @@ public class Resounding {
 */
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull RayResult throwEnvRay(@NotNull Vec3d dir) {
-		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
+	private static @NotNull ReflectedRayResult throwEnvRay(@NotNull Vec3d dir) {
+		if (!isActive) throw new IllegalStateException("Resounding must be started first! ");
 
 		SPHitResult rayHit = RaycastFix.fixedRaycast(
 				soundPos,
@@ -330,7 +366,7 @@ public class Resounding {
 		if (pC.dRays) RaycastRenderer.addSoundBounceRay(soundPos, rayHit.getPos(), Formatting.GREEN.getColorValue());
 
 		if (rayHit.isMissed()) {
-			return new RayResult(
+			return new ReflectedRayResult(
 					0,
 					1,
 					0,
@@ -436,7 +472,7 @@ public class Resounding {
 			}
 			if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
 		}
-		if (missed == 1) return new RayResult(lastBounce, missed, totalDistance, totalReflectivity, shared, energyToPlayer, bounceDistance, totalBounceDistance, bounceReflectivity, totalBounceReflectivity);
+		if (missed == 1) return new ReflectedRayResult(lastBounce, missed, totalDistance, totalReflectivity, shared, energyToPlayer, bounceDistance, totalBounceDistance, bounceReflectivity, totalBounceReflectivity);
 		for(int i = 0; i <= lastBounce; i++) {
 			if (shared[i] > 0) continue;
 			double accumulator = 1;
@@ -445,12 +481,12 @@ public class Resounding {
 			}
 			shared[i] = accumulator;
 		}
-		return new RayResult(lastBounce, missed, totalDistance, totalReflectivity, shared, energyToPlayer, bounceDistance, totalBounceDistance, bounceReflectivity, totalBounceReflectivity);
+		return new ReflectedRayResult(lastBounce, missed, totalDistance, totalReflectivity, shared, energyToPlayer, bounceDistance, totalBounceDistance, bounceReflectivity, totalBounceReflectivity);
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static Set<RayResult> evalEnv() {
-		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
+	private static @NotNull EnvData evalEnv() {
+		if (!isActive) throw new IllegalStateException("Resounding must be started first! ");
 
 		// Clear the block shape cache every tick, just in case the local block grid has changed
 		// TODO: Do this more efficiently.
@@ -470,7 +506,6 @@ public class Resounding {
 		// TODO: This still needs to be rewritten
 		// TODO: fix reflection/absorption calc with an exponential
 		//Direct sound occlusion
-
 		/*
 		Vec3d normalToPlayer = playerPos.subtract(soundPos).normalize(); TODO: change to `listenerPos`
 		if (pC.dLog) logGeneral("Player pos: " + playerPos.x + ", " + playerPos.y + ", " + playerPos.z + "      Sound Pos: " + soundPos.x + ", " + soundPos.y + ", " + soundPos.z + "       To player vector: " + normalToPlayer.x + ", " + normalToPlayer.y + ", " + normalToPlayer.z);
@@ -540,18 +575,28 @@ public class Resounding {
 		double directGain = auxOnly ? 0 : Math.pow(directCutoff, 0.01);
 
 		if (pC.oLog) logOcclusion("direct cutoff: " + directCutoff + "  direct gain:" + directGain);
+		if (isRain) { return null; }
 		*/
+		Set<OccludedRayResult> occlRays = Collections.emptySet(); // TODO: Occlusion
 
-		// if (isRain) { return null; }  // TODO: Occlusion
+		// Throw rays around
+		if (pC.dLog || pC.eLog) {
+			LOGGER.info("Sampling environment with {} rays...", pC.nRays);
+		} else {
+			LOGGER.debug("Sampling environment with {} rays...", pC.nRays);
+		}
+		Set<ReflectedRayResult> reflRays = rays.stream().parallel().unordered().map(Resounding::throwEnvRay).collect(Collectors.toSet());
 
-		// Throw rays around and pass data to post
-		return rays.stream().parallel().unordered().map(Resounding::throwEnvRay).collect(Collectors.toSet());
+		//Pass data to post
+		EnvData data = new EnvData(reflRays, occlRays);
+		if (pC.eLog) LOGGER.info("Raw Environment data:\n{}", data);
+		return data;
 	}
 
 	@Contract("_ -> new")
 	@Environment(EnvType.CLIENT)
-	private static @NotNull SoundProfile processEnv(final @Nullable Set<RayResult> results) {
-		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
+	private static @NotNull SoundProfile processEnv(final EnvData data) {
+		if (!isActive) throw new IllegalStateException("Resounding must be started first! ");
 
 		// Calculate reverb parameters for this sound
 		double directGain = auxOnly ? 0 : 1; // TODO: fix occlusion so i don't have to override this.
@@ -584,7 +629,7 @@ public class Resounding {
 		assert mc.player != null;
 		if (mc.player.isSubmergedInWater()) { inWater = true; }
 
-		if (results == null) {
+		if (data.reflRays().isEmpty()) {
 			return new SoundProfile(sourceID, directGain, directGain * pC.globalAbsorptionBrightness, new double[pC.resolution], new double[pC.resolution]);
 		}
 
@@ -592,12 +637,12 @@ public class Resounding {
 		double missedSum = 0.0D;
 		double sharedAirspaceSum = 0.0D;
 		double bounceCount = 0.0D;
-		for (RayResult result : results) {
-			bounceCount += result.lastBounce() + 1;
-			missedSum += result.missed();
-			if (result.missed() == 1.0D) continue;
-			for (int j = 0; j <= result.lastBounce(); j++)
-				sharedAirspaceSum += result.shared()[j];
+		for (ReflectedRayResult reflRay : data.reflRays()) {
+			bounceCount += reflRay.lastBounce() + 1;
+			missedSum += reflRay.missed();
+			if (reflRay.missed() == 1.0D) continue;
+			for (int j = 0; j <= reflRay.lastBounce(); j++)
+				sharedAirspaceSum += reflRay.shared()[j];
 		}
 		missedSum *= pC.rcpNRays;
 		sharedAirspaceSum /= bounceCount;
@@ -605,11 +650,11 @@ public class Resounding {
 		// TODO: Does this perform better in parallel?
 		// TODO: this is not really done correctly but its the best I can do without dynamic effects
 		double[] sendGain = new double[pC.resolution];
-		for (RayResult result : results) {
-			if (result.missed() == 1.0D) continue;
-			for (int j = 0; j <= result.lastBounce(); j++) {
-				double energy = result.totalBounceReflectivity()[j] / Math.pow(result.totalBounceDistance()[j], (2.0D * missedSum) + 1 - airAbsorptionHF);
-				int t = (int) (Math.pow(MathHelper.clamp(logBase(pC.minEnergy, 1.0D / energy) * -1.0D * result.totalBounceDistance()[j] / speedOfSound, 0.0D, 1.0D), pC.warpFactor) * (pC.resolution - 1));
+		for (ReflectedRayResult reflRay : data.reflRays()) {
+			if (reflRay.missed() == 1.0D) continue;
+			for (int j = 0; j <= reflRay.lastBounce(); j++) {
+				double energy = reflRay.totalBounceReflectivity()[j] / Math.pow(reflRay.totalBounceDistance()[j], (2.0D * missedSum) + 1 - airAbsorptionHF);
+				int t = (int) (Math.pow(MathHelper.clamp(logBase(pC.minEnergy, 1.0D / energy) * -1.0D * reflRay.totalBounceDistance()[j] / speedOfSound, 0.0D, 1.0D), pC.warpFactor) * (pC.resolution - 1));
 				sendGain[t] += energy;
 			}
 		}
@@ -622,21 +667,20 @@ public class Resounding {
 			sendCutoff[i] = sendGain[i] * pC.globalReverbBrightness;
 		}
 
-		//logDetailed("HitRatio0: " + hitRatioBounce1 + " HitRatio1: " + hitRatioBounce2 + " HitRatio2: " + hitRatioBounce3 + " HitRatio3: " + hitRatioBounce4);
-		//logEnvironment("Bounce reflectivity 0: " + bounceReflectivityRatio[0] + " bounce reflectivity 1: " + bounceReflectivityRatio[1] + " bounce reflectivity 2: " + bounceReflectivityRatio[2] + " bounce reflectivity 3: " + bounceReflectivityRatio[3]);
+		SoundProfile profile = new SoundProfile(sourceID, directGain, directCutoff, sendGain, sendCutoff);
 
 		if (pC.eLog || pC.dLog) {
-			LOGGER.info("Final sound profile:\n      Source Gain:    {}\n      Source Gain HF: {}\n      Reverb Gain:    {}\n      Reverb Gain HF: {}", directGain, directCutoff, sendGain, sendCutoff);
+			LOGGER.info("Final sound profile:\n{}", profile);
 		} else {
-			LOGGER.debug("Final sound profile:\n      Source Gain:    {}\n      Source Gain HF: {}\n      Reverb Gain:    {}\n      Reverb Gain HF: {}", directGain, directCutoff, sendGain, sendCutoff);
+			LOGGER.debug("Final sound profile:\n{}", profile);
 		}
 
-		return new SoundProfile(sourceID, directGain, directCutoff, sendGain, sendCutoff);
+		return profile;
 	}
 
 	@Environment(EnvType.CLIENT)
 	public static void setEnv(final @NotNull SoundProfile profile) {
-		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
+		if (!isActive) throw new IllegalStateException("Resounding must be started first! ");
 
 		if (profile.sendGain().length != pC.resolution || profile.sendCutoff().length != pC.resolution) {
 			throw new IllegalArgumentException("Error: Reverb parameter count does not match reverb resolution!");

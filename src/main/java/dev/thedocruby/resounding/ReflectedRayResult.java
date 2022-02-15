@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 @Environment(EnvType.CLIENT)
-public record RayResult(
+public record ReflectedRayResult(
         int lastBounce,
         double missed,
         double totalDistance,
@@ -24,7 +24,7 @@ public record RayResult(
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        RayResult result = (RayResult) o;
+        ReflectedRayResult result = (ReflectedRayResult) o;
         return               lastBounce            == result.lastBounce
             &&               missed                == result.missed
             &&               totalDistance         == result.totalDistance
@@ -51,17 +51,17 @@ public record RayResult(
 
     @Override
     public @NotNull String toString() {
-        return "RayResult{" +
-                "lastBounce="               +                 lastBounce               +
-                ";missed="                  +                 missed                   +
-                ";totalDistance="           +                 totalDistance            +
-                ";totalReflectivity="       +                 totalReflectivity        +
-                ";shared="                  + Arrays.toString(shared                 ) +
-                ";energyToPlayer="          + Arrays.toString(energyToPlayer         ) +
-                ";bounceDistance="          + Arrays.toString(bounceDistance         ) +
-                ";totalBounceDistance="     + Arrays.toString(totalBounceDistance    ) +
-                ";bounceReflectivity="      + Arrays.toString(bounceReflectivity     ) +
-                ";totalBounceReflectivity=" + Arrays.toString(totalBounceReflectivity) +
-                ";}";
+        return "    ReflectedRayResult {\n" +
+                   "        lastBounce = "              +                 lastBounce               +
+                ";\n        missed = "                  +                 missed                   +
+                ";\n        totalDistance = "           +                 totalDistance            +
+                ";\n        totalReflectivity = "       +                 totalReflectivity        +
+                ";\n        shared = "                  + Arrays.toString(shared                 ) +
+                ";\n        energyToPlayer = "          + Arrays.toString(energyToPlayer         ) +
+                ";\n        bounceDistance = "          + Arrays.toString(bounceDistance         ) +
+                ";\n        totalBounceDistance = "     + Arrays.toString(totalBounceDistance    ) +
+                ";\n        bounceReflectivity = "      + Arrays.toString(bounceReflectivity     ) +
+                ";\n        totalBounceReflectivity = " + Arrays.toString(totalBounceReflectivity) +
+                ";\n    }";
     }
 }
