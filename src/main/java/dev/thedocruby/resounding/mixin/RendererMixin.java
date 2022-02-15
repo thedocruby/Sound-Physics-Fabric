@@ -1,6 +1,6 @@
 package dev.thedocruby.resounding.mixin;
 
-import dev.thedocruby.resounding.RaycastRenderer;
+import dev.thedocruby.resounding.raycast.RaycastRenderer;
 import dev.thedocruby.resounding.Resounding;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;

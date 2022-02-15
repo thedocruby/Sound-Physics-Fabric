@@ -1,4 +1,4 @@
-package dev.thedocruby.resounding;
+package dev.thedocruby.resounding.toolbox;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 @Environment(EnvType.CLIENT)
-public record OccludedRayResult(
+public record OccludedRayData(
         int lastLeg,
         double totalDistance,
         double totalOcclusion,
@@ -21,14 +21,14 @@ public record OccludedRayResult(
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        OccludedRayResult result = (OccludedRayResult) o;
-        return                   lastLeg         == result.lastLeg
-                &&               totalDistance   == result.totalDistance
-                &&               totalOcclusion  == result.totalOcclusion
-                && Arrays.equals(legDistance,       result.legDistance      )
-                && Arrays.equals(totalLegDistance,  result.totalLegDistance )
-                && Arrays.equals(legOcclusion,      result.legOcclusion     )
-                && Arrays.equals(totalLegOcclusion, result.totalLegOcclusion);
+        OccludedRayData data = (OccludedRayData) o;
+        return                   lastLeg         == data.lastLeg
+                &&               totalDistance   == data.totalDistance
+                &&               totalOcclusion  == data.totalOcclusion
+                && Arrays.equals(legDistance,       data.legDistance      )
+                && Arrays.equals(totalLegDistance,  data.totalLegDistance )
+                && Arrays.equals(legOcclusion,      data.legOcclusion     )
+                && Arrays.equals(totalLegOcclusion, data.totalLegOcclusion);
     }
 
     @Override
@@ -43,7 +43,7 @@ public record OccludedRayResult(
 
     @Override
     public @NotNull String toString() {
-        return "    OccludedRayResult {\n" +
+        return "    OccludedRayData {\n" +
                    "        lastLeg = "           +                 lastLeg            +
                 ";\n        totalDistance = "     +                 totalDistance      +
                 ";\n        totalOcclusion = "    +                 totalOcclusion     +

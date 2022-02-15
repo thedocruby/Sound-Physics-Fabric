@@ -1,10 +1,6 @@
 package dev.thedocruby.resounding.openal;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-
-@Environment(EnvType.CLIENT) //!!!!!!!!!!!! Ctrl + Shift + '-' !!!!!!!!!!!!
-class ReverbEffect { // TODO: Find a new home for these docs and delete class.
+class ReverbDocs { // TODO: Find a new home for these docs and delete class.
     //<editor-fold desc="Effect properties">
     // from: Effects Guide (p. 66+) and other sources; altered
     /**
@@ -244,6 +240,5 @@ class ReverbEffect { // TODO: Find a new home for these docs and delete class.
     public int decayHFLimit;        // min:AL_FALSE max:AL_TRUE (Boolean)                   default: true
     //</editor-fold>
 
-    public ReverbEffect(){}
-
+    public ReverbDocs(){}
 }

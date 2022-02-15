@@ -1,7 +1,7 @@
 package dev.thedocruby.resounding.mixin;
 
 import dev.thedocruby.resounding.Resounding;
-import dev.thedocruby.resounding.SourceAccessor;
+import dev.thedocruby.resounding.toolbox.SourceAccessor;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
 import dev.thedocruby.resounding.effects.AirEffects;
 import net.fabricmc.api.EnvType;

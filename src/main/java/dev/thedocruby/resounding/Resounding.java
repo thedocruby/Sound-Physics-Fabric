@@ -2,8 +2,13 @@ package dev.thedocruby.resounding;
 
 import dev.thedocruby.resounding.effects.AirEffects;
 import dev.thedocruby.resounding.openal.ResoundingEFX;
-import dev.thedocruby.resounding.performance.RaycastFix;
-import dev.thedocruby.resounding.performance.SPHitResult;
+import dev.thedocruby.resounding.raycast.RaycastFix;
+import dev.thedocruby.resounding.raycast.RaycastRenderer;
+import dev.thedocruby.resounding.raycast.SPHitResult;
+import dev.thedocruby.resounding.toolbox.EnvData;
+import dev.thedocruby.resounding.toolbox.OccludedRayData;
+import dev.thedocruby.resounding.toolbox.ReflectedRayData;
+import dev.thedocruby.resounding.toolbox.SoundProfile;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
@@ -41,11 +46,9 @@ public class Resounding {
 	private Resounding() { }
 
 	public static EnvType env = null;
+	public static MinecraftClient mc;
 	public static final Logger LOGGER = LogManager.getLogger("Resounding");
-	private static final Pattern rainPattern = Pattern.compile(".*rain.*");
-	// public static final Pattern stepPattern = Pattern.compile(".*step.*"); // TODO: step sounds
-	// private static final Pattern blockPattern = Pattern.compile(".*block..*");TODO: Occlusion
-	private static final Pattern uiPattern = Pattern.compile("ui..*");
+	public static boolean isActive;
 
 	public static final Map<BlockSoundGroup, BlockSoundGroup> redirectMap = //<editor-fold desc="Map.ofEntries()">
 			Map.ofEntries(  // first becomes second
@@ -178,10 +181,13 @@ public class Resounding {
 					entry("Lanterns"			, BlockSoundGroup.LANTERN		),	// Lanterns			(lantern)
 					entry("Dripstone"		,BlockSoundGroup.DRIPSTONE_BLOCK)	// Dripstone		(dripstone_block, pointed_dripstone)
 			);//</editor-fold>
-	private static Set<Vec3d> rays;
 
-	public static MinecraftClient mc;
-	public static boolean isActive;
+	public static final Pattern rainPattern = Pattern.compile(".*rain.*");
+	// public static final Pattern stepPattern = Pattern.compile(".*step.*"); // TODO: step sounds
+	// public static final Pattern blockPattern = Pattern.compile(".*block..*");TODO: Occlusion
+	public static final Pattern uiPattern = Pattern.compile("ui..*");
+
+	private static Set<Vec3d> rays;
 	private static int viewDist;
 	private static SoundInstance lastSoundInstance;
 	private static SoundCategory lastSoundCategory;
@@ -194,7 +200,8 @@ public class Resounding {
 	private static BlockPos soundBlockPos;
 	private static boolean auxOnly;
 	private static boolean isRain;
-	// private static boolean isBlock; TODO: Occlusion
+	// private static boolean isBlock; // TODO: Occlusion
+	private static boolean doNineRay; // TODO: Occlusion
 	private static long timeT;
 	private static int sourceID;
 	// private static boolean doDirEval; // TODO: DirEval
@@ -261,6 +268,7 @@ public class Resounding {
 
 		// isBlock = blockPattern.matcher(lastSoundName).matches(); // && !stepPattern.matcher(lastSoundName).matches(); //  TODO: Occlusion, step sounds
 		if (lastSoundCategory == SoundCategory.RECORDS){posX+=0.5;posY+=0.5;posZ+=0.5;/*isBlock = true;*/} // TODO: Occlusion
+		doNineRay = pC.nineRay && (lastSoundCategory == SoundCategory.BLOCKS/* || isBlock*/); // TODO: Occlusion
 		Vec3d playerPosOld = mc.player.getPos();
 		playerPos = new Vec3d(playerPosOld.x, playerPosOld.y + mc.player.getEyeHeight(mc.player.getPose()), playerPosOld.z);
 		listenerPos = lastSoundListener.getPos();
@@ -315,9 +323,9 @@ public class Resounding {
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
 		if (pC.dLog) {
-			LOGGER.info("Playing sound!\n      Source ID:      {}\n      Source Pos:     {}\n      Sound category: {}\n      Sound name:     {}", sourceID, new double[] {posX, posY, posZ}, lastSoundCategory, lastSoundName);
+			LOGGER.info("Playing sound!\n      Player Pos:    {}\n      Listener Pos:    {}\n      Source ID:    {}\n      Source Pos:    {}\n      Sound category:    {}\n      Sound name:    {}", playerPos, listenerPos, sourceID, soundPos, lastSoundCategory, lastSoundName);
 		} else {
-			LOGGER.debug("Playing sound!\n      Source ID:      {}\n      Source Pos:     {}\n      Sound category: {}\n      Sound name:     {}", sourceID, new double[] {posX, posY, posZ}, lastSoundCategory, lastSoundName);
+			LOGGER.debug("Playing sound!\n      Player Pos:    {}\n      Listener Pos:    {}\n      Source ID:    {}\n      Source Pos:    {}\n      Sound category:    {}\n      Sound name:    {}", playerPos, listenerPos, sourceID, soundPos, lastSoundCategory, lastSoundName);
 		}
 		try {  ////////  CORE SOUND PIPELINE  ////////
 
@@ -339,9 +347,10 @@ public class Resounding {
 		double r = pC.reflectivityMap.getOrDefault(soundType, Double.NaN);
 		return Double.isNaN(r) ? pC.defaultReflectivity : r;
 	}
-/*
+
+    /*  // TODO: Occlusion
 	@Environment(EnvType.CLIENT)
-	private static double getBlockOcclusionD(final BlockState blockState) { // TODO: Occlusion
+	private static double getBlockOcclusionD(final BlockState blockState) {
 		BlockSoundGroup soundType = blockState.getSoundGroup();
 		String blockName = blockState.getBlock().getTranslationKey();
 		if (pC.blockWhiteSet.contains(blockName)) return pC.blockWhiteMap.get(blockName).absorption;
@@ -349,10 +358,10 @@ public class Resounding {
 		double r = pC.absorptionMap.getOrDefault(soundType, Double.NaN);
 		return Double.isNaN(r) ? pC.defaultAbsorption : r;
 	}
-*/
+    */
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull ReflectedRayResult throwEnvRay(@NotNull Vec3d dir) {
+	private static @NotNull ReflectedRayData throwReflRay(@NotNull Vec3d dir) {
 		if (!isActive) throw new IllegalStateException("Resounding must be started first! ");
 
 		SPHitResult rayHit = RaycastFix.fixedRaycast(
@@ -366,7 +375,7 @@ public class Resounding {
 		if (pC.dRays) RaycastRenderer.addSoundBounceRay(soundPos, rayHit.getPos(), Formatting.GREEN.getColorValue());
 
 		if (rayHit.isMissed()) {
-			return new ReflectedRayResult(
+			return new ReflectedRayData(
 					0,
 					1,
 					0,
@@ -421,7 +430,6 @@ public class Resounding {
 
 			final Vec3d newRayDir = pseudoReflect(lastRayDir, lastHitNormal);
 			rayHit = RaycastFix.fixedRaycast(lastHitPos, lastHitPos.add(newRayDir.multiply(pC.maxDistance - totalDistance)), mc.world, lastHitBlock, rayHit.chunk);
-			// log("New ray dir: " + newRayDir.xCoord + ", " + newRayDir.yCoord + ", " + newRayDir.zCoord);
 
 			if (rayHit.isMissed()) {
 				if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, rayHit.getPos(), Formatting.DARK_RED.getColorValue());
@@ -472,7 +480,7 @@ public class Resounding {
 			}
 			if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
 		}
-		if (missed == 1) return new ReflectedRayResult(lastBounce, missed, totalDistance, totalReflectivity, shared, energyToPlayer, bounceDistance, totalBounceDistance, bounceReflectivity, totalBounceReflectivity);
+		if (missed == 1) return new ReflectedRayData(lastBounce, missed, totalDistance, totalReflectivity, shared, energyToPlayer, bounceDistance, totalBounceDistance, bounceReflectivity, totalBounceReflectivity);
 		for(int i = 0; i <= lastBounce; i++) {
 			if (shared[i] > 0) continue;
 			double accumulator = 1;
@@ -481,38 +489,21 @@ public class Resounding {
 			}
 			shared[i] = accumulator;
 		}
-		return new ReflectedRayResult(lastBounce, missed, totalDistance, totalReflectivity, shared, energyToPlayer, bounceDistance, totalBounceDistance, bounceReflectivity, totalBounceReflectivity);
+		return new ReflectedRayData(lastBounce, missed, totalDistance, totalReflectivity, shared, energyToPlayer, bounceDistance, totalBounceDistance, bounceReflectivity, totalBounceReflectivity);
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull EnvData evalEnv() {
+	private static @NotNull Set<OccludedRayData> throwOcclRay(@NotNull Vec3d sourcePos, @NotNull Vec3d sinkPos) { //Direct sound occlusion
 		if (!isActive) throw new IllegalStateException("Resounding must be started first! ");
-
-		// Clear the block shape cache every tick, just in case the local block grid has changed
-		// TODO: Do this more efficiently.
-		//  In 1.18 there should be something I can mix into to clear only in ticks when the block grid changes
-		if (RaycastFix.lastUpd != timeT) {
-			RaycastFix.shapeCache.clear();
-			RaycastFix.lastUpd = timeT;
-		}
-
-		RaycastFix.maxY = mc.world.getTopY();
-		RaycastFix.minY = mc.world.getBottomY();
-		RaycastFix.maxX = (int) (playerPos.getX() + (viewDist * 16));
-		RaycastFix.minX = (int) (playerPos.getX() - (viewDist * 16));
-		RaycastFix.maxZ = (int) (playerPos.getZ() + (viewDist * 16));
-		RaycastFix.minZ = (int) (playerPos.getZ() - (viewDist * 16));
 
 		// TODO: This still needs to be rewritten
 		// TODO: fix reflection/absorption calc with an exponential
-		//Direct sound occlusion
-		/*
+
+		/* Old code
 		Vec3d normalToPlayer = playerPos.subtract(soundPos).normalize(); TODO: change to `listenerPos`
-		if (pC.dLog) logGeneral("Player pos: " + playerPos.x + ", " + playerPos.y + ", " + playerPos.z + "      Sound Pos: " + soundPos.x + ", " + soundPos.y + ", " + soundPos.z + "       To player vector: " + normalToPlayer.x + ", " + normalToPlayer.y + ", " + normalToPlayer.z);
 		double occlusionAccumulation = 0;
 		//Cast a ray from the source towards the player
 		Vec3d rayOrigin = soundPos;
-		//System.out.println(rayOrigin.toString());
 		BlockPos lastBlockPos = soundBlockPos;
 		final boolean _9ray = pC._9Ray && (lastSoundCategory == SoundCategory.BLOCKS || block);
 		final int nOccRays = _9ray ? 9 : 1;
@@ -537,11 +528,11 @@ public class Resounding {
 
 				if (pC.dRays) RaycastRenderer.addOcclusionRay(rayOrigin, rayHit.getPos(), Color.getHSBColor((float) (1F / 3F * (1F - Math.min(1F, occlusionAccumulation / 12F))), 1F, 1F).getRGB());
 				if (rayHit.isMissed()) {
-					/* if (pC.soundDirectionEvaluation) directions.add(Map.entry(rayOrigin.subtract(playerPos),
+					if (pC.soundDirectionEvaluation) directions.add(Map.entry(rayOrigin.subtract(playerPos), // TODO: DirEval
 							(_9ray?9:1) * Math.pow(soundPos.distanceTo(playerPos), 2.0)* pC.rcpTotRays
 									/
 							(Math.exp(-occlusionAccumulation * pC.globalBlockAbsorption)* pC.directRaysDirEvalMultiplier)
-					)); *//* // TODO: DirEval
+					));
 					oAValid = true;
 					break;
 				}
@@ -577,7 +568,30 @@ public class Resounding {
 		if (pC.oLog) logOcclusion("direct cutoff: " + directCutoff + "  direct gain:" + directGain);
 		if (isRain) { return null; }
 		*/
-		Set<OccludedRayResult> occlRays = Collections.emptySet(); // TODO: Occlusion
+
+		return Collections.emptySet();
+	}
+
+	@Environment(EnvType.CLIENT)
+	private static @NotNull EnvData evalEnv() {
+		if (!isActive) throw new IllegalStateException("Resounding must be started first! ");
+
+		// Clear the block shape cache every tick, just in case the local block grid has changed
+		// TODO: Do this more efficiently.
+		//  In 1.18 there should be something I can mix into to clear only in ticks when the block grid changes
+		//  I think i remember a technical chang relating to this;
+		//  It may be faster to skim through the snapshot changelog instead of digging through the code.
+		if (RaycastFix.lastUpd != timeT) {
+			RaycastFix.shapeCache.clear();
+			RaycastFix.lastUpd = timeT;
+		}
+
+		RaycastFix.maxY = mc.world.getTopY();
+		RaycastFix.minY = mc.world.getBottomY();
+		RaycastFix.maxX = (int) (playerPos.getX() + (viewDist * 16));
+		RaycastFix.minX = (int) (playerPos.getX() - (viewDist * 16));
+		RaycastFix.maxZ = (int) (playerPos.getZ() + (viewDist * 16));
+		RaycastFix.minZ = (int) (playerPos.getZ() - (viewDist * 16));
 
 		// Throw rays around
 		if (pC.dLog || pC.eLog) {
@@ -585,7 +599,11 @@ public class Resounding {
 		} else {
 			LOGGER.debug("Sampling environment with {} rays...", pC.nRays);
 		}
-		Set<ReflectedRayResult> reflRays = rays.stream().parallel().unordered().map(Resounding::throwEnvRay).collect(Collectors.toSet());
+		Set<ReflectedRayData> reflRays = rays.stream().parallel().unordered().map(Resounding::throwReflRay).collect(Collectors.toSet());
+
+		// TODO: Occlusion
+		// Step rays from sound to listener
+		Set<OccludedRayData> occlRays = throwOcclRay(soundPos, listenerPos);
 
 		//Pass data to post
 		EnvData data = new EnvData(reflRays, occlRays);
@@ -637,7 +655,7 @@ public class Resounding {
 		double missedSum = 0.0D;
 		double sharedAirspaceSum = 0.0D;
 		double bounceCount = 0.0D;
-		for (ReflectedRayResult reflRay : data.reflRays()) {
+		for (ReflectedRayData reflRay : data.reflRays()) {
 			bounceCount += reflRay.lastBounce() + 1;
 			missedSum += reflRay.missed();
 			if (reflRay.missed() == 1.0D) continue;
@@ -650,7 +668,7 @@ public class Resounding {
 		// TODO: Does this perform better in parallel?
 		// TODO: this is not really done correctly but its the best I can do without dynamic effects
 		double[] sendGain = new double[pC.resolution];
-		for (ReflectedRayResult reflRay : data.reflRays()) {
+		for (ReflectedRayData reflRay : data.reflRays()) {
 			if (reflRay.missed() == 1.0D) continue;
 			for (int j = 0; j <= reflRay.lastBounce(); j++) {
 				double energy = reflRay.totalBounceReflectivity()[j] / Math.pow(reflRay.totalBounceDistance()[j], (2.0D * missedSum) + 1 - airAbsorptionHF);

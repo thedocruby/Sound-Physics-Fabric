@@ -1,7 +1,7 @@
 package dev.thedocruby.resounding.mixin;
 
 import dev.thedocruby.resounding.Resounding;
-import dev.thedocruby.resounding.SourceAccessor;
+import dev.thedocruby.resounding.toolbox.SourceAccessor;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.sound.SoundInstance;

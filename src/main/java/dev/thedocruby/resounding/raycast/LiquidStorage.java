@@ -1,4 +1,4 @@
-package dev.thedocruby.resounding.performance;
+package dev.thedocruby.resounding.raycast;
 
 import dev.thedocruby.resounding.Resounding;
 import net.fabricmc.api.EnvType;

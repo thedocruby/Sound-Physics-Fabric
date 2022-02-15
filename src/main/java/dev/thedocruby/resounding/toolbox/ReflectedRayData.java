@@ -1,4 +1,4 @@
-package dev.thedocruby.resounding;
+package dev.thedocruby.resounding.toolbox;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 @Environment(EnvType.CLIENT)
-public record ReflectedRayResult(
+public record ReflectedRayData(
         int lastBounce,
         double missed,
         double totalDistance,
@@ -24,17 +24,17 @@ public record ReflectedRayResult(
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        ReflectedRayResult result = (ReflectedRayResult) o;
-        return               lastBounce            == result.lastBounce
-            &&               missed                == result.missed
-            &&               totalDistance         == result.totalDistance
-            &&               totalReflectivity     == result.totalReflectivity
-            && Arrays.equals(shared,                  result.shared                 )
-            && Arrays.equals(energyToPlayer,          result.energyToPlayer         )
-            && Arrays.equals(bounceDistance,          result.bounceDistance         )
-            && Arrays.equals(totalBounceDistance,     result.totalBounceDistance    )
-            && Arrays.equals(bounceReflectivity,      result.bounceReflectivity     )
-            && Arrays.equals(totalBounceReflectivity, result.totalBounceReflectivity);
+        ReflectedRayData data = (ReflectedRayData) o;
+        return               lastBounce            == data.lastBounce
+            &&               missed                == data.missed
+            &&               totalDistance         == data.totalDistance
+            &&               totalReflectivity     == data.totalReflectivity
+            && Arrays.equals(shared,                  data.shared                 )
+            && Arrays.equals(energyToPlayer,          data.energyToPlayer         )
+            && Arrays.equals(bounceDistance,          data.bounceDistance         )
+            && Arrays.equals(totalBounceDistance,     data.totalBounceDistance    )
+            && Arrays.equals(bounceReflectivity,      data.bounceReflectivity     )
+            && Arrays.equals(totalBounceReflectivity, data.totalBounceReflectivity);
     }
 
     @Override
@@ -51,7 +51,7 @@ public record ReflectedRayResult(
 
     @Override
     public @NotNull String toString() {
-        return "    ReflectedRayResult {\n" +
+        return "    ReflectedRayData {\n" +
                    "        lastBounce = "              +                 lastBounce               +
                 ";\n        missed = "                  +                 missed                   +
                 ";\n        totalDistance = "           +                 totalDistance            +

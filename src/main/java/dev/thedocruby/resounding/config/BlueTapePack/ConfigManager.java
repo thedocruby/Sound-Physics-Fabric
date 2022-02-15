@@ -1,7 +1,7 @@
 package dev.thedocruby.resounding.config.BlueTapePack;
 
 import dev.thedocruby.resounding.Resounding;
-import dev.thedocruby.resounding.config.MaterialData;
+import dev.thedocruby.resounding.toolbox.MaterialData;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
 import dev.thedocruby.resounding.config.ResoundingConfig;
 import dev.thedocruby.resounding.config.presets.ConfigPresets;

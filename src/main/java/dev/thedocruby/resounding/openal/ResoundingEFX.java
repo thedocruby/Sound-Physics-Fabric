@@ -34,7 +34,7 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
     public static boolean efxEnabled = false;
     public static boolean initialized = false;
 
-    private static void setEffect//<editor-fold desc="(Effect_properties)">
+    public static void setEffect//<editor-fold desc="(Effect_properties)">
     (
             int id,
             float decayTime,
@@ -90,23 +90,13 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         ALUtils.checkErrors("Error applying Filter object "+filters[id]+" and aux slot "+slots[id]+" to source "+sourceID+"!");
     }
 
-    private static void deleteAuxiliaryEffectSlots(){       // Remove unused OpenAL Auxiliary Effect slots
-        if (pC.dLog) Resounding.LOGGER.info("Removing {} Auxiliary Effect slots...", slots.length);
-        EXTEfx.alDeleteAuxiliaryEffectSlots(slots.clone());
-        for (int j : slots) {
-            if (EXTEfx.alIsAuxiliaryEffectSlot(j)) { Resounding.LOGGER.error("Failed to delete Auxiliary Effect slot {}!", j); continue;}
-            slots = ArrayUtils.removeElement(slots, j);
-            if (pC.dLog) { Resounding.LOGGER.info("Auxiliary Effect slot {} deleted.", j); }
-        }
-    }
-
     private static void createAuxiliaryEffectSlots(){       // Create new OpenAL Auxiliary Effect slots
         slots = new int[pC.resolution];
         if (pC.dLog) Resounding.LOGGER.info("Creating {} new Auxiliary Effect slots...", pC.resolution);
         EXTEfx.alGenAuxiliaryEffectSlots(slots);
         for(int i = 0; i < pC.resolution; i++) {
             if(EXTEfx.alIsAuxiliaryEffectSlot(slots[i])){
-                EXTEfx.alAuxiliaryEffectSloti(slots[i], EXTEfx.AL_EFFECTSLOT_AUXILIARY_SEND_AUTO, AL10.AL_TRUE); // Set effect type to EAX Reverb
+                EXTEfx.alAuxiliaryEffectSloti(slots[i], EXTEfx.AL_EFFECTSLOT_AUXILIARY_SEND_AUTO, AL10.AL_TRUE);
                 if (!ALUtils.checkErrors("Failed to initialize Auxiliary Effect slot "+slots[i]+"!")) {
                     if (pC.dLog) Resounding.LOGGER.info("Auxiliary Effect slot {} created!", slots[i]); continue;
                 } initialized = false; continue;
@@ -114,13 +104,13 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         }
     }
 
-    private static void deleteEffectObjects(){       // Remove unused OpenAL Effect objects
-        if (pC.dLog) Resounding.LOGGER.info("Removing {} Effect objects...", effects.length);
-        EXTEfx.alDeleteEffects(effects.clone());
-        for (int j : effects) {
-            if (EXTEfx.alIsEffect(j)) { Resounding.LOGGER.error("Failed to delete Effect object {}!", j); continue;}
-            effects = ArrayUtils.removeElement(effects, j);
-            if (pC.dLog) { Resounding.LOGGER.info("Effect object {} deleted.", j); }
+    private static void deleteAuxiliaryEffectSlots(){       // Remove OpenAL Auxiliary Effect slots
+        if (pC.dLog) Resounding.LOGGER.info("Removing {} Auxiliary Effect slots...", slots.length);
+        EXTEfx.alDeleteAuxiliaryEffectSlots(slots.clone());
+        for (int j : slots) {
+            if (EXTEfx.alIsAuxiliaryEffectSlot(j)) { Resounding.LOGGER.error("Failed to delete Auxiliary Effect slot {}!", j); continue;}
+            slots = ArrayUtils.removeElement(slots, j);
+            if (pC.dLog) { Resounding.LOGGER.info("Auxiliary Effect slot {} deleted.", j); }
         }
     }
 
@@ -138,13 +128,13 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         }
     }
 
-    private static void deleteFilterObjects(){      // Remove unused OpenAL Filter objects
-        if (pC.dLog) Resounding.LOGGER.info("Removing {} Filter objects...", filters.length);
-        EXTEfx.alDeleteFilters(filters.clone());
-        for (int j : filters) {
-            if (EXTEfx.alIsFilter(j)) { Resounding.LOGGER.error("Failed to delete Filter object {}!", j); continue;}
-            filters = ArrayUtils.removeElement(filters, j);
-            if (pC.dLog) { Resounding.LOGGER.info("Filter object {} deleted.", j); }
+    private static void deleteEffectObjects(){       // Remove OpenAL Effect objects
+        if (pC.dLog) Resounding.LOGGER.info("Removing {} Effect objects...", effects.length);
+        EXTEfx.alDeleteEffects(effects.clone());
+        for (int j : effects) {
+            if (EXTEfx.alIsEffect(j)) { Resounding.LOGGER.error("Failed to delete Effect object {}!", j); continue;}
+            effects = ArrayUtils.removeElement(effects, j);
+            if (pC.dLog) { Resounding.LOGGER.info("Effect object {} deleted.", j); }
         }
     }
 
@@ -159,6 +149,16 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
                     if (pC.dLog) Resounding.LOGGER.info("Filter object {} created!", filters[i]); continue;
                 } initialized = false; continue;
             } Resounding.LOGGER.error("Failed to create Filter object! (index {})", i); initialized = false;
+        }
+    }
+
+    private static void deleteFilterObjects(){      // Remove OpenAL Filter objects
+        if (pC.dLog) Resounding.LOGGER.info("Removing {} Filter objects...", filters.length);
+        EXTEfx.alDeleteFilters(filters.clone());
+        for (int j : filters) {
+            if (EXTEfx.alIsFilter(j)) { Resounding.LOGGER.error("Failed to delete Filter object {}!", j); continue;}
+            filters = ArrayUtils.removeElement(filters, j);
+            if (pC.dLog) { Resounding.LOGGER.info("Filter object {} deleted.", j); }
         }
     }
 
@@ -232,7 +232,6 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         AL10.alSourcei(sourceID, EXTEfx.AL_DIRECT_FILTER, directFilter);
         ALUtils.checkErrors("Error applying direct filter object to source "+sourceID+"!");
     }
-
 
     /* public static void setSoundPos(final int sourceID, final Vec3d pos) {
         if (!(efxEnabled && initialized)) throw new IllegalStateException("EFX is not enabled/initialized! Cannot complete request.");

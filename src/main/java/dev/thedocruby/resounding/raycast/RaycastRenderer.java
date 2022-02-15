@@ -1,4 +1,4 @@
-package dev.thedocruby.resounding;
+package dev.thedocruby.resounding.raycast;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.api.EnvType;

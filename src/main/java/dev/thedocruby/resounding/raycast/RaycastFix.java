@@ -1,5 +1,7 @@
-package dev.thedocruby.resounding.performance;
+package dev.thedocruby.resounding.raycast;
 
+import dev.thedocruby.resounding.toolbox.Shapes;
+import dev.thedocruby.resounding.toolbox.WorldChunkAccess;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;

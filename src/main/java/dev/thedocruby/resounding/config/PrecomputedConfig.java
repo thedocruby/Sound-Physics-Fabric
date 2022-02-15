@@ -1,6 +1,7 @@
 package dev.thedocruby.resounding.config;
 
 import dev.thedocruby.resounding.Resounding;
+import dev.thedocruby.resounding.toolbox.MaterialData;
 import it.unimi.dsi.fastutil.objects.Reference2DoubleOpenHashMap;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
