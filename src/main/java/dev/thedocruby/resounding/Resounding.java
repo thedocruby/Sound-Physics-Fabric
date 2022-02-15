@@ -1,7 +1,7 @@
 package dev.thedocruby.resounding;
 
-import dev.thedocruby.resounding.openal.ResoundingEFX;
 import dev.thedocruby.resounding.effects.AirEffects;
+import dev.thedocruby.resounding.openal.ResoundingEFX;
 import dev.thedocruby.resounding.performance.RaycastFix;
 import dev.thedocruby.resounding.performance.SPHitResult;
 import net.fabricmc.api.EnvType;
@@ -32,7 +32,6 @@ import java.util.stream.IntStream;
 
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 import static dev.thedocruby.resounding.config.PrecomputedConfig.speedOfSound;
-import static dev.thedocruby.resounding.openal.ResoundingEFX.efxEnabled;
 import static java.util.Map.entry;
 
 @SuppressWarnings({"CommentedOutCode"})
@@ -182,6 +181,7 @@ public class Resounding {
 	private static Set<Vec3d> rays;
 
 	public static MinecraftClient mc;
+	public static boolean isActive;
 	private static int viewDist;
 	private static SoundInstance lastSoundInstance;
 	private static SoundCategory lastSoundCategory;
@@ -198,25 +198,14 @@ public class Resounding {
 	private static long timeT;
 	private static int sourceID;
 	// private static boolean doDirEval; // TODO: DirEval
-
-	@Environment(EnvType.CLIENT)
-	public static void start() {
-		LOGGER.info("Starting Resounding engine...");
-		ResoundingEFX.setupEXTEfx();
-		LOGGER.info("OpenAL EFX successfully primed for Resounding effects");
-		mc = MinecraftClient.getInstance();
-		updateRays();
-	}
-
-	@Environment(EnvType.CLIENT)
-	public static void stop() {
-		LOGGER.info("Stopping Resounding engine...");
-		ResoundingEFX.cleanUpEXTEfx();
-	}
-
+	
 	public static <T> double logBase(T x, T b) {
 		return (Math.log((Double) x) / Math.log((Double) b));
 	}
+
+	@Contract("_, _ -> new")
+	private static @NotNull Vec3d pseudoReflect(Vec3d dir, @NotNull Vec3i normal) // TODO: I think this breaks with faces not aligned to the grid
+	{return new Vec3d(normal.getX() == 0 ? dir.x : -dir.x, normal.getY() == 0 ? dir.y : -dir.y, normal.getZ() == 0 ? dir.z : -dir.z);}
 
 	@Environment(EnvType.CLIENT)
 	public static void updateRays() {
@@ -245,6 +234,7 @@ public class Resounding {
 
 	@Environment(EnvType.CLIENT)
 	public static void updateYeetedSoundInfo(SoundInstance sound, SoundListener listener) {
+		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
 		lastSoundInstance = sound;
 		lastSoundCategory = lastSoundInstance.getCategory();
 		lastSoundName = lastSoundInstance.getId().getPath();
@@ -253,7 +243,7 @@ public class Resounding {
 
 	@Environment(EnvType.CLIENT)
 	public static void playSound(double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) {
-		if (!efxEnabled || pC.off) return;
+		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
 		long startTime = 0;
 		if (pC.pLog) startTime = System.nanoTime();
 		long endTime;
@@ -305,6 +295,7 @@ public class Resounding {
 
 	@Environment(EnvType.CLIENT)
 	private static double getBlockReflectivity(final @NotNull BlockState blockState) {
+		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
 		BlockSoundGroup soundType = blockState.getSoundGroup();
 		String blockName = blockState.getBlock().getTranslationKey();
 		if (pC.blockWhiteSet.contains(blockName)) return pC.blockWhiteMap.get(blockName).reflectivity;
@@ -324,13 +315,9 @@ public class Resounding {
 	}
 */
 
-	@Contract("_, _ -> new")
-	@Environment(EnvType.CLIENT)
-	private static @NotNull Vec3d pseudoReflect(Vec3d dir, @NotNull Vec3i normal) // TODO: I think this breaks with faces not aligned to the grid
-	{return new Vec3d(normal.getX() == 0 ? dir.x : -dir.x, normal.getY() == 0 ? dir.y : -dir.y, normal.getZ() == 0 ? dir.z : -dir.z);}
-
 	@Environment(EnvType.CLIENT)
 	private static @NotNull RayResult throwEnvRay(@NotNull Vec3d dir) {
+		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
 
 		SPHitResult rayHit = RaycastFix.fixedRaycast(
 				soundPos,
@@ -463,6 +450,7 @@ public class Resounding {
 
 	@Environment(EnvType.CLIENT)
 	private static Set<RayResult> evalEnv() {
+		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
 
 		// Clear the block shape cache every tick, just in case the local block grid has changed
 		// TODO: Do this more efficiently.
@@ -563,6 +551,8 @@ public class Resounding {
 	@Contract("_ -> new")
 	@Environment(EnvType.CLIENT)
 	private static @NotNull SoundProfile processEnv(final @Nullable Set<RayResult> results) {
+		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
+
 		// Calculate reverb parameters for this sound
 		double directGain = auxOnly ? 0 : 1; // TODO: fix occlusion so i don't have to override this.
 
@@ -646,6 +636,8 @@ public class Resounding {
 
 	@Environment(EnvType.CLIENT)
 	public static void setEnv(final @NotNull SoundProfile profile) {
+		if (!isActive) throw new IllegalStateException("Resounding mist be started first! ");
+
 		if (profile.sendGain().length != pC.resolution || profile.sendCutoff().length != pC.resolution) {
 			throw new IllegalArgumentException("Error: Reverb parameter count does not match reverb resolution!");
 		}

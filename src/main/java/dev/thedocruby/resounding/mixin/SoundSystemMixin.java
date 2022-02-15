@@ -33,6 +33,7 @@ public class SoundSystemMixin {
 
     @Inject(method = "play(Lnet/minecraft/client/sound/SoundInstance;)V", at = @At(value = "FIELD", target = "net/minecraft/client/sound/SoundSystem.sounds : Lcom/google/common/collect/Multimap;"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void SoundInfoYeeter(SoundInstance sound, CallbackInfo ci, WeightedSoundSet weightedSoundSet, Identifier identifier, Sound sound2, float f, float g, SoundCategory soundCategory){
+        if (!Resounding.isActive) return;
         Resounding.updateYeetedSoundInfo(sound, this.listener); // TODO: do this better maybe
     }
 
@@ -40,12 +41,12 @@ public class SoundSystemMixin {
     private void Ticker(CallbackInfo ci){ AirEffects.updateSmoothedRain(); }
 
     @ModifyArg(method = "getAdjustedVolume", at = @At(value = "INVOKE", target = "net/minecraft/util/math/MathHelper.clamp (FFF)F"), index = 0)
-    private float VolumeMultiplierInjector(float vol){
-        return vol * PrecomputedConfig.globalVolumeMultiplier;
-    }
+    private float VolumeMultiplierInjector(float vol){ if (!Resounding.isActive) return vol; return vol * PrecomputedConfig.globalVolumeMultiplier; }
+
     @SuppressWarnings("InvalidInjectorMethodSignature")
     @Inject(method = "tick()V", at = @At(value = "JUMP", opcode = Opcodes.IFEQ, ordinal = 3), locals = LocalCapture.CAPTURE_FAILHARD)
     private void recalculate(CallbackInfo ci, Iterator<?> iterator, Map.Entry<?, ?> entry, Channel.SourceManager f, SoundInstance g, float vec3d){
+        if (!Resounding.isActive) return;
         if (mc.world != null && mc.world.getTime()%pC.sourceRefreshRate ==0){
             f.run((s) -> ((SourceAccessor)s).calculateReverb(g, this.listener));
         }

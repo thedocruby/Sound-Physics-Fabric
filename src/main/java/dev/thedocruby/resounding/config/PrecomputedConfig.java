@@ -26,7 +26,7 @@ public class PrecomputedConfig {
     public static double speedOfSound = 343.3;
     public static PrecomputedConfig pC = null;
 
-    public final boolean off;
+    public boolean enabled;
 
     @Environment(EnvType.CLIENT)
     public float globalReverbGain;
@@ -115,7 +115,7 @@ public class PrecomputedConfig {
 
     public PrecomputedConfig(ResoundingConfig c) throws CloneNotSupportedException {
         if (pC != null && pC.active) throw new CloneNotSupportedException("Tried creating second instance of precomputedConfig");
-        off = !c.enabled;
+        enabled = c.enabled;
 
         soundSimulationDistance = c.quality.soundSimulationDistance;
 

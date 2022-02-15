@@ -27,14 +27,16 @@ public class SourceMixin implements SourceAccessor {
     private Vec3d pos;
 
     @Inject(method = "setPosition", at = @At("HEAD"))
-    private void soundPosStealer(Vec3d poss, CallbackInfo ci) {this.pos = poss;}
+    private void soundPosStealer(Vec3d poss, CallbackInfo ci) { if (!Resounding.isActive) return; this.pos = poss; }
 
     @Inject(method = "play", at = @At("HEAD"))
     private void onPlaySoundInjector(CallbackInfo ci) {
+        if (!Resounding.isActive) return;
         Resounding.playSound(pos.x, pos.y, pos.z, pointer, false);
     }
 
     public void calculateReverb(SoundInstance sound, SoundListener listener) {
+        if (!Resounding.isActive) return;
         Resounding.updateYeetedSoundInfo(sound, listener);
         Resounding.playSound(pos.x, pos.y, pos.z, pointer, false);
     }
