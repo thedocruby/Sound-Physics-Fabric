@@ -5,13 +5,13 @@ import dev.thedocruby.resounding.config.MaterialData;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
 import dev.thedocruby.resounding.config.ResoundingConfig;
 import dev.thedocruby.resounding.config.presets.ConfigPresets;
-import dev.thedocruby.resounding.openal.ResoundingEFX;
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.ConfigHolder;
 import me.shedaniel.autoconfig.serializer.JanksonConfigSerializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.util.ActionResult;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
@@ -63,7 +63,7 @@ public class ConfigManager {
     public static void save() { if (holder == null) {registerAutoConfig();} else {holder.save();} }
 
     @Environment(EnvType.CLIENT)
-    public static void handleBrokenMaterials( ResoundingConfig c ){
+    public static void handleBrokenMaterials(@NotNull ResoundingConfig c ){
         Resounding.LOGGER.error("Critical materialProperties error. Resetting materialProperties");
         ResoundingConfig fallback = DEFAULT;
         ConfigPresets.RESET_MATERIALS.configChanger.accept(fallback);

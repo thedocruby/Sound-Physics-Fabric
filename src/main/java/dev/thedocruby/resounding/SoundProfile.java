@@ -2,6 +2,7 @@ package dev.thedocruby.resounding;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -35,7 +36,7 @@ public record SoundProfile(
     }
 
     @Override
-    public String toString() {
+    public @NotNull String toString() {
         return "SoundProfile{"   +
                 "sourceID="      +                 sourceID       +
                 ";directGain="   +                 directGain     +

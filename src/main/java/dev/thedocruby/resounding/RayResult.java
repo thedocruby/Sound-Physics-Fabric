@@ -2,11 +2,10 @@ package dev.thedocruby.resounding;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.Objects;
-
-import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 
 @Environment(EnvType.CLIENT)
 public record RayResult(
@@ -51,7 +50,7 @@ public record RayResult(
     }
 
     @Override
-    public String toString() {
+    public @NotNull String toString() {
         return "RayResult{" +
                 "lastBounce="               +                 lastBounce               +
                 ";missed="                  +                 missed                   +

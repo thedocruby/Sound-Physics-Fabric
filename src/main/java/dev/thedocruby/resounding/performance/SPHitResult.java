@@ -9,6 +9,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.chunk.WorldChunk;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 @Environment(EnvType.CLIENT)
 public class SPHitResult extends HitResult {
@@ -18,11 +20,12 @@ public class SPHitResult extends HitResult {
     private final BlockState blockState;
     public final WorldChunk chunk;
 
-    public static SPHitResult createMissed(Vec3d pos, Direction side, BlockPos blockPos, WorldChunk c) {
+    @Contract("_, _, _, _ -> new")
+    public static @NotNull SPHitResult createMissed(Vec3d pos, Direction side, BlockPos blockPos, WorldChunk c) {
         return new SPHitResult(true, pos, side, blockPos, null, c);
     }
 
-    public SPHitResult(BlockHitResult blockHitResult, BlockState bs, WorldChunk c) {
+    public SPHitResult(@NotNull BlockHitResult blockHitResult, BlockState bs, WorldChunk c) {
         super(blockHitResult.getPos());
         this.missed = false;//blockHitResult.getType() == Type.MISS;
         this.side = blockHitResult.getSide();

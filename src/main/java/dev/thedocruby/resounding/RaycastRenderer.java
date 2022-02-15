@@ -6,6 +6,7 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.render.*;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,7 +57,7 @@ public class RaycastRenderer {
         }
     }
 
-    public static void renderRay(Ray ray, double x, double y, double z) {
+    public static void renderRay(@NotNull Ray ray, double x, double y, double z) {
         int red = getRed(ray.color);
         int green = getGreen(ray.color);
         int blue = getBlue(ray.color);
