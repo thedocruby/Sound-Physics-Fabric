@@ -10,6 +10,7 @@ import me.shedaniel.clothconfig2.gui.entries.MultiElementListEntry;
 import me.shedaniel.clothconfig2.gui.entries.NestedListListEntry;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.TranslatableText;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
@@ -56,7 +57,7 @@ public class GuiRegistryinit {
     }
 
     @SuppressWarnings("unchecked")
-    private static List<AbstractConfigListEntry<?>> getChildren(String i13n, Class<?> fieldType, Object iConfig, Object iDefaults, GuiRegistryAccess guiProvider) {
+    private static List<AbstractConfigListEntry<?>> getChildren(String i13n, @NotNull Class<?> fieldType, Object iConfig, Object iDefaults, GuiRegistryAccess guiProvider) {
 
         return (List) Arrays.stream(fieldType.getDeclaredFields()).map((iField) -> {
             String iI13n = String.format("%s.%s", i13n, iField.getName());

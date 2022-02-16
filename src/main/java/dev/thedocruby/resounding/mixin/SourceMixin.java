@@ -1,15 +1,12 @@
 package dev.thedocruby.resounding.mixin;
 
 import dev.thedocruby.resounding.Resounding;
-import dev.thedocruby.resounding.ResoundingLog;
-import dev.thedocruby.resounding.SourceAccessor;
+import dev.thedocruby.resounding.toolbox.SourceAccessor;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.sound.Sound;
 import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundListener;
 import net.minecraft.client.sound.Source;
-import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -30,17 +27,17 @@ public class SourceMixin implements SourceAccessor {
     private Vec3d pos;
 
     @Inject(method = "setPosition", at = @At("HEAD"))
-    private void soundPosStealer(Vec3d poss, CallbackInfo ci) {this.pos = poss;}
+    private void soundPosStealer(Vec3d poss, CallbackInfo ci) { if (!Resounding.isActive) return; this.pos = poss; }
 
     @Inject(method = "play", at = @At("HEAD"))
     private void onPlaySoundInjector(CallbackInfo ci) {
+        if (!Resounding.isActive) return;
         Resounding.playSound(pos.x, pos.y, pos.z, pointer, false);
-        // ResoundingLog.checkErrorLog("SourceMixin.onPlaySoundInjector"); TODO: Why is this here?
     }
 
     public void calculateReverb(SoundInstance sound, SoundListener listener) {
+        if (!Resounding.isActive) return;
         Resounding.updateYeetedSoundInfo(sound, listener);
         Resounding.playSound(pos.x, pos.y, pos.z, pointer, false);
-        ResoundingLog.checkErrorLog("SourceMixin.calculateReverb");
     }
 }

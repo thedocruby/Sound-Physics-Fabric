@@ -1,5 +1,7 @@
-package dev.thedocruby.resounding.performance;
+package dev.thedocruby.resounding.raycast;
 
+import dev.thedocruby.resounding.toolbox.Shapes;
+import dev.thedocruby.resounding.toolbox.WorldChunkAccess;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
@@ -14,6 +16,7 @@ import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.WorldChunk;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
@@ -43,7 +46,7 @@ public class RaycastFix {
 
     // ===copied and modified===
 
-    public static SPHitResult fixedRaycast(Vec3d start, Vec3d end, World world, @Nullable BlockPos ignore, @Nullable WorldChunk chunk) {
+    public static SPHitResult fixedRaycast(@NotNull Vec3d start, Vec3d end, World world, @Nullable BlockPos ignore, @Nullable WorldChunk chunk) {
         LiquidStorage currentNotAirStorage = chunk == null ? null : ((WorldChunkAccess)chunk).getNotAirLiquidStorage();
         int currentX = chunk == null ? ((int) Math.floor(start.x)) >> 4 : chunk.getPos().x;
         int currentZ = chunk == null ? ((int) Math.floor(start.z)) >> 4 : chunk.getPos().z;
@@ -241,7 +244,7 @@ public class RaycastFix {
         }
     }
 
-    private static SPHitResult finalRaycast(World world, BlockState bs, BlockPos pos, Vec3d start, Vec3d end, WorldChunk c, Short side) {
+    private static @Nullable SPHitResult finalRaycast(World world, BlockState bs, @NotNull BlockPos pos, Vec3d start, Vec3d end, WorldChunk c, Short side) {
         long posl = pos.asLong();
         Shapes shapes;
         shapes = shapeCache.get(posl);

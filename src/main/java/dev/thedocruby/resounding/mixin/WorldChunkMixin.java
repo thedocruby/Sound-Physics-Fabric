@@ -1,7 +1,7 @@
 package dev.thedocruby.resounding.mixin;
 
-import dev.thedocruby.resounding.performance.LiquidStorage;
-import dev.thedocruby.resounding.performance.WorldChunkAccess;
+import dev.thedocruby.resounding.raycast.LiquidStorage;
+import dev.thedocruby.resounding.toolbox.WorldChunkAccess;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;

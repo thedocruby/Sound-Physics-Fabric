@@ -30,7 +30,7 @@
   "text.autoconfig.resounding.option.materials.materialProperties": "By category",
   "text.autoconfig.resounding.option.materials.blockWhiteList": "By block (whitelist)",
 
-  "text.autoconfig.resounding.option.MaterialData": "Entry",
+  "text.autoconfig.resounding.option.MaterialData": "Material Data Entry",
   "text.autoconfig.resounding.option.MaterialData.example": "Material",
   "text.autoconfig.resounding.option.MaterialData.reflectivity": "Reflectivity",
   "text.autoconfig.resounding.option.MaterialData.absorption": "Occlusion density",
@@ -38,7 +38,7 @@
   "text.autoconfig.resounding.option.misc.recordsDisable": "Skip Jukebox/Note Block occlusion",
   "text.autoconfig.resounding.option.misc.reverbBias": "Reverb bias",
 
-  "text.autoconfig.resounding.option.debug.debugLogging": "General Logging",
+  "text.autoconfig.resounding.option.debug.debugLogging": "General Debug Logging",
   "text.autoconfig.resounding.option.debug.occlusionLogging": "Occlusion logging",
   "text.autoconfig.resounding.option.debug.environmentLogging": "Environment logging",
   "text.autoconfig.resounding.option.debug.performanceLogging": "Performance logging",

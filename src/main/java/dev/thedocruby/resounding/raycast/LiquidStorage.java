@@ -1,13 +1,14 @@
-package dev.thedocruby.resounding.performance;
+package dev.thedocruby.resounding.raycast;
 
 import dev.thedocruby.resounding.Resounding;
-import dev.thedocruby.resounding.ResoundingLog;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.world.chunk.WorldChunk;
 import org.apache.commons.lang3.ArrayUtils;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
@@ -24,7 +25,8 @@ public class LiquidStorage {
     public int top;
     private boolean[][] sections;
     private boolean[] sFull;
-    public static boolean[] empty() {return new boolean[16*16];}
+    @Contract(value = " -> new", pure = true)
+    public static boolean @NotNull [] empty() {return new boolean[16*16];}
     public final WorldChunk chunk;
 
     public WorldChunk xp = null;
@@ -70,7 +72,7 @@ public class LiquidStorage {
     }
 
     //public LiquidStorage(){};
-    public LiquidStorage(boolean[][] s, int t, int b, boolean[] sf, WorldChunk ch ){
+    public LiquidStorage(boolean @NotNull [][] s, int t, int b, boolean[] sf, WorldChunk ch ){
         int n = t-b+1; if (s.length != n || sf.length != n) Resounding.LOGGER.error("Top("+t+") to Bottom("+b+") != "+s.length+" or "+sf.length);
         full = true; sections = s; top = t; bottom = b; sFull = sf; chunk = ch;
     }

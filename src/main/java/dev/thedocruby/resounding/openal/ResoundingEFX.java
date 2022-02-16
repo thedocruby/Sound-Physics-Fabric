@@ -1,11 +1,9 @@
 package dev.thedocruby.resounding.openal;
 
 import dev.thedocruby.resounding.Resounding;
-import dev.thedocruby.resounding.ResoundingLog;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import org.apache.commons.lang3.ArrayUtils;
-import org.jetbrains.annotations.NotNull;
 import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.AL11;
 import org.lwjgl.openal.ALC10;
@@ -34,7 +32,7 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
     private static int[] filters = new int[0];
     private static int directFilter;
     public static boolean efxEnabled = false;
-    private static boolean initialized = false;
+    public static boolean initialized = false;
 
     public static void setEffect//<editor-fold desc="(Effect_properties)">
     (
@@ -52,56 +50,44 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
     {
         //<editor-fold desc="setReverbParams();">
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_DENSITY, density);
-        ResoundingLog.checkErrorLog("Error while assigning \"density\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+density+"\".");
+        ALUtils.checkErrors("Error while assigning \"density\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+density+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_DIFFUSION, diffusion);
-        ResoundingLog.checkErrorLog("Error while assigning \"diffusion\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+diffusion+"\".");
+        ALUtils.checkErrors("Error while assigning \"diffusion\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+diffusion+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_GAIN, pC.globalReverbGain);
-        ResoundingLog.checkErrorLog("Error while assigning \"gain\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+ pC.globalReverbGain+"\".");
+        ALUtils.checkErrors("Error while assigning \"gain\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+ pC.globalReverbGain+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_GAINHF, gainHF);
-        ResoundingLog.checkErrorLog("Error while assigning \"gainHF\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+gainHF+"\".");
+        ALUtils.checkErrors("Error while assigning \"gainHF\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+gainHF+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_DECAY_TIME, decayTime);
-        ResoundingLog.checkErrorLog("Error while assigning \"decayTime\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+decayTime+"\".");
+        ALUtils.checkErrors("Error while assigning \"decayTime\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+decayTime+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_DECAY_HFRATIO, decayHFRatio);
-        ResoundingLog.checkErrorLog("Error while assigning \"decayHFRatio\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+decayHFRatio+"\".");
+        ALUtils.checkErrors("Error while assigning \"decayHFRatio\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+decayHFRatio+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_REFLECTIONS_GAIN, reflectionsGain);
-        ResoundingLog.checkErrorLog("Error while assigning \"reflectionsGain\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+reflectionsGain+"\".");
+        ALUtils.checkErrors("Error while assigning \"reflectionsGain\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+reflectionsGain+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_REFLECTIONS_DELAY, reflectionsDelay);
-        ResoundingLog.checkErrorLog("Error while assigning \"reflectionsDelay\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+reflectionsDelay+"\".");
+        ALUtils.checkErrors("Error while assigning \"reflectionsDelay\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+reflectionsDelay+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_LATE_REVERB_GAIN, lateReverbGain);
-        ResoundingLog.checkErrorLog("Error while assigning \"lateReverbGain\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+lateReverbGain+"\".");
+        ALUtils.checkErrors("Error while assigning \"lateReverbGain\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+lateReverbGain+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_LATE_REVERB_DELAY, lateReverbDelay);
-        ResoundingLog.checkErrorLog("Error while assigning \"lateReverbDelay\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+lateReverbDelay+"\".");
+        ALUtils.checkErrors("Error while assigning \"lateReverbDelay\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+lateReverbDelay+"\".");
         EXTEfx.alEffectf(effects[id], EXTEfx.AL_EAXREVERB_AIR_ABSORPTION_GAINHF, 1f);
-        ResoundingLog.checkErrorLog("Error while assigning \"density\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+1f+"\".");
+        ALUtils.checkErrors("Error while assigning \"density\" property to Effect object "+effects[id]+"! Attempted to assign value of \""+1f+"\".");
         //</editor-fold>
 
         //Attach updated effect object
         EXTEfx.alAuxiliaryEffectSloti(slots[id], EXTEfx.AL_EFFECTSLOT_EFFECT, effects[id]);
-        if (!ResoundingLog.checkErrorLog("Error applying Effect object "+effects[id]+" to aux slot "+slots[id]+"!") && pC.dLog){
+        if (!ALUtils.checkErrors("Error applying Effect object "+effects[id]+" to aux slot "+slots[id]+"!") && pC.dLog){
             Resounding.LOGGER.info("Successfully initialized Effect object {}!", effects[id]);
         }
     }
 
-    public static void setFilter(int id, int sourceID, float gain, float cutoff) {
-        // Set reverb send filter values and set source to send to all reverb fx slots
+    public static void setFilter(int id, int sourceID, float gain, float cutoff) {  // Set reverb send filter values and set source to send to all reverb fx slots
+        if (!(efxEnabled && initialized)) throw new IllegalStateException("EFX is not enabled/initialized! Cannot complete request.");
         EXTEfx.alFilterf(filters[id], EXTEfx.AL_LOWPASS_GAIN, gain);
-        ResoundingLog.checkErrorLog("Error while assigning \"gain\" property to Effect object "+filters[id]+"! Attempted to assign value of \""+gain+"\".");
+        ALUtils.checkErrors("Error while assigning \"gain\" property to Effect object "+filters[id]+"! Attempted to assign value of \""+gain+"\".");
         EXTEfx.alFilterf(filters[id], EXTEfx.AL_LOWPASS_GAINHF, cutoff);
-        ResoundingLog.checkErrorLog("Error while assigning \"cutoff\" property to Filter object "+filters[id]+"! Attempted to assign value of \""+cutoff+"\".");
+        ALUtils.checkErrors("Error while assigning \"cutoff\" property to Filter object "+filters[id]+"! Attempted to assign value of \""+cutoff+"\".");
         AL11.alSource3i(sourceID, EXTEfx.AL_AUXILIARY_SEND_FILTER, slots[id], 1, filters[id]);
-        ResoundingLog.checkErrorLog("Error applying Filter object "+filters[id]+" and aux slot "+slots[id]+" to source "+sourceID+"!");
-    }
-
-    private static void deleteAuxiliaryEffectSlots(){       // Remove unused OpenAL Auxiliary Effect slots
-        if (pC.dLog) Resounding.LOGGER.info("Removing {} Auxiliary Effect slots...", slots.length);
-        EXTEfx.alDeleteAuxiliaryEffectSlots(slots.clone());
-        for (int j : slots) {
-            if (EXTEfx.alIsAuxiliaryEffectSlot(j)) { Resounding.LOGGER.error("Failed to delete Auxiliary Effect slot {}!", j); }
-            else {
-                slots = ArrayUtils.removeElement(slots, j);
-                if (pC.dLog) { Resounding.LOGGER.info("Auxiliary Effect slot {} deleted.", j); }
-            }
-        }
+        ALUtils.checkErrors("Error applying Filter object "+filters[id]+" and aux slot "+slots[id]+" to source "+sourceID+"!");
     }
 
     private static void createAuxiliaryEffectSlots(){       // Create new OpenAL Auxiliary Effect slots
@@ -110,22 +96,21 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         EXTEfx.alGenAuxiliaryEffectSlots(slots);
         for(int i = 0; i < pC.resolution; i++) {
             if(EXTEfx.alIsAuxiliaryEffectSlot(slots[i])){
-                if (pC.dLog) Resounding.LOGGER.info("Auxiliary Effect slot {} created!", slots[i]);
-                EXTEfx.alAuxiliaryEffectSloti(slots[i], EXTEfx.AL_EFFECTSLOT_AUXILIARY_SEND_AUTO, AL10.AL_TRUE); // Set effect type to EAX Reverb
-                ResoundingLog.checkErrorLog("Failed to initialize Auxiliary Effect slot "+slots[i]+"!");
-            } else { Resounding.LOGGER.error("Failed to create Auxiliary Effect slot! (index {})", i); }
+                EXTEfx.alAuxiliaryEffectSloti(slots[i], EXTEfx.AL_EFFECTSLOT_AUXILIARY_SEND_AUTO, AL10.AL_TRUE);
+                if (!ALUtils.checkErrors("Failed to initialize Auxiliary Effect slot "+slots[i]+"!")) {
+                    if (pC.dLog) Resounding.LOGGER.info("Auxiliary Effect slot {} created!", slots[i]); continue;
+                } initialized = false; continue;
+            } Resounding.LOGGER.error("Failed to create Auxiliary Effect slot! (index {})", i); initialized = false;
         }
     }
 
-    private static void deleteEffectObjects(){       // Remove unused OpenAL Effect objects
-        if (pC.dLog) Resounding.LOGGER.info("Removing {} Effect objects...", effects.length);
-        EXTEfx.alDeleteEffects(effects.clone());
-        for (int j : effects) {
-            if (EXTEfx.alIsEffect(j)) { Resounding.LOGGER.error("Failed to delete Effect object {}!", j); }
-            else {
-                effects = ArrayUtils.removeElement(effects, j);
-                if (pC.dLog) { Resounding.LOGGER.info("Effect object {} deleted.", j); }
-            }
+    private static void deleteAuxiliaryEffectSlots(){       // Remove OpenAL Auxiliary Effect slots
+        if (pC.dLog) Resounding.LOGGER.info("Removing {} Auxiliary Effect slots...", slots.length);
+        EXTEfx.alDeleteAuxiliaryEffectSlots(slots.clone());
+        for (int j : slots) {
+            if (EXTEfx.alIsAuxiliaryEffectSlot(j)) { Resounding.LOGGER.error("Failed to delete Auxiliary Effect slot {}!", j); continue;}
+            slots = ArrayUtils.removeElement(slots, j);
+            if (pC.dLog) { Resounding.LOGGER.info("Auxiliary Effect slot {} deleted.", j); }
         }
     }
 
@@ -135,22 +120,21 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         EXTEfx.alGenEffects(effects);
         for(int i = 0; i < pC.resolution; i++) {
             if(EXTEfx.alIsEffect(effects[i])){
-                if (pC.dLog) Resounding.LOGGER.info("Effect object {} created!", effects[i]);
                 EXTEfx.alEffecti(effects[i], EXTEfx.AL_EFFECT_TYPE, EXTEfx.AL_EFFECT_EAXREVERB); // Set effect type to EAX Reverb
-                ResoundingLog.checkErrorLog("Failed to initialize Effect object "+effects[i]+"!");
-            } else { Resounding.LOGGER.error("Failed to create Effect object! (index {})", i); }
+                if (!ALUtils.checkErrors("Failed to initialize Effect object "+effects[i]+"!")) {
+                    if (pC.dLog) Resounding.LOGGER.info("Effect object {} created!", effects[i]); continue;
+                } initialized = false; continue;
+            } Resounding.LOGGER.error("Failed to create Effect object! (index {})", i); initialized = false;
         }
     }
 
-    private static void deleteFilterObjects(){      // Remove unused OpenAL Filter objects
-        if (pC.dLog) Resounding.LOGGER.info("Removing {} Filter objects...", filters.length);
-        EXTEfx.alDeleteFilters(filters.clone());
-        for (int j : filters) {
-            if (EXTEfx.alIsFilter(j)) { Resounding.LOGGER.error("Failed to delete Filter object {}!", j); }
-            else {
-                filters = ArrayUtils.removeElement(filters, j);
-                if (pC.dLog) { Resounding.LOGGER.info("Filter object {} deleted.", j); }
-            }
+    private static void deleteEffectObjects(){       // Remove OpenAL Effect objects
+        if (pC.dLog) Resounding.LOGGER.info("Removing {} Effect objects...", effects.length);
+        EXTEfx.alDeleteEffects(effects.clone());
+        for (int j : effects) {
+            if (EXTEfx.alIsEffect(j)) { Resounding.LOGGER.error("Failed to delete Effect object {}!", j); continue;}
+            effects = ArrayUtils.removeElement(effects, j);
+            if (pC.dLog) { Resounding.LOGGER.info("Effect object {} deleted.", j); }
         }
     }
 
@@ -160,16 +144,28 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         EXTEfx.alGenFilters(filters);
         for(int i = 0; i < pC.resolution; i++) {
             if(EXTEfx.alIsFilter(filters[i])){
-                if (pC.dLog) Resounding.LOGGER.info("Filter object {} created!", filters[i]);
                 EXTEfx.alFilteri(filters[i], EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
-                ResoundingLog.checkErrorLog("Failed to initialize Filter object "+filters[i]+"!");
-            } else { Resounding.LOGGER.error("Failed to create Filter object! (index {})", i); }
+                if (!ALUtils.checkErrors("Failed to initialize Filter object "+filters[i]+"!")) {
+                    if (pC.dLog) Resounding.LOGGER.info("Filter object {} created!", filters[i]); continue;
+                } initialized = false; continue;
+            } Resounding.LOGGER.error("Failed to create Filter object! (index {})", i); initialized = false;
         }
     }
 
-    public static void initEAXReverb(){
-        if (!efxEnabled || pC.off || initialized) return;
+    private static void deleteFilterObjects(){      // Remove OpenAL Filter objects
+        if (pC.dLog) Resounding.LOGGER.info("Removing {} Filter objects...", filters.length);
+        EXTEfx.alDeleteFilters(filters.clone());
+        for (int j : filters) {
+            if (EXTEfx.alIsFilter(j)) { Resounding.LOGGER.error("Failed to delete Filter object {}!", j); continue;}
+            filters = ArrayUtils.removeElement(filters, j);
+            if (pC.dLog) { Resounding.LOGGER.info("Filter object {} deleted.", j); }
+        }
+    }
+
+    private static void initEAXReverb(){
+        if (!efxEnabled || initialized) return;
         if (pC.resolution == slots.length) return;
+        initialized = true;
 
         createAuxiliaryEffectSlots();
         createEffectObjects();
@@ -191,25 +187,28 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
             );
         }
         directFilter = EXTEfx.alGenFilters();
-        if(!EXTEfx.alIsFilter(directFilter)) { Resounding.LOGGER.error("Failed to create direct filter object!"); }
+        if(!EXTEfx.alIsFilter(directFilter)) {
+            Resounding.LOGGER.error("Failed to create direct filter object!");
+            initialized = false;
+        }
         else if(pC.dLog){ Resounding.LOGGER.info("Direct filter object created with ID {}", directFilter); }
         EXTEfx.alFilteri(directFilter, EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
-        ResoundingLog.checkErrorLog("Failed to initialize direct filter object!");
-
-        initialized = true;
-        Resounding.LOGGER.info("Finished initializing OpenAL Auxiliary Effect slots!");
+        initialized &= !ALUtils.checkErrors("Failed to initialize direct filter object!");
+        if (initialized) { Resounding.LOGGER.info("Finished initializing OpenAL Auxiliary Effect slots!"); return; }
+        Resounding.LOGGER.info("Failed to properly initialize OpenAL Auxiliary Effect slots. Aborting");
+        efxEnabled = false;
     }
 
-    public static void setupEXTEfx() {
-        //Get current context and device
+    public static boolean setUpEXTEfx() {
         final long currentContext = ALC10.alcGetCurrentContext();
         final long currentDevice = ALC10.alcGetContextsDevice(currentContext);
         if (!ALC10.alcIsExtensionPresent(currentDevice, "ALC_EXT_EFX")) {
-            Resounding.LOGGER.error("EFX Extension not found on current device, Aborting.");
+            Resounding.LOGGER.error("EFX Extension not found on current device, Aborting."); return false;
         }
-        Resounding.LOGGER.info("EFX Extension recognized! ");
         efxEnabled = true;
+        Resounding.LOGGER.info("EFX Extension recognized! Initializing Auxiliary Effect slots...");
         initEAXReverb();
+        return efxEnabled && initialized;
     }
 
     public static void cleanUpEXTEfx() {
@@ -225,16 +224,17 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
     }
 
     public static void setDirectFilter(int sourceID, float directGain, float directCutoff) {
+        if (!(efxEnabled && initialized)) throw new IllegalStateException("EFX is not enabled/initialized! Cannot complete request.");
         EXTEfx.alFilterf(directFilter, EXTEfx.AL_LOWPASS_GAIN, directGain);
-        ResoundingLog.checkErrorLog("Error while assigning \"gain\" property to direct filter object! Attempted to assign value of \""+directGain+"\".");
+        ALUtils.checkErrors("Error while assigning \"gain\" property to direct filter object! Attempted to assign value of \""+directGain+"\".");
         EXTEfx.alFilterf(directFilter, EXTEfx.AL_LOWPASS_GAINHF, directCutoff);
-        ResoundingLog.checkErrorLog("Error while assigning \"cutoff\" property to direct filter object! Attempted to assign value of \""+directCutoff+"\".");
+        ALUtils.checkErrors("Error while assigning \"cutoff\" property to direct filter object! Attempted to assign value of \""+directCutoff+"\".");
         AL10.alSourcei(sourceID, EXTEfx.AL_DIRECT_FILTER, directFilter);
-        ResoundingLog.checkErrorLog("Error applying direct filter object to source "+sourceID+"!");
+        ALUtils.checkErrors("Error applying direct filter object to source "+sourceID+"!");
     }
 
-
     /* public static void setSoundPos(final int sourceID, final Vec3d pos) {
+        if (!(efxEnabled && initialized)) throw new IllegalStateException("EFX is not enabled/initialized! Cannot complete request.");
         if (pC.off) return;
         //System.out.println(pos);//TO DO
         AL10.alSourcefv(sourceID, 4100, new float[]{(float) pos.x, (float) pos.y, (float) pos.z});

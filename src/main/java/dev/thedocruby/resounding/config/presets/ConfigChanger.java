@@ -1,7 +1,7 @@
 package dev.thedocruby.resounding.config.presets;
 
 import dev.thedocruby.resounding.Resounding;
-import dev.thedocruby.resounding.config.MaterialData;
+import dev.thedocruby.resounding.toolbox.MaterialData;
 import dev.thedocruby.resounding.config.ResoundingConfig;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -55,11 +55,11 @@ public class ConfigChanger {
     public static void setMaterialProperties(ResoundingConfig.Materials materials, @Nullable Map<String, MaterialData> materialProperties) {
         if (materialProperties != null) materialProperties.forEach((s, newData) -> materials.materialProperties.compute(s, (k, v) -> (v == null) ?
                 new MaterialData( s,
-                        newData.getReflectivity() == -1 ? 0.5 : newData.getReflectivity(),
-                        newData.getAbsorption() == -1 ? 0.5 : newData.getAbsorption())
-              : new MaterialData( (v.getExample() == null) ? s : v.getExample(),
-                        newData.getReflectivity() == -1 ? v.getReflectivity() : newData.getReflectivity(),
-                        newData.getAbsorption() == -1 ? v.getAbsorption() : newData.getAbsorption())));
+                        newData.reflectivity == -1 ? 0.5 : newData.reflectivity,
+                        newData.absorption == -1 ? 0.5 : newData.absorption)
+              : new MaterialData( (v.example == null) ? s : v.example,
+                        newData.reflectivity == -1 ? v.reflectivity : newData.reflectivity,
+                        newData.absorption == -1 ? v.absorption : newData.absorption)));
     }
 
     /*

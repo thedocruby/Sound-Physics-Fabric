@@ -3,11 +3,16 @@
   "id": "resounding",
   "version": "${version}",
   "name": "Resounding",
-  "description": "Provides realistic sound attenuation, reverberation, and absorption through blocks using physically-based raytraced audio shaders.",
-  "authors": ["Dr. Rubisco","vlad2305m","Sonic Ether"],
+  "description": "A New Minecraft mod that provides realistic audio physics using parallel wave tracing and an improved physics algorithm.",
+  "authors": ["Dr. Rubisco"],
   "contact": {
     "sources": "https://github.com/thedocruby/resounding",
-    "issues": "https://github.com/thedocruby/resounding/issues"
+    "issues": "https://github.com/thedocruby/resounding/issues",
+    "homepage": "https://thedocruby.dev/resounding",
+    "wiki": "https://github.com/thedocruby/resounding/wiki/FAQ",
+    "discord": "https://discord.gg/kdZ6gH7Hg6",
+    "patreon": "https://patreon.com/thedocruby",
+    "youtube": "https://www.youtube.com/channel/UCONFVOfzRPAISQj2Xbb827w"
   },
   "license": "GPL-3.0",
   "icon": "assets/resounding/icon.png",
@@ -34,5 +39,15 @@
   },
   "suggests": {
     "modmenu": ">=3.0.0"
+  },
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.wiki": "https://github.com/thedocruby/resounding/wiki/FAQ",
+        "modmenu.discord": "https://discord.gg/kdZ6gH7Hg6",
+        "modmenu.patreon": "https://patreon.com/thedocruby",
+        "modmenu.youtube": "https://www.youtube.com/channel/UCONFVOfzRPAISQj2Xbb827w"
+      }
+    }
   }
 }

@@ -1,17 +1,18 @@
 package dev.thedocruby.resounding.config.BlueTapePack;
 
 import dev.thedocruby.resounding.Resounding;
-import dev.thedocruby.resounding.config.MaterialData;
+import dev.thedocruby.resounding.toolbox.MaterialData;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
 import dev.thedocruby.resounding.config.ResoundingConfig;
 import dev.thedocruby.resounding.config.presets.ConfigPresets;
-import dev.thedocruby.resounding.openal.ResoundingEFX;
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.ConfigHolder;
 import me.shedaniel.autoconfig.serializer.JanksonConfigSerializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.ActionResult;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
@@ -63,7 +64,7 @@ public class ConfigManager {
     public static void save() { if (holder == null) {registerAutoConfig();} else {holder.save();} }
 
     @Environment(EnvType.CLIENT)
-    public static void handleBrokenMaterials( ResoundingConfig c ){
+    public static void handleBrokenMaterials(@NotNull ResoundingConfig c ){
         Resounding.LOGGER.error("Critical materialProperties error. Resetting materialProperties");
         ResoundingConfig fallback = DEFAULT;
         ConfigPresets.RESET_MATERIALS.configChanger.accept(fallback);
@@ -84,9 +85,9 @@ public class ConfigManager {
         if (c.version == null || !Objects.equals(c.version, configVersion)) handleUnstableConfig(c);
         if (PrecomputedConfig.pC != null) PrecomputedConfig.pC.deactivate();
         try {PrecomputedConfig.pC = new PrecomputedConfig(c);} catch (CloneNotSupportedException e) {e.printStackTrace(); return ActionResult.FAIL;}
-        if (Resounding.env == EnvType.CLIENT && Resounding.mc != null) {
+        if (Resounding.env == EnvType.CLIENT && MinecraftClient.getInstance().getSoundManager() != null) {
             Resounding.updateRays();
-            Resounding.mc.getSoundManager().reloadSounds();
+            MinecraftClient.getInstance().getSoundManager().reloadSounds();
         }
         return ActionResult.SUCCESS;
     }
