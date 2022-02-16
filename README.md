@@ -5,6 +5,7 @@
 [![test](https://img.shields.io/github/workflow/status/thedocruby/resounding/verify?label=test&style=flat)](https://github.com/thedocruby/resounding/actions/workflows/verify.yml)
 [![Discord](https://img.shields.io/discord/838159960973901894?label=Discord&style=flat)](https://discord.gg/kdZ6gH7Hg6)
 
+[![issues](https://img.shields.io/github/issues/thedocruby/resounding)](https://github.com/thedocruby/resounding/issues)
 [![Milestone 1](https://img.shields.io/github/milestones/progress-percent/thedocruby/resounding/2?style=flat)](https://github.com/thedocruby/resounding/milestone/2)
 [![Milestone 2](https://img.shields.io/github/milestones/progress-percent/thedocruby/resounding/3?style=flat)](https://github.com/thedocruby/resounding/milestone/3)
 [![Milestone 3](https://img.shields.io/github/milestones/progress-percent/thedocruby/resounding/4?style=flat)](https://github.com/thedocruby/resounding/milestone/4)
