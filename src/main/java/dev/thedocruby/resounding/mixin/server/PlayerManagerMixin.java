@@ -1,6 +1,6 @@
 package dev.thedocruby.resounding.mixin.server;
 
-import dev.thedocruby.resounding.Resounding;
+import dev.thedocruby.resounding.ResoundingEngine;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
 import net.fabricmc.api.EnvType;
 import net.minecraft.entity.player.PlayerEntity;
@@ -30,7 +30,7 @@ public class PlayerManagerMixin {
 
     @Inject(method = {"sendToAround(Lnet/minecraft/entity/player/PlayerEntity;DDDDLnet/minecraft/util/registry/RegistryKey;Lnet/minecraft/network/Packet;)V"}, at = @At(value = "HEAD"))
     private void soundDistanceModifierInjector(PlayerEntity player, double x, double y, double z, double distance, RegistryKey<World> worldKey, Packet<?> packet, CallbackInfo ci) {
-        if (!Resounding.isActive && Resounding.env == EnvType.CLIENT) return;
+        if (ResoundingEngine.isOff && ResoundingEngine.env == EnvType.CLIENT) return;
         distance = (packet instanceof PlaySoundS2CPacket || packet instanceof PlaySoundFromEntityS2CPacket) ? Math.min(distance * PrecomputedConfig.pC.soundSimulationDistance, 16 * Math.min(getViewDistance(), getSimulationDistance()) ) : distance;
     }
 }

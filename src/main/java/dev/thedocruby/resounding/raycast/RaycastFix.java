@@ -177,9 +177,6 @@ public class RaycastFix {
                     }
                     /////////////////////
                     blockPosStart1.set(xbs, ybs, zbs);
-                    //Resounding.t1();
-                    //final long t = System.nanoTime();// rm
-                    //Resounding.tt.addAndGet(System.nanoTime()-t);// rm
 
                     if (currentSlice != null) {
                         if (currentSlice[(xbs & 15) + ((zbs & 15) << 4)] && !blockPosStart1.equals(ignore)) {

@@ -17,7 +17,7 @@
 
   "text.autoconfig.resounding.option.quality.reverbResolution": "Reverb resolution",
   "text.autoconfig.resounding.option.quality.envEvalRays": "Rays per sound",
-  "text.autoconfig.resounding.option.quality.envEvalRayBounces": "Reflections per ray",
+  "text.autoconfig.resounding.option.quality.envEvalRayBounces": "Extra reflections per ray",
   "text.autoconfig.resounding.option.quality.soundSimulationDistance": "Sound simulation distance",
   "text.autoconfig.resounding.option.quality.rayLength": "Ray length",
   "text.autoconfig.resounding.option.quality.sourceRefreshRate": "Sound refresh interval",
@@ -37,6 +37,7 @@
 
   "text.autoconfig.resounding.option.misc.recordsDisable": "Skip Jukebox/Note Block occlusion",
   "text.autoconfig.resounding.option.misc.reverbBias": "Reverb bias",
+  "text.autoconfig.resounding.option.misc.simplerSharedAirspaceSimulation": "Shared Airspace Shortcut",
 
   "text.autoconfig.resounding.option.debug.debugLogging": "General Debug Logging",
   "text.autoconfig.resounding.option.debug.occlusionLogging": "Occlusion logging",

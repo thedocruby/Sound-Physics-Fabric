@@ -7,7 +7,7 @@ import net.fabricmc.api.EnvType;
 public class ResoundingModServer implements DedicatedServerModInitializer {
     @Override
     public void onInitializeServer() {
-        Resounding.env = EnvType.SERVER;
+        ResoundingEngine.env = EnvType.SERVER;
         ConfigManager.registerAutoConfig();
     }
 }

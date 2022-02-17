@@ -23,9 +23,9 @@ public class EntityMixin {
 
 
     private static double calculateEntitySoundOffset(float standingEyeHeight, SoundEvent sound)
-    { // TODO: This should be controlled by Resounding.isActive and pC.off
+    { // TODO: This should be controlled by ResoundingEngine.isActive and pC.off
         /*
-        if (Resounding.stepPattern.matcher(sound.getId().getPath()).matches()) TODO: step sounds
+        if (ResoundingEngine.stepPattern.matcher(sound.getId().getPath()).matches()) TODO: step sounds
         {
             return 0.01;
         }

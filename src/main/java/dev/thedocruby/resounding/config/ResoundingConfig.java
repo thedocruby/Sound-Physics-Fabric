@@ -54,22 +54,22 @@ public class ResoundingConfig implements ConfigData {
 
         @Environment(EnvType.CLIENT)
         @Comment("The global volume of simulated reverberations.\n§7[•]§r Range: 0.0 - 1.0\n§a[+]§r Performance Impact: Low")
-        public double globalReverbGain = 0.5;
+        public double globalReverbGain = 1.0; // TODO: implement
 
         @Environment(EnvType.CLIENT)
-        @Comment("The strength of the reverb effect.\n§7[•]§r Range: >= 0.0\n§7[•]§r Higher values make the reverb last longer.\n§7[•]§r Lower values make the reverb tails shorter.\n§a[+]§r Performance Impact: Low")
-        public double globalReverbStrength = 1.0;
+        @Comment("The strength of the reverb effect.\n§7[•]§r Range: >= 0.0\n§7[•]§r Higher values make the echo last longer.\n§7[•]§r Lower values make the echos shorter.\n§a[+]§r Performance Impact: Low")
+        public double globalReverbStrength = 9.21;
 
         @Environment(EnvType.CLIENT)
         @Comment("The smoothness of the reverb.\n§7[•]§r Range: 0.0 - 1.0\n§7[•]§r Affects how uniform the reverb is.\n§7[•]§r Low values cause a distinct fluttering or bouncing echo.\n§7[•]§r High values make this effect less distinct by smoothing out the reverb.\n§a[+]§r Performance Impact: Low")
-        public double globalReverbSmoothness = 0.62;
+        public double globalReverbSmoothness = 0.618;
 
         @Environment(EnvType.CLIENT)
-        @Comment("The brightness of reverberation.\n§7[•]§r Range: 0.1 - 2.0\n§7[•]§r Higher values result in more high frequencies in reverberation.\n§7[•]§r Lower values give a more muffled sound to the reverb.\n§a[+]§r Performance Impact: Low")
-        public double globalReverbBrightness = 1.0;
+        @Comment("The brightness of reverberation.\n§7[•]§r Range: > 0 \n§7[•]§r Higher values result in more high frequencies in reverberation.\n§7[•]§r Lower values give a more muffled sound to the reverb.\n§7[•]§r 1.0 is neutral.\n§a[+]§r Performance Impact: Low")
+        public double globalReverbBrightness = 0.618;
 
             @Environment(EnvType.CLIENT) @ConfigEntry.Gui.Excluded // TODO: Occlusion
-            public double globalAbsorptionBrightness = 1.0;
+            public double globalAbsorptionBrightness = 0.618;
 
             @Environment(EnvType.CLIENT) @ConfigEntry.Gui.Excluded // TODO: Occlusion. Remove?
             @Comment("The global amount of sound that will be absorbed when traveling through blocks. 0.1 - 4.0")
@@ -90,9 +90,9 @@ public class ResoundingConfig implements ConfigData {
         @Comment("The number of rays to trace to determine reverberation for each sound source.\n§7[•]§r Range: 8 - 768\n§7[•]§r More rays provides more consistent tracing results, but takes more time to calculate.\n§c[ ! ]§r Performance Impact: High")
         public int envEvalRays = 128;
 
-        @Environment(EnvType.CLIENT) @ConfigEntry.BoundedDiscrete(max = 32, min = 4)
-        @Comment("The number of rays bounces to trace to determine reverberation for each sound source.\n§7[•]§r Range: 4 - 32\n§7[•]§r More bounces provides more echo and sound ducting but takes more time to calculate.\n§7[•]§r Capped by max tracing distance.\n§c[ ! ]§r Performance Impact: High")
-        public int envEvalRayBounces = 8;
+        @Environment(EnvType.CLIENT) @ConfigEntry.BoundedDiscrete(max = 32, min = 2)
+        @Comment("The number of extra ray bounces to trace to determine reverberation for each sound source.\n§7[•]§r Range: 4 - 32\n§7[•]§r More bounces provides more echo and sound ducting but takes more time to calculate.\n§7[•]§r Capped by max tracing distance.\n§c[ ! ]§r Performance Impact: High")
+        public int envEvalRayBounces = 4;
 
         @ConfigEntry.BoundedDiscrete(max = 32, min = 1)
         @Comment("Maximum distance of rendered sounds from the player.\n§7[•]§r Range: 1 - 32\n§7[•]§r Minecraft won't allow most sounds to play if they are more than a chunk from the player;\n    Resounding makes that configurable by multiplying this parameter by the default distance.\n§e[-]§r Values too high can cause polyphony issues.\n§7[•]§r Increasing past the world simulation/render distance has no effect.\n§e[-]§r Performance Impact: Moderate")
@@ -144,7 +144,7 @@ public class ResoundingConfig implements ConfigData {
     public static class Materials {
         @Environment(EnvType.CLIENT)
         @Comment("Material properties for blocks.\n§7[•]§r Range: 0.0 - 1.0\n§a[+]§r Performance Impact: Low")
-        public Map<String, MaterialData> materialProperties = null;
+        public Map<String, MaterialData> materialProperties = PrecomputedConfig.materialDefaults;
 
         @Environment(EnvType.CLIENT)
         @Comment("Material properties for specific blocks. (e.g. block.minecraft.stone)\n§7[•]§r Overrides the \"By category\" setting.\n§a[+]§r Performance Impact: Low")
@@ -156,9 +156,9 @@ public class ResoundingConfig implements ConfigData {
         @Comment("Disable occlusion of jukeboxes and note blocks.\n§7[•]§r Useful if you have an audio signaling system in your base\n    that you need to hear clearly through the walls.\n§a[+]§r Performance Impact: Low")
         public boolean recordsDisable = false;
 
-        @Environment(EnvType.CLIENT)
-        @Comment("How strongly the reverb quality is biased toward shorter tails.\n§7[•]§r Range: 1.0 - 5.0\n§a[+]§r This bias helps the reverb sound more accurate in smaller spaces.\n§c[ ! ]§r This setting shouldn't need to be changed,\n      wand can cause horrible-sounding reverb if handled incorrectly.\n§7[•]§r However, If you know what you're doing, this value is somewhat similar to\n    the exponent used for warping the shadowmap of a shader\n    to increase the resolution around the player.\n§a[+]§r Performance Impact: Low")
-        public double reverbBias = 3;
+            @ConfigEntry.Gui.Excluded @Environment(EnvType.CLIENT) // TODO: Not sure I need this anymore
+            @Comment("How strongly the reverb quality is biased toward shorter tails.\n§7[•]§r Range: 1.0 - 5.0\n§a[+]§r This bias helps the reverb sound more accurate in smaller spaces.\n§c[ ! ]§r This setting shouldn't need to be changed,\n      wand can cause horrible-sounding reverb if handled incorrectly.\n§7[•]§r However, If you know what you're doing, this value is somewhat similar to\n    the exponent used for warping the shadowmap of a shader\n    to increase the resolution around the player.\n§a[+]§r Performance Impact: Low")
+            public double reverbBias = 1;
 
             @Environment(EnvType.CLIENT) @ConfigEntry.Gui.Excluded // TODO: DirEval, Occlusion
             @Comment("Skip redirecting non-occluded sounds (the ones you can see directly).\nCan be inaccurate in some situations, especially when \"Re-calculate sound direction\" is enabled.")
@@ -168,9 +168,9 @@ public class ResoundingConfig implements ConfigData {
             @Comment("If true, rain sound sources won't trace for sound occlusion.\nThis can help performance during rain.")
             public boolean skipRainOcclusionTracing = true;
 
-            @Environment(EnvType.CLIENT) @ConfigEntry.Gui.Excluded // TODO: Remove
-            @Comment("If true, enables a simpler technique for determining when the player and a sound source share airspace.\nMight sometimes miss recognizing shared airspace, but it's faster to calculate.")
-            public boolean simplerSharedAirspaceSimulation = false;
+        @Environment(EnvType.CLIENT)
+        @Comment("A simpler technique for determining how much airspace is shared between the sound and the listener.\n§7[•]§r Less accurate, but it's faster to calculate.\n§e[-]§r Performance Impact: Moderate")
+        public boolean simplerSharedAirspaceSimulation = false;
     }
 
     public static class Debug {
@@ -183,14 +183,14 @@ public class ResoundingConfig implements ConfigData {
         public boolean environmentLogging = false;
         @Comment("Performance information logging")
         public boolean performanceLogging = false;
-        @Comment("Visualize all rays and bounces with particles. WARNING!! For use in void world only!")
+        @Comment("Visualize all rays and bounces with particles.\n§c[ ! ]§r WARNING!! For use in void world only!")
         public boolean raytraceParticles = false;
     }
 
     @ConfigEntry.Gui.Excluded // TODO: update presets and config changer
     @ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
     @Comment("Soft presets. Some of these can be applied one after another to stack effects onto a base profile.")
-    public ConfigPresets preset = ConfigPresets.LOAD_SUCCESS/*ConfigPresets.DEFAULT_BALANCED*/; // TODO: change preset back to "Balanced" when performance permits
+    public ConfigPresets preset = ConfigPresets.LOAD_SUCCESS;
 
     @ConfigEntry.Gui.Excluded
     public String version = configVersion;

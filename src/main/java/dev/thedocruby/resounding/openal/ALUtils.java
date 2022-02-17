@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.ALC10;
 
-import static dev.thedocruby.resounding.Resounding.LOGGER;
+import static dev.thedocruby.resounding.ResoundingEngine.LOGGER;
 
 public class ALUtils{
     private ALUtils(){}

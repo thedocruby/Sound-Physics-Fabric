@@ -12,6 +12,7 @@
     "wiki": "https://github.com/thedocruby/resounding/wiki/FAQ",
     "discord": "https://discord.gg/kdZ6gH7Hg6",
     "patreon": "https://patreon.com/thedocruby",
+    "modrinth": "https://modrinth.com/mod/resounding",
     "youtube": "https://www.youtube.com/channel/UCONFVOfzRPAISQj2Xbb827w"
   },
   "license": "GPL-3.0",
@@ -46,6 +47,7 @@
         "modmenu.wiki": "https://github.com/thedocruby/resounding/wiki/FAQ",
         "modmenu.discord": "https://discord.gg/kdZ6gH7Hg6",
         "modmenu.patreon": "https://patreon.com/thedocruby",
+        "modmenu.modrinth": "https://modrinth.com/mod/resounding",
         "modmenu.youtube": "https://www.youtube.com/channel/UCONFVOfzRPAISQj2Xbb827w"
       }
     }

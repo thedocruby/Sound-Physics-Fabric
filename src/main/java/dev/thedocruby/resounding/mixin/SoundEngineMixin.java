@@ -1,6 +1,7 @@
 package dev.thedocruby.resounding.mixin;
 
-import dev.thedocruby.resounding.Resounding;
+import dev.thedocruby.resounding.ResoundingEngine;
+import dev.thedocruby.resounding.config.BlueTapePack.ConfigManager;
 import dev.thedocruby.resounding.openal.ResoundingEFX;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -18,30 +19,34 @@ import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 public class SoundEngineMixin {
     @Inject(method = "init", at = @At(value = "INVOKE_ASSIGN", target = "Lnet/minecraft/client/sound/AlUtil;checkErrors(Ljava/lang/String;)Z", ordinal = 0))
     private void resoundingStartInjector(CallbackInfo ci){
-        if (Resounding.isActive) throw new IllegalStateException("Resounding has already been started! You may need to reload the sound system using SoundManager.reloadSounds()");
-        Resounding.isActive = pC.enabled;
-        if (!Resounding.isActive){
-            Resounding.LOGGER.info("Skipped starting Resounding engine: disabled in config.");
+        if (!ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine has already been started! You may need to reload the sound system using SoundManager.reloadSounds()");
+        ResoundingEngine.isOff = !pC.enabled;
+        if (ResoundingEngine.isOff){
+            ResoundingEngine.LOGGER.info("Skipped starting Resounding engine: disabled in config.");
             return;
         }
-        Resounding.LOGGER.info("Starting Resounding engine...");
-        Resounding.isActive = ResoundingEFX.setUpEXTEfx();
-        if (!Resounding.isActive) {
-            Resounding.LOGGER.info("Failed to prime OpenAL EFX for Resounding effects. Resounding will not be active.");
+        ResoundingEngine.LOGGER.info("Starting Resounding engine...");
+        ResoundingEngine.isOff = !ResoundingEFX.setUpEXTEfx();
+        if (ResoundingEngine.isOff) {
+            ResoundingEngine.LOGGER.info("Failed to prime OpenAL EFX for Resounding effects. ResoundingEngine will not be active.");
             return;
         }
-        Resounding.LOGGER.info("OpenAL EFX successfully primed for Resounding effects");
-        Resounding.mc = MinecraftClient.getInstance();
-        Resounding.updateRays();
-        Resounding.isActive = true;
+        ResoundingEngine.LOGGER.info("OpenAL EFX successfully primed for Resounding effects");
+        if (ConfigManager.resetOnReload){
+            ConfigManager.resetToDefault();
+            ConfigManager.resetOnReload = false;
+        }
+        ResoundingEngine.mc = MinecraftClient.getInstance();
+        ResoundingEngine.updateRays();
+        ResoundingEngine.isOff = false;
     }
 
     @Inject(method = "close", at = @At(value = "INVOKE", target = "Lorg/lwjgl/openal/ALC10;alcDestroyContext(J)V", ordinal = 0))
     private void resoundingStopInjector(CallbackInfo ci){
-        if (!Resounding.isActive) return;
-        Resounding.LOGGER.info("Stopping Resounding engine...");
+        if (ResoundingEngine.isOff) return;
+        ResoundingEngine.LOGGER.info("Stopping Resounding engine...");
         ResoundingEFX.cleanUpEXTEfx();
-        Resounding.mc = null;
-        Resounding.isActive = false;
+        ResoundingEngine.mc = null;
+        ResoundingEngine.isOff = true;
     }
 }

@@ -5,7 +5,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.util.math.MathHelper;
 
-import static dev.thedocruby.resounding.Resounding.mc;
+import static dev.thedocruby.resounding.ResoundingEngine.mc;
 
 @Environment(EnvType.CLIENT)
 public class AirEffects {
@@ -34,7 +34,7 @@ public class AirEffects {
         double frN = Math.pow(tempr,-0.5)*(9+280*hum*Math.exp(-4.17d*(Math.pow(tempr,-1.0f/3.0f)-1)));
         double alpha = 8.686d*freq*freq*(1.84E-11*Math.sqrt(tempr)+Math.pow(tempr,-2.5)*(0.01275d*(Math.exp(-2239.1d/tempK)*1/(frO+freq*freq/frO))+0.1068d*(Math.exp(-3352/tempK)*1/(frN+freq*freq/frN))));
 
-        return (float) Math.pow(10.0d, (alpha * -1.0d * PrecomputedConfig.pC.humidityAbsorption)/20.0d); // convert alpha (decibels of attenuation per meter) into airAbsorptionGainHF value and return
+        return (float) Math.pow(10.0d, (alpha * -1.0d * PrecomputedConfig.pC.humAbs)/20.0d); // convert alpha (decibels of attenuation per meter) into airAbsorptionGainHF value and return
     }
 
     public static float getRain(){
