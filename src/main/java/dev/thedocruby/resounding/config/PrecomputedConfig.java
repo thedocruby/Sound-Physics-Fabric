@@ -127,6 +127,8 @@ public class PrecomputedConfig {
     public double maxTraceDist;
     @Environment(EnvType.CLIENT)
     public boolean fastShared;
+    @Environment(EnvType.CLIENT)
+    public boolean fastPick;
 
     @Environment(EnvType.CLIENT)
     public Reference2DoubleOpenHashMap<BlockSoundGroup> reflMap;
@@ -198,6 +200,7 @@ public class PrecomputedConfig {
             rcpAllRays = rcpNRays / nRayBounces;
             maxTraceDist = MathHelper.clamp(c.quality.rayLength, 1.0, 16.0) * nRayBounces * 16 * Math.sqrt(2);
             fastShared = c.misc.simplerSharedAirspaceSimulation; // TODO: rm
+            fastPick = true; // TODO: Make config setting for this
 
             defaultRefl = c.materials.materialProperties.get("DEFAULT").reflectivity;
             defaultAbs = c.materials.materialProperties.get("DEFAULT").absorption;

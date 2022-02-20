@@ -636,10 +636,10 @@ public class ResoundingEngine {
 		double directGain = (auxOnly ? 0 : inWater ? pC.waterFilt : 1) * Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos)) ;
 
 		if (data.reflRays().isEmpty()) {
-			return new SoundProfile(sourceID, directGain, directGain * pC.globalAbsHFRcp, new double[pC.resolution], new double[pC.resolution]);
+			return new SoundProfile(sourceID, directGain, directGain * pC.globalAbsHFRcp, new double[pC.resolution + 1], new double[pC.resolution + 1]);
 		}
 
-		double energyFix = 1d / 24d;
+		double energyFix = 1d / 5.4d;
 		double bounceCount = 0.0D;
 		double missedSum = 0.0D;
 		for (ReflectedRayData reflRay : data.reflRays()) {
@@ -650,58 +650,67 @@ public class ResoundingEngine {
 
 		// TODO: Does this perform better in parallel?
 		double sharedSum = 0.0D;
-		final double[] sendGain = new double[pC.resolution];
+		final double[] sendGain = new double[pC.resolution + 1];
 		for (ReflectedRayData reflRay : data.reflRays()) {
 			if (reflRay.missed() == 1.0D) continue;
 
-			int size = reflRay.size();
-			final double[] smoothShared = new double[pC.nRayBounces];
+			final int size = reflRay.size();
+			final double[] smoothSharedEnergy = new double[pC.nRayBounces];
+			final double[] smoothSharedDistance = new double[pC.nRayBounces];
 			for (int i = 0; i < size; i++) {
 				if (!pC.fastShared ) {
 					if (reflRay.shared()[i] == 1) {
-						smoothShared[i] = 1;
+						smoothSharedEnergy[i] = 1;
+						smoothSharedDistance[i] = reflRay.distToPlayer()[i];
 					} else {
 						int up; double traceUpRefl = 1; double traceUpDistance = 0;
 						for (up = i + 1; up <= size; up++) {
 							traceUpRefl *= up == size ? 0 : reflRay.bounceReflectivity()[up];
-							traceUpDistance += up == size ? 0 : reflRay.bounceDistance()[up];
+							if (up != size) traceUpDistance += reflRay.bounceDistance()[up];
 							if (up != size && reflRay.shared()[up] == 1) { traceUpDistance += reflRay.distToPlayer()[up]; break; }
 						}
 
 						int dn; double traceDownRefl = 1; double traceDownDistance = 0;
 						for (dn = i - 1; dn >= -1; dn--) {
 							traceDownRefl *= dn == -1 ? 0 : reflRay.bounceReflectivity()[dn];
-							traceDownDistance += dn == -1 ? 0 : reflRay.bounceDistance()[dn + 1];
+							if (dn != -1) traceDownDistance += reflRay.bounceDistance()[dn + 1];
 							if (dn != -1 && reflRay.shared()[dn] == 1) { traceDownDistance += reflRay.distToPlayer()[dn]; break; }
 						}
 
-						smoothShared[i] = Math.max(
-								traceUpRefl
-										* Math.pow(airAbsorptionHF, traceUpDistance)
-										/ Math.pow(traceUpDistance, 2.0 * missedSum),
-								traceDownRefl
-										* Math.pow(airAbsorptionHF, traceDownDistance)
-										/ Math.pow(traceDownDistance, 2.0 * missedSum)
-						);
+						if (Math.max(traceDownRefl, traceUpRefl) == traceUpRefl){
+							smoothSharedEnergy[i] = Math.sqrt(traceUpRefl);
+							smoothSharedDistance[i] = Math.sqrt(traceUpDistance);
+						} else {
+							smoothSharedEnergy[i] = Math.sqrt(traceDownRefl);
+							smoothSharedDistance[i] = Math.sqrt(traceDownDistance);
+						}
 					}
 				}
 
 				sharedSum += reflRay.shared()[i];
-				final double playerEnergy = MathHelper.clamp(reflRay.totalBounceEnergy()[i] * Math.pow(airAbsorptionHF, reflRay.totalBounceDistance()[i] + reflRay.distToPlayer()[i]) / Math.pow(reflRay.totalBounceDistance()[i] + reflRay.distToPlayer()[i], 2.0D * missedSum), 0, 1);
-				final double bounceEnergy = Math.pow(MathHelper.clamp(reflRay.totalBounceEnergy()[i] * Math.pow(airAbsorptionHF, reflRay.totalBounceDistance()[i]) / Math.pow(reflRay.totalBounceDistance()[i], 2.0D * missedSum), Double.MIN_VALUE, 1), energyFix);
-				final double bounceTime = reflRay.totalBounceDistance()[i] / (pC.maxDecayTime * speedOfSound);
-				// final int t = (int) ((logBase(1.0D / bounceEnergy, pC.minEnergy) + 1) * reflRay.totalBounceDistance()[i] / (speedOfSound * pC.maxDecayTime) * pC.resolution);
-				final int t = MathHelper.clamp((int) (1/logBase(Math.max(Math.pow(bounceEnergy, pC.maxDecayTime / bounceTime), Double.MIN_VALUE), pC.minEnergy) * pC.resolution), 0, pC.resolution);
-				if (t == 0) continue;
 
-				sendGain[t-1] += playerEnergy * (pC.fastShared ? 1 : smoothShared[i]); // TODO: Investigate NaN causing (AL_INVALID_VALUE)
+				final double playerEnergy = MathHelper.clamp(
+								reflRay.totalBounceEnergy()[i] * (pC.fastShared ? 1 : smoothSharedEnergy[i])
+								* Math.pow(airAbsorptionHF, reflRay.totalBounceDistance()[i] + smoothSharedDistance[i])
+								/ Math.pow(reflRay.totalBounceDistance()[i] + smoothSharedDistance[i], 2.0D * missedSum),
+						0, 1);
+
+				final double bounceEnergy = MathHelper.clamp(
+								reflRay.totalBounceEnergy()[i]
+								* Math.pow(airAbsorptionHF, reflRay.totalBounceDistance()[i])
+								/ Math.pow(reflRay.totalBounceDistance()[i], 2.0D * missedSum),
+						Double.MIN_VALUE, 1);
+
+				final double bounceTime = reflRay.totalBounceDistance()[i] / speedOfSound;
+
+				sendGain[MathHelper.clamp((int) (1/logBase(Math.max(Math.pow(bounceEnergy, pC.maxDecayTime / bounceTime * energyFix), Double.MIN_VALUE), pC.minEnergy) * pC.resolution), 0, pC.resolution)] += playerEnergy;
 			}
 		}
 		sharedSum /= bounceCount;
-		final double[] sendCutoff = new double[pC.resolution];
-		for (int i = 0; i < pC.resolution; i++) {
-			sendGain[i] = MathHelper.clamp(sendGain[i] * (inWater ?pC.waterFilt : 1) * (pC.fastShared ? sharedSum : 1) * pC.resolution / bounceCount, 0.0, 1.0);
-			sendCutoff[i] = Math.pow(sendGain[i], pC.globalRvrbHFRcp);
+		final double[] sendCutoff = new double[pC.resolution+1];
+		for (int i = 0; i <= pC.resolution; i++) {
+			sendGain[i] = MathHelper.clamp(sendGain[i] * (inWater ?pC.waterFilt : 1) * (pC.fastShared ? sharedSum : 1) * pC.resolution / bounceCount, 0, 1.0 - Double.MIN_NORMAL);
+			sendCutoff[i] = Math.pow(sendGain[i], pC.globalRvrbHFRcp); // TODO: make sure this actually works.
 		}
 
 			//TODO: Occlusion calculation here
@@ -725,15 +734,48 @@ public class ResoundingEngine {
 	public static void setEnv(final @NotNull SoundProfile profile) { // TODO: Add slot selection here
 		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 
-		if (profile.sendGain().length != pC.resolution || profile.sendCutoff().length != pC.resolution) {
+		if (profile.sendGain().length != pC.resolution + 1 || profile.sendCutoff().length != pC.resolution + 1) {
 			throw new IllegalArgumentException("Error: Reverb parameter count does not match reverb resolution!");
 		}
 
-		// Set reverb send filter values and set source to send to all reverb fx slots
-		for(int i = 0; i < pC.resolution; i++){ ResoundingEFX.setFilter(i, profile.sourceID(), (float) profile.sendGain()[i], (float) profile.sendCutoff()[i]); }
+		double max=0;
+		int imax=-1;
+		for(int i = 0; i <= pC.resolution; i++){
+			if(profile.sendGain()[i]>max){
+				max = profile.sendGain()[i];
+				imax = i;
+			}
+		}
+
+		if (imax > 0) {
+			if (pC.fastPick) {
+				// Set reverb send filter values and set source to send to all reverb fx slots
+				ResoundingEFX.setFilter(imax - 1, profile.sourceID(), (float) profile.sendGain()[imax], (float) profile.sendCutoff()[imax]);
+			} else {
+
+				int finalSlot = 0;
+				finalSlot = selectSlot(profile.sendGain());
+
+				if (finalSlot > 0) {
+					// Set reverb send filter values and set source to send to all reverb fx slots
+					ResoundingEFX.setFilter(finalSlot - 1, profile.sourceID(), (float) profile.sendGain()[finalSlot], (float) profile.sendCutoff()[finalSlot]);
+				} else {
+					// Set reverb send filter values and set source to send to all reverb fx slots
+					ResoundingEFX.setFilter(0, profile.sourceID(), 0f, 0f);
+				}
+			}
+		} else {
+			// Set reverb send filter values and set source to send to all reverb fx slots
+			ResoundingEFX.setFilter(0, profile.sourceID(), 0f, 0f);
+		}
 
 		// Set direct filter values
 		ResoundingEFX.setDirectFilter(profile.sourceID(), (float) profile.directGain(), (float) profile.directCutoff());
+	}
+
+	// TODO: Slot selection logic will go here. See https://www.desmos.com/calculator/v5bt1gdgki
+	private static int selectSlot(double[] sendGain) {
+		return 0;
 	}
 
 }
