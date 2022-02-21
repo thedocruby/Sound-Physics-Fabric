@@ -5,10 +5,7 @@ import dev.thedocruby.resounding.openal.ResoundingEFX;
 import dev.thedocruby.resounding.raycast.RaycastFix;
 import dev.thedocruby.resounding.raycast.RaycastRenderer;
 import dev.thedocruby.resounding.raycast.SPHitResult;
-import dev.thedocruby.resounding.toolbox.EnvData;
-import dev.thedocruby.resounding.toolbox.OccludedRayData;
-import dev.thedocruby.resounding.toolbox.ReflectedRayData;
-import dev.thedocruby.resounding.toolbox.SoundProfile;
+import dev.thedocruby.resounding.toolbox.*;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
@@ -397,7 +394,7 @@ public class ResoundingEngine {
 
 		int size = 0;
 		double missed = 0;
-		double totalDistance = soundPos.distanceTo(rayHit.getPos());
+		double totalDistance = soundPos.distanceTo(lastHitPos);
 		double totalReflectivity = lastBlockReflectivity;
 		double[] shared = new double[pC.nRayBounces];
 		double[] distToPlayer = new double[pC.nRayBounces];
@@ -709,7 +706,7 @@ public class ResoundingEngine {
 		sharedSum /= bounceCount;
 		final double[] sendCutoff = new double[pC.resolution+1];
 		for (int i = 0; i <= pC.resolution; i++) {
-			sendGain[i] = MathHelper.clamp(sendGain[i] * (inWater ?pC.waterFilt : 1) * (pC.fastShared ? sharedSum : 1) * pC.resolution / bounceCount, 0, 1.0 - Double.MIN_NORMAL);
+			sendGain[i] = MathHelper.clamp(sendGain[i] * (inWater ? pC.waterFilt : 1) * (pC.fastShared ? sharedSum : 1) * pC.resolution / bounceCount, 0, 1.0 - Double.MIN_NORMAL);
 			sendCutoff[i] = Math.pow(sendGain[i], pC.globalRvrbHFRcp); // TODO: make sure this actually works.
 		}
 
@@ -738,44 +735,31 @@ public class ResoundingEngine {
 			throw new IllegalArgumentException("Error: Reverb parameter count does not match reverb resolution!");
 		}
 
-		double max=0;
-		int imax=-1;
-		for(int i = 0; i <= pC.resolution; i++){
-			if(profile.sendGain()[i]>max){
-				max = profile.sendGain()[i];
-				imax = i;
-			}
-		}
+		SlotProfile finalSend = selectSlot(profile.sendGain(), profile.sendCutoff());
 
-		if (imax > 0) {
-			if (pC.fastPick) {
-				// Set reverb send filter values and set source to send to all reverb fx slots
-				ResoundingEFX.setFilter(imax - 1, profile.sourceID(), (float) profile.sendGain()[imax], (float) profile.sendCutoff()[imax]);
-			} else {
-
-				int finalSlot = 0;
-				finalSlot = selectSlot(profile.sendGain());
-
-				if (finalSlot > 0) {
-					// Set reverb send filter values and set source to send to all reverb fx slots
-					ResoundingEFX.setFilter(finalSlot - 1, profile.sourceID(), (float) profile.sendGain()[finalSlot], (float) profile.sendCutoff()[finalSlot]);
-				} else {
-					// Set reverb send filter values and set source to send to all reverb fx slots
-					ResoundingEFX.setFilter(0, profile.sourceID(), 0f, 0f);
-				}
-			}
-		} else {
-			// Set reverb send filter values and set source to send to all reverb fx slots
-			ResoundingEFX.setFilter(0, profile.sourceID(), 0f, 0f);
-		}
-
+		// Set reverb send filter values and set source to send to all reverb fx slots
+		ResoundingEFX.setFilter(finalSend.slot(), profile.sourceID(), (float) finalSend.gain(), (float) finalSend.cutoff());
 		// Set direct filter values
 		ResoundingEFX.setDirectFilter(profile.sourceID(), (float) profile.directGain(), (float) profile.directCutoff());
 	}
 
-	// TODO: Slot selection logic will go here. See https://www.desmos.com/calculator/v5bt1gdgki
-	private static int selectSlot(double[] sendGain) {
-		return 0;
+
+	private static SlotProfile selectSlot(double[] sendGain, double[] sendCutoff) {
+		if(pC.fastPick) {
+			double sum = 0;
+			double weightedSum = 0;
+			for (int i = Double.isNaN(sendGain[0]) ? 1 : 0; i <= pC.resolution; i++) { // TODO: find cause of lava.ambient NaN
+				sum += sendGain[i];
+				weightedSum += i * sendGain[i];
+			}
+			int iavg = (int) Math.round(MathHelper.clamp(weightedSum / sum, 0, pC.resolution));
+			if (iavg > 0){
+				return new SlotProfile(iavg-1, sendGain[iavg], sendCutoff[iavg]);
+			}
+			return new SlotProfile(0, 0, 0);
+		}
+		// TODO: Slot selection logic will go here. See https://www.desmos.com/calculator/v5bt1gdgki
+		return new SlotProfile(0, 0, 0);
 	}
 
 }

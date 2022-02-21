@@ -130,7 +130,7 @@ public class ResoundingConfig implements ConfigData {
 
         @Environment(EnvType.CLIENT)
         @Comment("How much sound is filtered when the player is underwater.\n§7[•]§r Range: 0.0 - 1.0\n§7[•]§r 0.0 means no filter. 1.0 means fully filtered.\n§a[+]§r Performance Impact: Low")
-        public double underwaterFilter = 0.8;
+        public double underwaterFilter = 0.75;
 
             @Environment(EnvType.CLIENT) @ConfigEntry.Gui.Excluded // TODO: DirEval
             @Comment("Whether to try calculating where the sound should come from based on reflections.\n§e[-]§r Performance Impact: Moderate")
