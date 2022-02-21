@@ -37,4 +37,5 @@ If applicable, add screenshots to help explain your problem.
 Add any other context about the problem here.
 
 **Crash Report/Logs**
-Please attach these as files, DO NOT PASTE!!!
+Please attach these as files, or link to them on a pastebin site.
+**DO NOT paste them into this bug report as text!!!**
