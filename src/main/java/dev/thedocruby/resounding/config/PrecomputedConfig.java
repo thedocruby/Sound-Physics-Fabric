@@ -84,7 +84,7 @@ public class PrecomputedConfig {
     public boolean enabled;
 
     @Environment(EnvType.CLIENT)
-    public float globalRvrbGainRcp;
+    public double globalRvrbGain;
     @Environment(EnvType.CLIENT)
     public double minEnergy;
     @Environment(EnvType.CLIENT)
@@ -92,7 +92,7 @@ public class PrecomputedConfig {
     @Environment(EnvType.CLIENT)
     public double warpFactor;
     @Environment(EnvType.CLIENT)
-    public float globalRvrbHFRcp;
+    public double globalRvrbHFRcp;
     @Environment(EnvType.CLIENT)
     public double rvrbDensity;
     @Environment(EnvType.CLIENT)
@@ -178,7 +178,7 @@ public class PrecomputedConfig {
 
         if(ResoundingEngine.env == EnvType.CLIENT) { // TODO: organize
             defaultAttenuationFactor = c.general.attenuationFactor;
-            globalRvrbGainRcp = 1 / ((float) Math.min(c.general.globalReverbGain, 1));
+            globalRvrbGain = MathHelper.clamp(c.general.globalReverbGain/100d, 0.0d, 1.0d);
             minEnergy = Math.exp(-Math.max(c.general.globalReverbStrength, 0));
             resolution = c.quality.reverbResolution;
             warpFactor = 1 / MathHelper.clamp(c.misc.reverbBias, 1.0, 5.0);

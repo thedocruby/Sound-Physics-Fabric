@@ -266,7 +266,7 @@ public class ResoundingEngine {
 
 		// isBlock = blockPattern.matcher(lastSoundName).matches(); // && !stepPattern.matcher(lastSoundName).matches(); //  TODO: Occlusion, step sounds
 		if (lastSoundCategory == SoundCategory.RECORDS){posX+=0.5;posY+=0.5;posZ+=0.5;/*isBlock = true;*/} // TODO: Occlusion
-		if (stepPattern.matcher(lastSoundName).matches() || stepPatternPF.matcher(lastSoundName).matches()) {posY+=0.02;} // TODO: step sounds
+		if (stepPattern.matcher(lastSoundName).matches() || stepPatternPF.matcher(lastSoundName).matches()) {posY+=0.2;} // TODO: step sounds
 		//doNineRay = pC.nineRay && (lastSoundCategory == SoundCategory.BLOCKS || isBlock); // TODO: Occlusion
 		Vec3d playerPosOld = mc.player.getPos();
 		playerPos = new Vec3d(playerPosOld.x, playerPosOld.y + mc.player.getEyeHeight(mc.player.getPose()), playerPosOld.z);
@@ -729,7 +729,7 @@ public class ResoundingEngine {
 		sharedSum /= bounceCount;
 		final double[] sendCutoff = new double[pC.resolution+1];
 		for (int i = 0; i <= pC.resolution; i++) {
-			sendGain[i] = MathHelper.clamp(sendGain[i] * (inWater ? pC.waterFilt : 1) * (pC.fastShared ? sharedSum : 1) * pC.resolution / bounceCount, 0, 1.0 - Double.MIN_NORMAL);
+			sendGain[i] = MathHelper.clamp(sendGain[i] * (inWater ? pC.waterFilt : 1) * (pC.fastShared ? sharedSum : 1) * pC.resolution / bounceCount * pC.globalRvrbGain, 0, 1.0 - Double.MIN_NORMAL);
 			sendCutoff[i] = Math.pow(sendGain[i], pC.globalRvrbHFRcp); // TODO: make sure this actually works.
 		}
 
@@ -780,7 +780,7 @@ public class ResoundingEngine {
 			double gmax = 0;
 			int imax = 0;
 			for (int i = Double.isNaN(sendGain[0]) ? 1 : 0; i <= pC.resolution; i++) { // TODO: find cause of block.lava.ambient NaN
-				final double g = (i==0 || i==pC.resolution) ? sendGain[i]/1.618 : sendGain[i];
+				final double g = (i==0 || i==pC.resolution) ? sendGain[i]/1.414 : sendGain[i];
 				if (gmax > g) continue;
 				gmax = g;
 				imax = i;

@@ -52,9 +52,9 @@ public class ResoundingConfig implements ConfigData {
             @Comment("Affects how quiet a sound gets based on distance. 0.1 - 1.0\nLower values mean distant sounds are louder.\n1.0 is the physically correct value.")
             public double attenuationFactor = 1.0;
 
-        @Environment(EnvType.CLIENT)
-        @Comment("The global volume of simulated reverberations.\n§7[•]§r Range: 0.0 - 1.0\n§a[+]§r Performance Impact: Low")
-        public double globalReverbGain = 1.0; // TODO: implement
+        @Environment(EnvType.CLIENT) @ConfigEntry.BoundedDiscrete(max = 100, min = 0)
+        @Comment("The global volume of simulated reverberations, in percent.\n§7[•]§r Range: 0 - 100\n§a[+]§r Performance Impact: Low")
+        public int globalReverbGain = 50; // TODO: implement
 
         @Environment(EnvType.CLIENT)
         @Comment("The strength of the reverb effect.\n§7[•]§r Range: >= 0.0\n§7[•]§r Higher values make the echo last longer.\n§7[•]§r Lower values make the echos shorter.\n§a[+]§r Performance Impact: Low")
