@@ -289,7 +289,7 @@ public class ResoundingEngine {
 			} else {
 				LOGGER.info("Skipped playing sound \"{}\": Cannot trace sounds outside the block grid.", lastSoundName);
 			}
-			try { setEnv(new SoundProfile(sourceID, auxOnly ? 0f : 1f, 1f, new double[pC.resolution], new double[pC.resolution])); // TODO: Should be processEnv()
+			try { setEnv(processEnv(new EnvData(Collections.emptySet(), Collections.emptySet())));
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
 		if (Math.max(playerPos.distanceTo(soundPos), listenerPos.distanceTo(soundPos)) > maxDist) {
@@ -584,12 +584,33 @@ public class ResoundingEngine {
 
 		// Throw rays around
 		if (pC.dLog || pC.eLog) {
-			LOGGER.info("Sampling environment with {} rays...", pC.nRays);
+			if (isRain) {
+				LOGGER.info("Skipped reverb ray tracing for rain sound.");
+			} else {
+				LOGGER.info("Sampling environment with {} seed rays...", pC.nRays);
+			}
 		} else {
-			LOGGER.debug("Sampling environment with {} rays...", pC.nRays);
+			if (isRain) {
+				LOGGER.debug("Skipped reverb ray tracing for rain sound.");
+			} else {
+				LOGGER.debug("Sampling environment with {} seed rays...", pC.nRays);
+			}
 		}
 		Set<ReflectedRayData> reflRays = isRain ? Collections.emptySet() :
 				rays.stream().parallel().unordered().map(ResoundingEngine::throwReflRay).collect(Collectors.toSet());
+		if(!isRain) {
+			if (pC.eLog) {
+				int rayCount = 0;
+				for (ReflectedRayData reflRay : reflRays){
+					rayCount += reflRay.size() * 2 + 1;
+				}
+				LOGGER.info("Environment sampled! Total number of rays casted: {}", rayCount); // TODO: This is not precise
+			} else if (pC.dLog) {
+				LOGGER.info("Environment sampled!");
+			} else {
+				LOGGER.debug("Environment sampled!");
+			}
+		}
 
 		// TODO: Occlusion. Also, add occlusion profiles.
 		// Step rays from sound to listener
@@ -719,9 +740,9 @@ public class ResoundingEngine {
 		SoundProfile profile = new SoundProfile(sourceID, directGain, directCutoff, sendGain, sendCutoff);
 
 		if (pC.eLog || pC.dLog) {
-			LOGGER.info("Final sound profile:\n{}", profile);
+			LOGGER.info("Processed sound profile:\n{}", profile);
 		} else {
-			LOGGER.debug("Final sound profile:\n{}", profile);
+			LOGGER.debug("Processed sound profile:\n{}", profile);
 		}
 
 		return profile;
@@ -737,6 +758,12 @@ public class ResoundingEngine {
 
 		SlotProfile finalSend = selectSlot(profile.sendGain(), profile.sendCutoff());
 
+		if (pC.eLog || pC.dLog) {
+			LOGGER.info("Final reverb settings:\n{}", finalSend);
+		} else {
+			LOGGER.debug("Final reverb settings:\n{}", finalSend);
+		}
+
 		// Set reverb send filter values and set source to send to all reverb fx slots
 		ResoundingEFX.setFilter(finalSend.slot(), profile.sourceID(), (float) finalSend.gain(), (float) finalSend.cutoff());
 		// Set direct filter values
@@ -744,15 +771,29 @@ public class ResoundingEngine {
 	}
 
 
-	private static SlotProfile selectSlot(double[] sendGain, double[] sendCutoff) {
+	@Contract("_, _ -> new")
+	@Environment(EnvType.CLIENT)
+	private static @NotNull SlotProfile selectSlot(double[] sendGain, double[] sendCutoff) {
 		if(pC.fastPick) {
-			double sum = 0;
-			double weightedSum = 0;
-			for (int i = Double.isNaN(sendGain[0]) ? 1 : 0; i <= pC.resolution; i++) { // TODO: find cause of lava.ambient NaN
-				sum += sendGain[i];
-				weightedSum += i * sendGain[i];
+			double gmax = 0;
+			int imax = 0;
+			for (int i = Double.isNaN(sendGain[0]) ? 1 : 0; i <= pC.resolution; i++) { // TODO: find cause of block.lava.ambient NaN
+				final double g = (i==0 || i==pC.resolution) ? sendGain[i]/1.618 : sendGain[i];
+				if (gmax > g) continue;
+				gmax = g;
+				imax = i;
 			}
-			int iavg = (int) Math.round(MathHelper.clamp(weightedSum / sum, 0, pC.resolution));
+			final int iavg;
+			if (imax < pC.resolution/3d) {
+				double sum = 0;
+				double weightedSum = 0;
+				for (int i = Double.isNaN(sendGain[0]) ? 1 : 0; i <= pC.resolution; i++) { // TODO: find cause of block.lava.ambient NaN
+					sum += sendGain[i];
+					weightedSum += i * sendGain[i];
+				}
+
+				iavg = (int) Math.round(MathHelper.clamp(weightedSum / sum, 0, pC.resolution));
+			} else { iavg = imax; }
 			if (iavg > 0){
 				return new SlotProfile(iavg-1, sendGain[iavg], sendCutoff[iavg]);
 			}

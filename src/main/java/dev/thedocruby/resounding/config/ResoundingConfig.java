@@ -84,7 +84,7 @@ public class ResoundingConfig implements ConfigData {
 
         @Environment(EnvType.CLIENT) @ConfigEntry.BoundedDiscrete(max = 32, min = 4)
         @Comment("The resolution quality of the reverb effect.\n§7[•]§r Range: 4 - 32\n§a[+]§r Higher values create a fuller, more colorful, more immersive reverb effect.\n§c[ ! ]§r Performance Impact: High\n§e[-]§r Increases memory usage")
-        public int reverbResolution = 10;
+        public int reverbResolution = 16;
 
         @Environment(EnvType.CLIENT) @ConfigEntry.BoundedDiscrete(max = 768, min = 8)
         @Comment("The number of rays to trace to determine reverberation for each sound source.\n§7[•]§r Range: 8 - 768\n§7[•]§r More rays provides more consistent tracing results, but takes more time to calculate.\n§c[ ! ]§r Performance Impact: High")
@@ -95,8 +95,8 @@ public class ResoundingConfig implements ConfigData {
         public int envEvalRayBounces = 4;
 
         @ConfigEntry.BoundedDiscrete(max = 32, min = 1)
-        @Comment("Maximum distance of rendered sounds from the player.\n§7[•]§r Range: 1 - 32\n§7[•]§r Minecraft won't allow most sounds to play if they are more than a chunk from the player;\n    Resounding makes that configurable by multiplying this parameter by the default distance.\n§e[-]§r Values too high can cause polyphony issues.\n§7[•]§r Increasing past the world simulation/render distance has no effect.\n§e[-]§r Performance Impact: Moderate")
-        public int soundSimulationDistance = 10;
+        @Comment("Maximum distance of rendered sounds from the player.\n§7[•]§r Range: 1 - 32\n§7[•]§r Minecraft won't allow most sounds to play if they are more than a chunk from the player;\n    Resounding makes that configurable by multiplying this parameter by the default distance.\n§e[-]§r Values too high can cause polyphony issues.\n§7[•]§r Increasing past the world simulation/render distance has no effect.\n§e[-]§r Performance Impact: Moderate\n§e[-]§r  Currently does not seem to work for random block sounds\n     e.g. flowing water, popping lava, whooshing portal")
+        public int soundSimulationDistance = 8;
 
         @Environment(EnvType.CLIENT)
         @Comment("The maximum length of each traced ray, per each bounce, in chunks.\n§7[•]§r Range: 1.0 - 16.0\n§7[•]§r For the best balance of performance and quality, increase this:\n      - When you increase the sound simulation distance\n      - When you decrease the number of ray reflections.\n      - If you often find yourself in large enclosed spaces,\n        e.g. large 1.18 caves, or large open buildings.\n§e[-]§r Performance Impact: Moderate")
@@ -157,7 +157,7 @@ public class ResoundingConfig implements ConfigData {
         public boolean recordsDisable = false;
 
             @ConfigEntry.Gui.Excluded @Environment(EnvType.CLIENT) // TODO: Not sure I need this anymore
-            @Comment("How strongly the reverb quality is biased toward shorter tails.\n§7[•]§r Range: 1.0 - 5.0\n§a[+]§r This bias helps the reverb sound more accurate in smaller spaces.\n§c[ ! ]§r This setting shouldn't need to be changed,\n      wand can cause horrible-sounding reverb if handled incorrectly.\n§7[•]§r However, If you know what you're doing, this value is somewhat similar to\n    the exponent used for warping the shadowmap of a shader\n    to increase the resolution around the player.\n§a[+]§r Performance Impact: Low")
+            @Comment("How strongly the reverb quality is biased toward shorter tails.\n§7[•]§r Range: 1.0 - 5.0\n§a[+]§r This bias helps the reverb sound more accurate in smaller spaces.\n§c[ ! ]§r This setting shouldn't need to be changed,\n      and can cause horrible-sounding reverb if handled incorrectly.\n§7[•]§r However, If you know what you're doing, this value is somewhat similar to\n    the exponent used for warping the shadowmap of a shader\n    to increase the resolution around the player.\n§a[+]§r Performance Impact: Low")
             public double reverbBias = 1;
 
             @Environment(EnvType.CLIENT) @ConfigEntry.Gui.Excluded // TODO: DirEval, Occlusion
@@ -177,11 +177,11 @@ public class ResoundingConfig implements ConfigData {
         @Comment("General debug logging")
         public boolean debugLogging = false;
             @ConfigEntry.Gui.Excluded // TODO: Occlusion
-            @Comment("Occlusion tracing information logging")
+            @Comment("Occlusion tracing information logging.")
             public boolean occlusionLogging = false;
-        @Comment("Environment evaluation information logging")
+        @Comment("Environment evaluation information logging.\n§c[ ! ]§r WARNING!! For use in void world only!")
         public boolean environmentLogging = false;
-        @Comment("Performance information logging")
+        @Comment("Performance information logging.")
         public boolean performanceLogging = false;
         @Comment("Visualize all rays and bounces with particles.\n§c[ ! ]§r WARNING!! For use in void world only!")
         public boolean raytraceParticles = false;
