@@ -180,7 +180,8 @@ public class ResoundingEngine {
 			);//</editor-fold>
 
 	public static final Pattern rainPattern = Pattern.compile(".*rain.*");
-	// public static final Pattern stepPattern = Pattern.compile(".*step.*"); // TODO: step sounds
+	public static final Pattern stepPattern = Pattern.compile(".*step.*"); // TODO: step sounds
+	public static final Pattern stepPatternPF = Pattern.compile(".*pf_presence.*"); // TODO: step sounds
 	// public static final Pattern blockPattern = Pattern.compile(".*block..*");TODO: Occlusion
 	public static final Pattern uiPattern = Pattern.compile("ui..*");
 
@@ -265,6 +266,7 @@ public class ResoundingEngine {
 
 		// isBlock = blockPattern.matcher(lastSoundName).matches(); // && !stepPattern.matcher(lastSoundName).matches(); //  TODO: Occlusion, step sounds
 		if (lastSoundCategory == SoundCategory.RECORDS){posX+=0.5;posY+=0.5;posZ+=0.5;/*isBlock = true;*/} // TODO: Occlusion
+		if (stepPattern.matcher(lastSoundName).matches() || stepPatternPF.matcher(lastSoundName).matches()) {posY+=0.02;} // TODO: step sounds
 		//doNineRay = pC.nineRay && (lastSoundCategory == SoundCategory.BLOCKS || isBlock); // TODO: Occlusion
 		Vec3d playerPosOld = mc.player.getPos();
 		playerPos = new Vec3d(playerPosOld.x, playerPosOld.y + mc.player.getEyeHeight(mc.player.getPose()), playerPosOld.z);

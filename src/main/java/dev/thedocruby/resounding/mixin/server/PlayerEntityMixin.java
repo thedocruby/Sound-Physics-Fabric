@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 @Mixin(Entity.class)
-public class EntityMixin {
+public class PlayerEntityMixin {
 
     @Shadow @SuppressWarnings("SameReturnValue")
     public double getEyeY(){ return 0.0d; }
@@ -24,4 +24,5 @@ public class EntityMixin {
                 ||ResoundingEngine.stepPatternPF.matcher(sound.getId().getPath()).matches()) ?
                 y : getEyeY(); // TODO: step sounds
     }
+
 }
