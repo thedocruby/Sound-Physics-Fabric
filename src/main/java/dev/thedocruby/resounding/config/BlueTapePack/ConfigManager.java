@@ -10,7 +10,6 @@ import me.shedaniel.autoconfig.ConfigHolder;
 import me.shedaniel.autoconfig.serializer.JanksonConfigSerializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.ActionResult;
 import org.jetbrains.annotations.NotNull;
 
@@ -85,12 +84,12 @@ public class ConfigManager {
     public static ActionResult onSave(ResoundingConfig c) {
         if (ResoundingEngine.env == EnvType.CLIENT && (c.materials.materialProperties == null || c.materials.materialProperties.get("DEFAULT") == null)) handleBrokenMaterials(c);
         if (ResoundingEngine.env == EnvType.CLIENT && c.preset != ConfigPresets.LOAD_SUCCESS) c.preset.configChanger.accept(c);
-        if (c.version == null || !Objects.equals(c.version, configVersion)) handleUnstableConfig(c);
+        if ((c.version == null || !Objects.equals(c.version, configVersion)) && !resetOnReload) handleUnstableConfig(c);
         if (PrecomputedConfig.pC != null) PrecomputedConfig.pC.deactivate();
         try {PrecomputedConfig.pC = new PrecomputedConfig(c);} catch (CloneNotSupportedException e) {e.printStackTrace(); return ActionResult.FAIL;}
-        if (ResoundingEngine.env == EnvType.CLIENT && MinecraftClient.getInstance().getSoundManager() != null) {
+        if (ResoundingEngine.env == EnvType.CLIENT && !ResoundingEngine.isOff) {
             ResoundingEngine.updateRays();
-            MinecraftClient.getInstance().getSoundManager().reloadSounds();
+            ResoundingEngine.mc.getSoundManager().reloadSounds();
         }
         return ActionResult.SUCCESS;
     }

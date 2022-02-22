@@ -20,15 +20,15 @@ public class SoundEngineMixin {
     @Inject(method = "init", at = @At(value = "INVOKE_ASSIGN", target = "Lnet/minecraft/client/sound/AlUtil;checkErrors(Ljava/lang/String;)Z", ordinal = 0))
     private void resoundingStartInjector(CallbackInfo ci){
         if (!ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine has already been started! You may need to reload the sound system using SoundManager.reloadSounds()");
-        ResoundingEngine.isOff = !pC.enabled;
-        if (ResoundingEngine.isOff){
+        if (!pC.enabled){
             ResoundingEngine.LOGGER.info("Skipped starting Resounding engine: disabled in config.");
+            ResoundingEngine.isOff = true;
             return;
         }
         ResoundingEngine.LOGGER.info("Starting Resounding engine...");
-        ResoundingEngine.isOff = !ResoundingEFX.setUpEXTEfx();
-        if (ResoundingEngine.isOff) {
+        if (!ResoundingEFX.setUpEXTEfx()) {
             ResoundingEngine.LOGGER.info("Failed to prime OpenAL EFX for Resounding effects. ResoundingEngine will not be active.");
+            ResoundingEngine.isOff = true;
             return;
         }
         ResoundingEngine.LOGGER.info("OpenAL EFX successfully primed for Resounding effects");
