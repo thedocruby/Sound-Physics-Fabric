@@ -736,7 +736,7 @@ public class ResoundingEngine {
 			//TODO: Occlusion calculation here
 
 		directGain *= Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos))
-				/ Math.pow(listenerPos.distanceTo(soundPos), 2.0 * missedSum) * sharedSum;
+				/ Math.pow(listenerPos.distanceTo(soundPos), 2.0 * missedSum) * MathHelper.lerp(sharedSum, 0d/*TODO: occlusion coeff from processing goes here IF fancy or fabulous occl*/, 1d);
 		double directCutoff = Math.pow(directGain, pC.globalAbsHFRcp); // TODO: occlusion
 
 		SoundProfile profile = new SoundProfile(sourceID, directGain, directCutoff, sendGain, sendCutoff);

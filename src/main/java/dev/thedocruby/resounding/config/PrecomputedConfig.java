@@ -2,6 +2,8 @@ package dev.thedocruby.resounding.config;
 
 import dev.thedocruby.resounding.ResoundingEngine;
 import dev.thedocruby.resounding.toolbox.MaterialData;
+import dev.thedocruby.resounding.toolbox.OcclusionMode;
+import dev.thedocruby.resounding.toolbox.SharedAirspaceMode;
 import it.unimi.dsi.fastutil.objects.Reference2DoubleOpenHashMap;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -126,6 +128,8 @@ public class PrecomputedConfig {
     @Environment(EnvType.CLIENT)
     public double maxTraceDist;
     @Environment(EnvType.CLIENT)
+    public OcclusionMode occlMode;
+    @Environment(EnvType.CLIENT)
     public boolean fastShared;
     @Environment(EnvType.CLIENT)
     public boolean fastPick;
@@ -199,7 +203,8 @@ public class PrecomputedConfig {
             nRayBounces = c.quality.envEvalRayBounces + resolution;
             rcpAllRays = rcpNRays / nRayBounces;
             maxTraceDist = MathHelper.clamp(c.quality.rayLength, 1.0, 16.0) * nRayBounces * 16 * Math.sqrt(2);
-            fastShared = c.misc.simplerSharedAirspaceSimulation; // TODO: rm
+            fastShared = c.quality.sharedAirspaceMode == SharedAirspaceMode.FAST;
+            occlMode = c.quality.occlusionMode;
             fastPick = true; // TODO: Make config setting for this
 
             defaultRefl = c.materials.materialProperties.get("DEFAULT").reflectivity;

@@ -2,6 +2,8 @@ package dev.thedocruby.resounding.config;
 
 import dev.thedocruby.resounding.config.presets.ConfigPresets;
 import dev.thedocruby.resounding.toolbox.MaterialData;
+import dev.thedocruby.resounding.toolbox.OcclusionMode;
+import dev.thedocruby.resounding.toolbox.SharedAirspaceMode;
 import me.shedaniel.autoconfig.ConfigData;
 import me.shedaniel.autoconfig.annotation.Config;
 import me.shedaniel.autoconfig.annotation.ConfigEntry;
@@ -54,7 +56,7 @@ public class ResoundingConfig implements ConfigData {
 
         @Environment(EnvType.CLIENT) @ConfigEntry.BoundedDiscrete(max = 100, min = 0)
         @Comment("The global volume of simulated reverberations, in percent.\n§7[•]§r Range: 0 - 100\n§a[+]§r Performance Impact: Low")
-        public int globalReverbGain = 50; // TODO: implement
+        public int globalReverbGain = 50;
 
         @Environment(EnvType.CLIENT)
         @Comment("The strength of the reverb effect.\n§7[•]§r Range: >= 0.0\n§7[•]§r Higher values make the echo last longer.\n§7[•]§r Lower values make the echos shorter.\n§a[+]§r Performance Impact: Low")
@@ -62,11 +64,11 @@ public class ResoundingConfig implements ConfigData {
 
         @Environment(EnvType.CLIENT)
         @Comment("The smoothness of the reverb.\n§7[•]§r Range: 0.0 - 1.0\n§7[•]§r Affects how uniform the reverb is.\n§7[•]§r Low values cause a distinct fluttering or bouncing echo.\n§7[•]§r High values make this effect less distinct by smoothing out the reverb.\n§a[+]§r Performance Impact: Low")
-        public double globalReverbSmoothness = 0.618;
+        public double globalReverbSmoothness = 0.5;
 
         @Environment(EnvType.CLIENT)
         @Comment("The brightness of reverberation.\n§7[•]§r Range: > 0 \n§7[•]§r Higher values result in more high frequencies in reverberation.\n§7[•]§r Lower values give a more muffled sound to the reverb.\n§7[•]§r 1.0 is neutral.\n§a[+]§r Performance Impact: Low")
-        public double globalReverbBrightness = 0.618;
+        public double globalReverbBrightness = 0.8;
 
             @Environment(EnvType.CLIENT) @ConfigEntry.Gui.Excluded // TODO: Occlusion
             public double globalAbsorptionBrightness = 0.618;
@@ -90,13 +92,23 @@ public class ResoundingConfig implements ConfigData {
         @Comment("The number of rays to trace to determine reverberation for each sound source.\n§7[•]§r Range: 8 - 768\n§7[•]§r More rays provides more consistent tracing results, but takes more time to calculate.\n§c[ ! ]§r Performance Impact: High")
         public int envEvalRays = 128;
 
-        @Environment(EnvType.CLIENT) @ConfigEntry.BoundedDiscrete(max = 32, min = 2)
-        @Comment("The number of extra ray bounces to trace to determine reverberation for each sound source.\n§7[•]§r Range: 4 - 32\n§7[•]§r More bounces provides more echo and sound ducting but takes more time to calculate.\n§7[•]§r Capped by max tracing distance.\n§c[ ! ]§r Performance Impact: High")
-        public int envEvalRayBounces = 4;
+        @Environment(EnvType.CLIENT)
+        @ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
+        @Comment("The quality preset used to calculate occlusion.\n§c[ ! ]§r NOTE: Advanced occlusion is not implemented in the current version. Locked to FAST")
+        public OcclusionMode occlusionMode = OcclusionMode.FAST;
+
+        @Environment(EnvType.CLIENT)
+        @ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
+        @Comment("The quality preset used to measure shared airspace.\n§7[•]§r FAST is less accurate, but it's faster to calculate.\n§e[-]§r Performance Impact: Moderate")
+        public SharedAirspaceMode sharedAirspaceMode = SharedAirspaceMode.FANCY;
 
         @ConfigEntry.BoundedDiscrete(max = 32, min = 1)
         @Comment("Maximum distance of rendered sounds from the player.\n§7[•]§r Range: 1 - 32\n§7[•]§r Minecraft won't allow most sounds to play if they are more than a chunk from the player;\n    Resounding makes that configurable by multiplying this parameter by the default distance.\n§e[-]§r Values too high can cause polyphony issues.\n§7[•]§r Increasing past the world simulation/render distance has no effect.\n§e[-]§r Performance Impact: Moderate\n§e[-]§r  Currently does not seem to work for random block sounds\n     e.g. flowing water, popping lava, whooshing portal")
         public int soundSimulationDistance = 8;
+
+        @Environment(EnvType.CLIENT) @ConfigEntry.BoundedDiscrete(max = 32, min = 2)
+        @Comment("The number of extra ray bounces to trace to determine reverberation for each sound source.\n§7[•]§r Range: 2 - 32\n§7[•]§r More bounces provides more echo and sound ducting but takes more time to calculate.\n§7[•]§r Capped by max tracing distance.\n§c[ ! ]§r Performance Impact: High")
+        public int envEvalRayBounces = 4;
 
         @Environment(EnvType.CLIENT)
         @Comment("The maximum length of each traced ray, per each bounce, in chunks.\n§7[•]§r Range: 1.0 - 16.0\n§7[•]§r For the best balance of performance and quality, increase this:\n      - When you increase the sound simulation distance\n      - When you decrease the number of ray reflections.\n      - If you often find yourself in large enclosed spaces,\n        e.g. large 1.18 caves, or large open buildings.\n§e[-]§r Performance Impact: Moderate")
@@ -110,7 +122,7 @@ public class ResoundingConfig implements ConfigData {
             @Comment("The amount at which occlusion is capped. 10 * block_occlusion is the theoretical limit")
             public double maxBlockOcclusion = 10;
 
-            @Environment(EnvType.CLIENT) @ConfigEntry.Gui.Excluded // TODO: Occlusion
+            @Environment(EnvType.CLIENT) @ConfigEntry.Gui.Excluded // TODO: Occlusion Mode
             @Comment("Calculate direct occlusion as the minimum of 9 rays from vertices of a block")
             public boolean nineRayBlockOcclusion = true;
     }
@@ -167,10 +179,6 @@ public class ResoundingConfig implements ConfigData {
             @Environment(EnvType.CLIENT) @ConfigEntry.Gui.Excluded // TODO: Occlusion
             @Comment("If true, rain sound sources won't trace for sound occlusion.\nThis can help performance during rain.")
             public boolean skipRainOcclusionTracing = true;
-
-        @Environment(EnvType.CLIENT)
-        @Comment("A simpler technique for determining how much airspace is shared between the sound and the listener.\n§7[•]§r Less accurate, but it's faster to calculate.\n§e[-]§r Performance Impact: Moderate")
-        public boolean simplerSharedAirspaceSimulation = false;
     }
 
     public static class Debug {
