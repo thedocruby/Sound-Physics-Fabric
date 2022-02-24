@@ -21,9 +21,10 @@ This mod is built to be a client-side Fabric mod. Every part of the mod is fully
 
 Feedback is highly encouraged! Please share your thoughts and concerns in the official Discord server [here](https://discord.gg/kdZ6gH7Hg6).
 
+A full README and Website are coming soon. For now, deferr to the following links:
+
 ### More Info:
 
 - [FAQ](https://github.com/thedocruby/resounding/wiki/FAQ)
 - [Roadmap](https://github.com/thedocruby/resounding/wiki/Roadmap)
 - [Website](https://thedocruby.dev/resounding)
-
