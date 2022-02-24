@@ -9,14 +9,19 @@
 [![Milestone 3](https://img.shields.io/github/milestones/progress-percent/thedocruby/resounding/4?style=flat)](https://github.com/thedocruby/resounding/milestone/4)
 [![Milestone 4](https://img.shields.io/github/milestones/progress-percent/thedocruby/resounding/5?style=flat)](https://github.com/thedocruby/resounding/milestone/5)
 
-**Resounding** is the evolution of sound physics in Minecraft. It aims to build on previous attempts with enhanced algorithms and extra features, for a more performant and immersive audio experience. Resounding is built to be a client-side Fabric mod. Every part of the mod is fully configurable, and it is all is completely compatible with vanilla gameplay.
+**Resounding** is the evolution of sound in Minecraft. It aims to build on previous attempts with enhanced algorithms and extra features, for a more performant and immersive audio experience. Plus, Resounding is designed with real audio physics in mind, to construct a more realistic audio landscape for the ultimate immersion. <br>
+
+This mod is built to be a client-side Fabric mod. Every part of the mod is fully configurable, and it is all is completely compatible with vanilla gameplay, including custom resource packs. However, support for other mods is not guaranteed.
 
 ### NOTE: Resounding is currently in ALPHA. Critical bugs and missing features are expected. For more information see [this page](https://github.com/thedocruby/resounding/wiki/FAQ#what-are-resounding-alpha-versions).
 
----
+Feedback is highly encouraged! Please share your thoughts and concerns in the official Discord server [here](https://discord.gg/kdZ6gH7Hg6).
 
-A full README and website are coming soon. For now, defer to the following links:
+A full README and Website are coming soon. For now, defer to the following links:
+
+### More Info:
 
 - [FAQ](https://github.com/thedocruby/resounding/wiki/FAQ)
 - [Roadmap](https://github.com/thedocruby/resounding/wiki/Roadmap)
-- [Discord](https://discord.gg/kdZ6gH7Hg6)
+- [Website](https://thedocruby.dev/resounding)
+
