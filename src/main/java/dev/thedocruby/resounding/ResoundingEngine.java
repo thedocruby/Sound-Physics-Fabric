@@ -20,11 +20,13 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.chunk.WorldChunk;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -32,8 +34,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
-import static dev.thedocruby.resounding.config.PrecomputedConfig.speedOfSound;
+import static dev.thedocruby.resounding.config.PrecomputedConfig.*;
 import static java.util.Map.entry;
 
 @SuppressWarnings({"CommentedOutCode"})
@@ -100,7 +101,6 @@ public class ResoundingEngine {
 					entry(BlockSoundGroup.METAL			, "Metal"			),	// Metal			(metal, copper, anvil)
 					entry(BlockSoundGroup.WET_GRASS		, "Aquatic Foliage"	),	// Aquatic Foliage	(wet_grass, lily_pad)
 					entry(BlockSoundGroup.GLASS			, "Glass, Ice"		),	// Glass, Ice		(glass)
-					entry(BlockSoundGroup.SCULK_SENSOR	, "Sculk Sensor"		),	// Sculk Sensor		(sculk_sensor)
 					entry(BlockSoundGroup.ROOTS			, "Nether Foliage"	),	// Nether Foliage	(roots, nether_sprouts)
 					entry(BlockSoundGroup.SHROOMLIGHT	, "Shroomlight"		),	// Shroomlight		(shroomlight)
 					entry(BlockSoundGroup.CHAIN			, "Chain"			),	// Chain			(chain)
@@ -127,57 +127,10 @@ public class ResoundingEngine {
 					entry(BlockSoundGroup.NYLIUM		, "Nylium"			),	// Nylium			(nylium)
 					entry(BlockSoundGroup.FUNGUS		, "Nether Mushroom"	),	// Nether Mushroom	(fungus)
 					entry(BlockSoundGroup.LANTERN		, "Lanterns"			),	// Lanterns			(lantern)
-					entry(BlockSoundGroup.DRIPSTONE_BLOCK,"Dripstone"		)	// Dripstone		(dripstone_block, pointed_dripstone)
+					entry(BlockSoundGroup.DRIPSTONE_BLOCK,"Dripstone"		),	// Dripstone		(dripstone_block, pointed_dripstone)
+					entry(BlockSoundGroup.SCULK_SENSOR	, "Sculk Sensor"		)	// Sculk Sensor		(sculk_sensor)
 			);/*</editor-fold>*/
-	public static final Map<String, BlockSoundGroup> nameToGroup = //<editor-fold desc="Map.ofEntries()">
-			Map.ofEntries(
-					entry("Coral"			, BlockSoundGroup.CORAL			),	// Coral			(coral_block)
-					entry("Gravel, Dirt"		, BlockSoundGroup.GRAVEL		),	// Gravel, Dirt		(gravel, rooted_dirt)
-					entry("Amethyst"			, BlockSoundGroup.AMETHYST_BLOCK),	// Amethyst			(amethyst_block, small_amethyst_bud, medium_amethyst_bud, large_amethyst_bud, amethyst_cluster)
-					entry("Sand"				, BlockSoundGroup.SAND			),	// Sand				(sand)
-					entry("Candle Wax"		, BlockSoundGroup.CANDLE		),	// Candle Wax		(candle)
-					entry("Weeping Vines"	, BlockSoundGroup.WEEPING_VINES	),	// Weeping Vines	(weeping_vines, weeping_vines_low_pitch)
-					entry("Soul Sand"		, BlockSoundGroup.SOUL_SAND		),	// Soul Sand		(soul_sand)
-					entry("Soul Soil"		, BlockSoundGroup.SOUL_SOIL		),	// Soul Soil		(soul_soil)
-					entry("Basalt"			, BlockSoundGroup.BASALT		),	// Basalt			(basalt)
-					entry("Netherrack"		, BlockSoundGroup.NETHERRACK	),	// Netherrack		(netherrack, nether_ore, nether_gold_ore)
-					entry("Nether Brick"		, BlockSoundGroup.NETHER_BRICKS	),	// Nether Brick		(nether_bricks)
-					entry("Honey"			, BlockSoundGroup.HONEY			),	// Honey			(honey_block)
-					entry("Bone"				, BlockSoundGroup.BONE			),	// Bone				(bone_block)
-					entry("Nether Wart"		, BlockSoundGroup.NETHER_WART	),	// Nether Wart		(nether_wart, wart_block)
-					entry("Grass, Foliage"	, BlockSoundGroup.GRASS			),	// Grass, Foliage	(grass, crop, bamboo_sapling, sweet_berry_bush)
-					entry("Metal"			, BlockSoundGroup.METAL			),	// Metal			(metal, copper, anvil)
-					entry("Aquatic Foliage"	, BlockSoundGroup.WET_GRASS		),	// Aquatic Foliage	(wet_grass, lily_pad)
-					entry("Glass, Ice"		, BlockSoundGroup.GLASS			),	// Glass, Ice		(glass)
-					entry("Sculk Sensor"		, BlockSoundGroup.SCULK_SENSOR	),	// Sculk Sensor		(sculk_sensor)
-					entry("Nether Foliage"	, BlockSoundGroup.ROOTS			),	// Nether Foliage	(roots, nether_sprouts)
-					entry("Shroomlight"		, BlockSoundGroup.SHROOMLIGHT	),	// Shroomlight		(shroomlight)
-					entry("Chain"			, BlockSoundGroup.CHAIN			),	// Chain			(chain)
-					entry("Deepslate"		, BlockSoundGroup.DEEPSLATE		),	// Deepslate		(deepslate)
-					entry("Wood"				, BlockSoundGroup.WOOD			),	// Wood				(wood, ladder)
-					entry("Deepslate Tiles"	,BlockSoundGroup.DEEPSLATE_TILES),	// Deepslate Tiles	(deepslate_tiles)
-					entry("Stone, Blackstone", BlockSoundGroup.STONE			),	// Stone, Blackstone(stone, calcite, gilded_blackstone)
-					entry("Slime"			, BlockSoundGroup.SLIME			),	// Slime			(slime_block)
-					entry("Polished Deepslate",BlockSoundGroup.POLISHED_DEEPSLATE),// Polished Deepslate(polished_deepslate, deepslate_bricks)
-					entry("Snow"				, BlockSoundGroup.SNOW			),	// Snow				(snow)
-					entry("Azalea Leaves"	, BlockSoundGroup.AZALEA_LEAVES	),	// Azalea Leaves	(azalea_leaves)
-					entry("Bamboo"			, BlockSoundGroup.BAMBOO		),	// Bamboo			(bamboo, scaffolding)
-					entry("Mushroom Stems"	, BlockSoundGroup.STEM			),	// Mushroom Stems	(stem)
-					entry("Wool"				, BlockSoundGroup.WOOL			),	// Wool				(wool)
-					entry("Dry Foliage"		, BlockSoundGroup.VINE			),	// Dry Foliage		(vine, hanging_roots, glow_lichen)
-					entry("Azalea Bush"		, BlockSoundGroup.AZALEA		),	// Azalea Bush		(azalea)
-					entry("Lush Cave Foliage", BlockSoundGroup.CAVE_VINES	),	// Lush Cave Foliage(cave_vines, spore_blossom, small_dripleaf, big_dripleaf)
-					entry("Netherite"		, BlockSoundGroup.NETHERITE		),	// Netherite		(netherite_block, lodestone)
-					entry("Ancient Debris"	, BlockSoundGroup.ANCIENT_DEBRIS),	// Ancient Debris	(ancient_debris)
-					entry("Nether Fungus Stem",BlockSoundGroup.NETHER_STEM	),	//Nether Fungus Stem(nether_stem)
-					entry("Powder Snow"		, BlockSoundGroup.POWDER_SNOW	),	// Powder Snow		(powder_snow)
-					entry("Tuff"				, BlockSoundGroup.TUFF			),	// Tuff				(tuff)
-					entry("Moss"				, BlockSoundGroup.MOSS_BLOCK	),	// Moss				(moss_block, moss_carpet)
-					entry("Nylium"			, BlockSoundGroup.NYLIUM		),	// Nylium			(nylium)
-					entry("Nether Mushroom"	, BlockSoundGroup.FUNGUS		),	// Nether Mushroom	(fungus)
-					entry("Lanterns"			, BlockSoundGroup.LANTERN		),	// Lanterns			(lantern)
-					entry("Dripstone"		,BlockSoundGroup.DRIPSTONE_BLOCK)	// Dripstone		(dripstone_block, pointed_dripstone)
-			);//</editor-fold>
+	public static final Map<String, BlockSoundGroup> nameToGroup = groupToName.keySet().stream().collect(Collectors.toMap(groupToName::get, k -> k));
 
 	public static final Pattern rainPattern = Pattern.compile(".*rain.*");
 	public static final Pattern stepPattern = Pattern.compile(".*step.*"); // TODO: step sounds
@@ -338,13 +291,7 @@ public class ResoundingEngine {
 
 	@Environment(EnvType.CLIENT)
 	private static double getBlockReflectivity(final @NotNull BlockState blockState) {
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
-		BlockSoundGroup soundType = blockState.getSoundGroup();
-		String blockName = blockState.getBlock().getTranslationKey();
-		if (pC.blockWhiteSet.contains(blockName)) return pC.blockWhiteMap.get(blockName).reflectivity;
-		if (redirectMap.containsKey(soundType)) soundType = redirectMap.get(soundType);
-		double r = pC.reflMap.getOrDefault(soundType, Double.NaN);
-		return Double.isNaN(r) ? pC.defaultRefl : r;
+		return pC.reflMap.getOrDefault(blockState.getBlock().getTranslationKey(), pC.reflMap.getOrDefault(groupToName.getOrDefault(redirectMap.getOrDefault(blockState.getSoundGroup(), blockState.getSoundGroup()), "DEFAULT"), pC.defaultRefl));
 	}
 
     /*  // TODO: Occlusion
@@ -448,7 +395,7 @@ public class ResoundingEngine {
 
 			final double newBlockReflectivity = getBlockReflectivity(rayHit.getBlockState());
 			totalReflectivity *= newBlockReflectivity;
-			if (totalReflectivity < pC.minEnergy){
+			if (totalReflectivity < minEnergy){
 				if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
 				break;
 			}
@@ -659,7 +606,6 @@ public class ResoundingEngine {
 			return new SoundProfile(sourceID, directGain, directGain * pC.globalAbsHFRcp, new double[pC.resolution + 1], new double[pC.resolution + 1]);
 		}
 
-		double energyFix = 1d / 5.4d;
 		double bounceCount = 0.0D;
 		double missedSum = 0.0D;
 		for (ReflectedRayData reflRay : data.reflRays()) {
@@ -711,8 +657,8 @@ public class ResoundingEngine {
 
 				final double playerEnergy = MathHelper.clamp(
 								reflRay.totalBounceEnergy()[i] * (pC.fastShared ? 1 : smoothSharedEnergy[i])
-								* Math.pow(airAbsorptionHF, reflRay.totalBounceDistance()[i] + smoothSharedDistance[i])
-								/ Math.pow(reflRay.totalBounceDistance()[i] + smoothSharedDistance[i], 2.0D * missedSum),
+								* Math.pow(airAbsorptionHF, reflRay.totalBounceDistance()[i] + (pC.fastShared ? reflRay.distToPlayer()[i] : smoothSharedDistance[i]))
+								/ Math.pow(reflRay.totalBounceDistance()[i] + (pC.fastShared ? reflRay.distToPlayer()[i] : smoothSharedDistance[i]), 2.0D * missedSum),
 						0, 1);
 
 				final double bounceEnergy = MathHelper.clamp(
@@ -723,7 +669,7 @@ public class ResoundingEngine {
 
 				final double bounceTime = reflRay.totalBounceDistance()[i] / speedOfSound;
 
-				sendGain[MathHelper.clamp((int) (1/logBase(Math.max(Math.pow(bounceEnergy, pC.maxDecayTime / bounceTime * energyFix), Double.MIN_VALUE), pC.minEnergy) * pC.resolution), 0, pC.resolution)] += playerEnergy;
+				sendGain[MathHelper.clamp((int) (1/logBase(Math.max(Math.pow(bounceEnergy, pC.maxDecayTime / bounceTime * pC.energyFix), Double.MIN_VALUE), minEnergy) * pC.resolution), 0, pC.resolution)] += playerEnergy;
 			}
 		}
 		sharedSum /= bounceCount;
@@ -736,7 +682,8 @@ public class ResoundingEngine {
 			//TODO: Occlusion calculation here
 
 		directGain *= Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos))
-				/ Math.pow(listenerPos.distanceTo(soundPos), 2.0 * missedSum) * MathHelper.lerp(sharedSum, 0d/*TODO: occlusion coeff from processing goes here IF fancy or fabulous occl*/, 1d);
+				/ Math.pow(listenerPos.distanceTo(soundPos), 2.0 * missedSum)
+				* MathHelper.lerp(sharedSum, 0d/*TODO: occlusion coeff from processing goes here IF fancy or fabulous occl*/, 1d);
 		double directCutoff = Math.pow(directGain, pC.globalAbsHFRcp); // TODO: occlusion
 
 		SoundProfile profile = new SoundProfile(sourceID, directGain, directCutoff, sendGain, sendCutoff);
@@ -776,29 +723,22 @@ public class ResoundingEngine {
 	@Contract("_, _ -> new")
 	@Environment(EnvType.CLIENT)
 	private static @NotNull SlotProfile selectSlot(double[] sendGain, double[] sendCutoff) {
-		if(pC.fastPick) {
-			double gmax = 0;
-			int imax = 0;
-			for (int i = Double.isNaN(sendGain[0]) ? 1 : 0; i <= pC.resolution; i++) { // TODO: find cause of block.lava.ambient NaN
-				final double g = (i==0 || i==pC.resolution) ? sendGain[i]/1.414 : sendGain[i];
-				if (gmax > g) continue;
-				gmax = g;
-				imax = i;
-			}
+		if(pC.fastPick) { // TODO: find cause of block.lava.ambient NaN
+			final double max = Arrays.stream(ArrayUtils.remove(sendGain, 0)).max().orElse(Double.NaN);
+			int imax = 0; for (int i = 1; i <= pC.resolution; i++) { if (sendGain[i] == max){ imax=i; break; } }
+
 			final int iavg;
-			if (imax < pC.resolution/3d) {
+			if (false) { // Different selection method, can't decide which one is better. TODO: Do something with this.
 				double sum = 0;
 				double weightedSum = 0;
-				for (int i = Double.isNaN(sendGain[0]) ? 1 : 0; i <= pC.resolution; i++) { // TODO: find cause of block.lava.ambient NaN
+				for (int i = 1; i <= pC.resolution; i++) {
 					sum += sendGain[i];
 					weightedSum += i * sendGain[i];
 				}
-
 				iavg = (int) Math.round(MathHelper.clamp(weightedSum / sum, 0, pC.resolution));
 			} else { iavg = imax; }
-			if (iavg > 0){
-				return new SlotProfile(iavg-1, sendGain[iavg], sendCutoff[iavg]);
-			}
+
+			if (iavg > 0){ return new SlotProfile(iavg-1, sendGain[iavg], sendCutoff[iavg]); }
 			return new SlotProfile(0, 0, 0);
 		}
 		// TODO: Slot selection logic will go here. See https://www.desmos.com/calculator/v5bt1gdgki
