@@ -62,7 +62,7 @@ public class ResoundingConfig implements ConfigData {
         public int globalReverbGain = 75;
 
         @Comment("The strength of the reverb effect.\n§7[•]§r Range: >= 0.0\n§7[•]§r Higher values make the echo last longer.\n§7[•]§r Lower values make the echos shorter.\n§a[+]§r Performance Impact: Low")
-        public double globalReverbStrength = 5;
+        public double globalReverbStrength = 1.0;
 
         @Comment("The smoothness of the reverb.\n§7[•]§r Range: 0.0 - 1.0\n§7[•]§r Affects how uniform the reverb is.\n§7[•]§r Low values cause a distinct fluttering or bouncing echo.\n§7[•]§r High values make this effect less distinct by smoothing out the reverb.\n§a[+]§r Performance Impact: Low")
         public double globalReverbSmoothness = 0.5;
@@ -127,14 +127,17 @@ public class ResoundingConfig implements ConfigData {
 
     @Environment(EnvType.CLIENT)
     public static class Effects {
-        @Comment("Represents how aggressively air absorbs high frequencies over distance.\n§7[•]§r Range: 0.0 - 10.0\n§7[•]§r A value of 1.0 is physically correct for air with normal humidity and temperature.\n§7[•]§r Higher values mean air will absorb more high frequencies with distance.\n§7[•]§r A value of 0.0 disables this effect.\n§a[+]§r Performance Impact: Low")
-        public double airAbsorption = 1.0;
+            @ConfigEntry.Gui.Excluded // TODO: AirAbs
+            @Comment("Represents how aggressively air absorbs high frequencies over distance.\n§7[•]§r Range: 0.0 - 10.0\n§7[•]§r A value of 1.0 is physically correct for air with normal humidity and temperature.\n§7[•]§r Higher values mean air will absorb more high frequencies with distance.\n§7[•]§r A value of 0.0 disables this effect.\n§a[+]§r Performance Impact: Low")
+            public double airAbsorption = 0.0;
 
-        @Comment("How much humidity contributes to the air absorption.\n§7[•]§r Range: 0.0 - 4.0\n§7[•]§r A value of 1.0 is physically correct.\n§7[•]§r Higher values mean air will absorb more high frequencies with distance,\n    depending on the local humidity.\n§7[•]§r A value of 0.0 disables this effect.\n§a[+]§r Performance Impact: Low")
-        public double humidityAbsorption = 1.0;
+            @ConfigEntry.Gui.Excluded // TODO: AirAbs
+            @Comment("How much humidity contributes to the air absorption.\n§7[•]§r Range: 0.0 - 4.0\n§7[•]§r A value of 1.0 is physically correct.\n§7[•]§r Higher values mean air will absorb more high frequencies with distance,\n    depending on the local humidity.\n§7[•]§r A value of 0.0 disables this effect.\n§a[+]§r Performance Impact: Low")
+            public double humidityAbsorption = 0.0;
 
-        @Comment("How much rain drops contribute to the air absorption.\n§7[•]§r Range: 0.0 - 2.0\n§7[•]§r A value of 1.0 is approximately physically correct.\n§7[•]§r Higher values mean air will absorb more high frequencies with distance,\n    depending on the local rainfall.\n§7[•]§r A value of 0.0 disables this effect.\n§a[+]§r Performance Impact: Low")
-        public double rainAbsorption = 1.0;
+            @ConfigEntry.Gui.Excluded // TODO: AirAbs
+            @Comment("How much rain drops contribute to the air absorption.\n§7[•]§r Range: 0.0 - 2.0\n§7[•]§r A value of 1.0 is approximately physically correct.\n§7[•]§r Higher values mean air will absorb more high frequencies with distance,\n    depending on the local rainfall.\n§7[•]§r A value of 0.0 disables this effect.\n§a[+]§r Performance Impact: Low")
+            public double rainAbsorption = 0.0;
 
         @Comment("How much sound is filtered when the player is underwater.\n§7[•]§r Range: 0.0 - 1.0\n§7[•]§r 0.0 means no filter. 1.0 means fully filtered.\n§a[+]§r Performance Impact: Low")
         public double underwaterFilter = 0.75;

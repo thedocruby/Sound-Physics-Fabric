@@ -177,7 +177,7 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
             setEffect(i - 1,
                     (float) Math.max(t * pC.maxDecayTime, 0.1),
                     (float) (t * 0.5 + 0.5),
-                    (float) MathHelper.lerp(t, 0.1 + (0.9 * pC.rvrbDensity), 0.8 + (0.2 * (1 - pC.rvrbDensity))),
+                    (float) MathHelper.lerp(pC.rvrbDiff, 1-t, 1),
                     (float) (0.95 - (0.75 * t)),
                     (float) Math.max(0.95 - (0.3 * t), 0.1),
                     (float) Math.max(Math.pow(1 - t, 0.5) + 0.618, 0.1),

@@ -644,11 +644,11 @@ public class ResoundingEngine {
 						}
 
 						if (Math.max(traceDownRefl, traceUpRefl) == traceUpRefl){
-							smoothSharedEnergy[i] = Math.sqrt(traceUpRefl);
-							smoothSharedDistance[i] = Math.sqrt(traceUpDistance);
+							smoothSharedEnergy[i] = traceUpRefl;
+							smoothSharedDistance[i] = traceUpDistance;
 						} else {
-							smoothSharedEnergy[i] = Math.sqrt(traceDownRefl);
-							smoothSharedDistance[i] = Math.sqrt(traceDownDistance);
+							smoothSharedEnergy[i] = traceDownRefl;
+							smoothSharedDistance[i] = traceDownDistance;
 						}
 					}
 				}
@@ -698,7 +698,7 @@ public class ResoundingEngine {
 	}
 
 	@Environment(EnvType.CLIENT)
-	public static void setEnv(final @NotNull SoundProfile profile) { // TODO: Add slot selection here
+	public static void setEnv(final @NotNull SoundProfile profile) {
 		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 
 		if (profile.sendGain().length != pC.resolution + 1 || profile.sendCutoff().length != pC.resolution + 1) {
@@ -728,7 +728,7 @@ public class ResoundingEngine {
 			int imax = 0; for (int i = 1; i <= pC.resolution; i++) { if (sendGain[i] == max){ imax=i; break; } }
 
 			final int iavg;
-			if (false) { // Different selection method, can't decide which one is better. TODO: Do something with this.
+			if (false) { // Different fast selection method, can't decide which one is better. TODO: Do something with this.
 				double sum = 0;
 				double weightedSum = 0;
 				for (int i = 1; i <= pC.resolution; i++) {

@@ -91,7 +91,7 @@ public class PrecomputedConfig {
     @Environment(EnvType.CLIENT)
     public double globalRvrbHFRcp;
     @Environment(EnvType.CLIENT)
-    public double rvrbDensity;
+    public double rvrbDiff;
     @Environment(EnvType.CLIENT)
     public double globalAbs;
     @Environment(EnvType.CLIENT)
@@ -176,7 +176,7 @@ public class PrecomputedConfig {
             energyFix = 1 / Math.max(c.general.globalReverbStrength, Double.MIN_NORMAL);
             resolution = c.quality.reverbResolution;
             globalRvrbHFRcp = (float) (1 / Math.max(c.general.globalReverbBrightness, Math.pow(10, -64)));
-            rvrbDensity = 1 - MathHelper.clamp(c.general.globalReverbSmoothness, 0.0, 1.0);
+            rvrbDiff = MathHelper.clamp(c.general.globalReverbSmoothness, 0.0, 1.0);
             globalAbs = c.general.globalBlockAbsorption;
             globalAbsHFRcp = globalRvrbHFRcp /*c.general.globalAbsorptionBrightness*/; // TODO: Occlusion
             globalRefl = c.general.globalBlockReflectance;
