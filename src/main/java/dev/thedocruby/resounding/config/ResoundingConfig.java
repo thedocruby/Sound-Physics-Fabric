@@ -68,10 +68,10 @@ public class ResoundingConfig implements ConfigData {
         public double globalReverbSmoothness = 0.5;
 
         @Comment("The brightness of reverberation.\n§7[•]§r Range: > 0 \n§7[•]§r Higher values result in more high frequencies in reverberation.\n§7[•]§r Lower values give a more muffled sound to the reverb.\n§7[•]§r 1.0 is neutral.\n§a[+]§r Performance Impact: Low")
-        public double globalReverbBrightness = 0.8;
+        public double globalReverbBrightness = 0.75;
 
-            @ConfigEntry.Gui.Excluded // TODO: Occlusion
-            public double globalAbsorptionBrightness = 0.618;
+        @Comment("The brightness of absorption.\n§7[•]§r Range: > 0 \n§7[•]§r Higher values result in more high frequencies in faded or occluded audio.\n§7[•]§r Lower values give a more muffled sound to faded or occluded audio.\n§7[•]§r 1.0 is neutral.\n§a[+]§r Performance Impact: Low")
+        public double globalAbsorptionBrightness = 0.75;
 
             @ConfigEntry.Gui.Excluded // TODO: Occlusion. Remove?
             //@Comment("The global amount of sound that will be absorbed when traveling through blocks. 0.1 - 4.0")
@@ -127,17 +127,14 @@ public class ResoundingConfig implements ConfigData {
 
     @Environment(EnvType.CLIENT)
     public static class Effects {
-            @ConfigEntry.Gui.Excluded // TODO: AirAbs
-            @Comment("Represents how aggressively air absorbs high frequencies over distance.\n§7[•]§r Range: 0.0 - 10.0\n§7[•]§r A value of 1.0 is physically correct for air with normal humidity and temperature.\n§7[•]§r Higher values mean air will absorb more high frequencies with distance.\n§7[•]§r A value of 0.0 disables this effect.\n§a[+]§r Performance Impact: Low")
-            public double airAbsorption = 0.0;
+        @Comment("Represents how aggressively air absorbs high frequencies over distance.\n§7[•]§r Range: 0.0 - 10.0\n§7[•]§r A value of 1.0 is physically correct for air with normal humidity and temperature.\n§7[•]§r Higher values mean air will absorb more high frequencies with distance.\n§7[•]§r A value of 0.0 disables this effect.\n§a[+]§r Performance Impact: Low")
+        public double airAbsorption = 0.2;
 
-            @ConfigEntry.Gui.Excluded // TODO: AirAbs
-            @Comment("How much humidity contributes to the air absorption.\n§7[•]§r Range: 0.0 - 4.0\n§7[•]§r A value of 1.0 is physically correct.\n§7[•]§r Higher values mean air will absorb more high frequencies with distance,\n    depending on the local humidity.\n§7[•]§r A value of 0.0 disables this effect.\n§a[+]§r Performance Impact: Low")
-            public double humidityAbsorption = 0.0;
+        @Comment("How much humidity contributes to the air absorption.\n§7[•]§r Range: 0.0 - 4.0\n§7[•]§r A value of 1.0 is physically correct.\n§7[•]§r Higher values mean air will absorb more high frequencies with distance,\n    depending on the local humidity.\n§7[•]§r A value of 0.0 disables this effect.\n§a[+]§r Performance Impact: Low")
+        public double humidityAbsorption = 0.2;
 
-            @ConfigEntry.Gui.Excluded // TODO: AirAbs
-            @Comment("How much rain drops contribute to the air absorption.\n§7[•]§r Range: 0.0 - 2.0\n§7[•]§r A value of 1.0 is approximately physically correct.\n§7[•]§r Higher values mean air will absorb more high frequencies with distance,\n    depending on the local rainfall.\n§7[•]§r A value of 0.0 disables this effect.\n§a[+]§r Performance Impact: Low")
-            public double rainAbsorption = 0.0;
+        @Comment("How much rain drops contribute to the air absorption.\n§7[•]§r Range: 0.0 - 2.0\n§7[•]§r A value of 1.0 is approximately physically correct.\n§7[•]§r Higher values mean air will absorb more high frequencies with distance,\n    depending on the local rainfall.\n§7[•]§r A value of 0.0 disables this effect.\n§a[+]§r Performance Impact: Low")
+        public double rainAbsorption = 0.2;
 
         @Comment("How much sound is filtered when the player is underwater.\n§7[•]§r Range: 0.0 - 1.0\n§7[•]§r 0.0 means no filter. 1.0 means fully filtered.\n§a[+]§r Performance Impact: Low")
         public double underwaterFilter = 0.75;

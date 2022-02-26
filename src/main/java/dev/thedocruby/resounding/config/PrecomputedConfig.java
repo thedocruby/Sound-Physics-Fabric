@@ -175,10 +175,10 @@ public class PrecomputedConfig {
             globalRvrbGain = MathHelper.clamp(c.general.globalReverbGain/100d, 0.0d, 1.0d);
             energyFix = 1 / Math.max(c.general.globalReverbStrength, Double.MIN_NORMAL);
             resolution = c.quality.reverbResolution;
-            globalRvrbHFRcp = (float) (1 / Math.max(c.general.globalReverbBrightness, Math.pow(10, -64)));
+            globalRvrbHFRcp = 1 / Math.max(c.general.globalReverbBrightness, Double.MIN_NORMAL);
             rvrbDiff = MathHelper.clamp(c.general.globalReverbSmoothness, 0.0, 1.0);
             globalAbs = c.general.globalBlockAbsorption;
-            globalAbsHFRcp = globalRvrbHFRcp /*c.general.globalAbsorptionBrightness*/; // TODO: Occlusion
+            globalAbsHFRcp = 1 / Math.max(c.general.globalAbsorptionBrightness, Double.MIN_NORMAL);
             globalRefl = c.general.globalBlockReflectance;
             globalReflRcp = 1 / globalRefl;
             airAbs = (float) MathHelper.clamp(c.effects.airAbsorption, 0.0, 10.0);

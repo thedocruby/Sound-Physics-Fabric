@@ -14,6 +14,7 @@
   "text.autoconfig.resounding.option.general.globalReverbStrength": "Reverb strength",
   "text.autoconfig.resounding.option.general.globalReverbSmoothness": "Reverb smoothness",
   "text.autoconfig.resounding.option.general.globalReverbBrightness": "Reverb brightness",
+  "text.autoconfig.resounding.option.general.globalAbsorptionBrightness": "Absorption brightness",
 
   "text.autoconfig.resounding.option.quality.reverbResolution": "Reverb resolution",
   "text.autoconfig.resounding.option.quality.envEvalRays": "Rays per sound",

@@ -603,7 +603,7 @@ public class ResoundingEngine {
 		double directGain = (auxOnly ? 0 : inWater ? pC.waterFilt : 1) * Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos)) ;
 
 		if (data.reflRays().isEmpty()) {
-			return new SoundProfile(sourceID, directGain, directGain * pC.globalAbsHFRcp, new double[pC.resolution + 1], new double[pC.resolution + 1]);
+			return new SoundProfile(sourceID, directGain, Math.pow(directGain, pC.globalAbsHFRcp), new double[pC.resolution + 1], new double[pC.resolution + 1]);
 		}
 
 		double bounceCount = 0.0D;
@@ -684,7 +684,7 @@ public class ResoundingEngine {
 		directGain *= Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos))
 				/ Math.pow(listenerPos.distanceTo(soundPos), 2.0 * missedSum)
 				* MathHelper.lerp(sharedSum, 0d/*TODO: occlusion coeff from processing goes here IF fancy or fabulous occl*/, 1d);
-		double directCutoff = Math.pow(directGain, pC.globalAbsHFRcp); // TODO: occlusion
+		double directCutoff = Math.pow(directGain, pC.globalAbsHFRcp); // TODO: make sure this actually works.
 
 		SoundProfile profile = new SoundProfile(sourceID, directGain, directCutoff, sendGain, sendCutoff);
 
