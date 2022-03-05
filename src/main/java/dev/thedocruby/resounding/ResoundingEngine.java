@@ -681,9 +681,11 @@ public class ResoundingEngine {
 
 			//TODO: Occlusion calculation here
 
+		double occlusion = RaycastFix.fixedRaycast(soundPos, listenerPos, mc.world, soundBlockPos, soundChunk).isMissed() ? 1 : 0; // TODO: occlusion coeff from processing goes here IF fancy or fabulous occl
+
 		directGain *= Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos))
 				/ Math.pow(listenerPos.distanceTo(soundPos), 2.0 * missedSum)
-				* MathHelper.lerp(sharedSum, 0d/*TODO: occlusion coeff from processing goes here IF fancy or fabulous occl*/, 1d);
+				* MathHelper.lerp(occlusion, sharedSum, 1d);
 		double directCutoff = Math.pow(directGain, pC.globalAbsHFRcp); // TODO: make sure this actually works.
 
 		SoundProfile profile = new SoundProfile(sourceID, directGain, directCutoff, sendGain, sendCutoff);

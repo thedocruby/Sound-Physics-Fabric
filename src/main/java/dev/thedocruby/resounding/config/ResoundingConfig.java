@@ -62,10 +62,10 @@ public class ResoundingConfig implements ConfigData {
         public int globalReverbGain = 75;
 
         @Comment("The strength of the reverb effect.\n§7[•]§r Range: >= 0.0\n§7[•]§r Higher values make the echo last longer.\n§7[•]§r Lower values make the echos shorter.\n§a[+]§r Performance Impact: Low")
-        public double globalReverbStrength = 1.0;
+        public double globalReverbStrength = 2.5;
 
         @Comment("The smoothness of the reverb.\n§7[•]§r Range: 0.0 - 1.0\n§7[•]§r Affects how uniform the reverb is.\n§7[•]§r Low values cause a distinct fluttering or bouncing echo.\n§7[•]§r High values make this effect less distinct by smoothing out the reverb.\n§a[+]§r Performance Impact: Low")
-        public double globalReverbSmoothness = 0.5;
+        public double globalReverbSmoothness = 0.618;
 
         @Comment("The brightness of reverberation.\n§7[•]§r Range: > 0 \n§7[•]§r Higher values result in more high frequencies in reverberation.\n§7[•]§r Lower values give a more muffled sound to the reverb.\n§7[•]§r 1.0 is neutral.\n§a[+]§r Performance Impact: Low")
         public double globalReverbBrightness = 0.75;
