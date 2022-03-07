@@ -26,7 +26,7 @@ public class ConfigManager {
 
     public static boolean resetOnReload;
 
-    public static final String configVersion = "1.0.0-alpha.7";
+    public static final String configVersion = "1.0.0-bc.8";
 
     @Environment(EnvType.CLIENT)
     public static final ResoundingConfig DEFAULT = ResoundingEngine.env == EnvType.CLIENT ? new ResoundingConfig(){{
