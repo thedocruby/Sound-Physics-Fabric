@@ -4,7 +4,7 @@
   "version": "${version}",
   "name": "Resounding",
   "description": "A New Minecraft mod that provides realistic audio physics using parallel wave tracing and an improved physics algorithm.",
-  "authors": ["Dr. Rubisco"],
+  "authors": ["Dr. Rubisco (@thedocruby)"],
   "contact": {
     "sources": "https://github.com/thedocruby/resounding",
     "issues": "https://github.com/thedocruby/resounding/issues",
@@ -15,7 +15,7 @@
     "modrinth": "https://modrinth.com/mod/resounding",
     "youtube": "https://www.youtube.com/channel/UCONFVOfzRPAISQj2Xbb827w"
   },
-  "license": "GPL-3.0",
+  "license": "LGPL-3.0",
   "icon": "assets/resounding/icon.png",
   "environment": "*",
   "entrypoints": {
@@ -34,12 +34,13 @@
     "bluetapepack.mixins.json"
   ],
   "depends": {
-    "cloth-config2": ">=6.0.0",
-    "fabricloader": ">=0.12.12",
-    "minecraft": "1.18.x"
+    "java": ">=17",
+    "cloth-config2": ">=6.2.57",
+    "fabricloader": ">=0.13.3",
+    "minecraft": "1.18.2"
   },
   "suggests": {
-    "modmenu": ">=3.0.0"
+    "modmenu": ">=3.1.0"
   },
   "custom": {
     "modmenu": {

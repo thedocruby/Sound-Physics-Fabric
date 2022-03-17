@@ -31,3 +31,5 @@ bin/
 # minecraft
 
 run/
+srcBackup
+remappedSrc

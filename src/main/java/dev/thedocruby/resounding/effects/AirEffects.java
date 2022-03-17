@@ -20,8 +20,8 @@ public class AirEffects {
             return 1.0f;
         double rain = getRain();
         double rainS = rainAccumulator;
-        double biomeHumidity = mc.world.getBiome(mc.player.getBlockPos()).getDownfall();
-        double biomeTemp = mc.world.getBiome(mc.player.getBlockPos()).getTemperature();
+        double biomeHumidity = mc.world.getBiome(mc.player.getBlockPos()).value().getDownfall();
+        double biomeTemp = mc.world.getBiome(mc.player.getBlockPos()).value().getTemperature();
         double freq = 10000.0d;
 
         double relhum = 100.0d * MathHelper.lerp(Math.max(rain, rainS), Math.max(biomeHumidity, 0.2d), 1.0d); // convert biomeHumidity and rain gradients into a dynamic relative humidity value
