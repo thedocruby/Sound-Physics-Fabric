@@ -19,9 +19,8 @@ Feedback is highly encouraged! Please share your thoughts and concerns in the of
 
 A full README and Website are coming soon. For now, defer to the following links:
 
-### More Info:
-
 - [FAQ](https://github.com/thedocruby/resounding/wiki/FAQ)
 - [Roadmap](https://github.com/thedocruby/resounding/wiki/Roadmap)
+- [GitHub] (https://github.com/thedocruby/resounding/)
+- [Discord](https://discord.gg/kdZ6gH7Hg6)
 - [Website](https://thedocruby.dev/resounding)
-
