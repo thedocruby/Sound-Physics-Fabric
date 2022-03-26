@@ -8,7 +8,7 @@
     "text.autoconfig.resounding.option.effects": "Effets additionnels",
     "text.autoconfig.resounding.option.materials": "Propriétés des matériaux",
     "text.autoconfig.resounding.option.misc": "Options diverses",
-    "text.autoconfig.resounding.option.debug": "Debug toggles",
+    "text.autoconfig.resounding.option.debug": "Options de logging",
   
     "text.autoconfig.resounding.option.general.globalReverbGain": "Volume de réverbération",
     "text.autoconfig.resounding.option.general.globalReverbStrength": "Force de réverbération",
