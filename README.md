@@ -14,7 +14,7 @@
 
 > A New Minecraft mod that provides realistic audio physics using parallel wave tracing and an improved physics algorithm.
 
-**Resounding** is the evolution of sound in Minecraft. It aims to build on previous attempts with enhanced algorithms and extra features, for a more performant and immersive audio experience. Plus, Resounding is designed with real audio physics in mind, to construct a more realistic audio landscape for the ultimate immersion. <br>
+**Resounding** is the evolution of sound in Minecraft. It uses real audio physics and multithreadded wave tracing techniques to add highly immersive sound modulation to the game. Resounding aims to surpass previous attempts by using enhanced algorithms and new techniques, for a unique audio experience that is both performant and immersive. Planned features include physically accurate reverb, Directional wave reflections, Physically-based bounce fractioning and occlusion, Configurable material properties, Doppler shift, Voice chat integration, and so much more. After Resounding, Minecraft will never sound the same again.<br>
 
 This mod is built to be a client-side Fabric mod. Every part of the mod is fully configurable, and it is all is completely compatible with vanilla gameplay, including custom resource packs. However, support for other mods is not guaranteed.
 
