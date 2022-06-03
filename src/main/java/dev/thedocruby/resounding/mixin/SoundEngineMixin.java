@@ -26,7 +26,7 @@ public class SoundEngineMixin {
             return;
         }
         ResoundingEngine.LOGGER.info("Starting Resounding engine...");
-        if (!ResoundingEFX.setUpEXTEfx()) {
+        if (!ResoundingEFX.setUpEXTEfx(0)) {
             ResoundingEngine.LOGGER.info("Failed to prime OpenAL EFX for Resounding effects. ResoundingEngine will not be active.");
             ResoundingEngine.isOff = true;
             return;
@@ -45,7 +45,9 @@ public class SoundEngineMixin {
     private void resoundingStopInjector(CallbackInfo ci){
         if (ResoundingEngine.isOff) return;
         ResoundingEngine.LOGGER.info("Stopping Resounding engine...");
-        ResoundingEFX.cleanUpEXTEfx();
+		for (int i = 0; i<ResoundingEFX.initialized.length; i++) {
+			if (ResoundingEFX.initialized[i]) ResoundingEFX.cleanUpEXTEfx(i);
+		}
         ResoundingEngine.mc = null;
         ResoundingEngine.isOff = true;
     }

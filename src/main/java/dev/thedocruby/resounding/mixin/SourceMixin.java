@@ -32,12 +32,14 @@ public class SourceMixin implements SourceAccessor {
     @Inject(method = "play", at = @At("HEAD"))
     private void onPlaySoundInjector(CallbackInfo ci) {
         if (ResoundingEngine.isOff) return;
-        ResoundingEngine.playSound(pos.x, pos.y, pos.z, pointer, false);
+		// TODO make context dynamic
+        ResoundingEngine.playSound(0, pos.x, pos.y, pos.z, pointer, false);
     }
 
     public void calculateReverb(SoundInstance sound, SoundListener listener) {
         if (ResoundingEngine.isOff) return;
         ResoundingEngine.updateYeetedSoundInfo(sound, listener);
-        ResoundingEngine.playSound(pos.x, pos.y, pos.z, pointer, false);
+		// TODO make context dynamic
+        ResoundingEngine.playSound(0, pos.x, pos.y, pos.z, pointer, false);
     }
 }

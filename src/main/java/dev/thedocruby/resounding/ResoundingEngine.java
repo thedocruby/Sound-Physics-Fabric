@@ -1,6 +1,11 @@
+//cd ../../../../../../ && ./gradlew remapjar #
 package dev.thedocruby.resounding;
 
 // imports {
+// svc {
+//import de.maxhenkel.voicechat.api.events.OpenALSoundEvent;
+//import de.maxhenkel.voicechat.api.Position;
+// }
 // internal {
 import dev.thedocruby.resounding.effects.AirEffects;
 import dev.thedocruby.resounding.openal.ResoundingEFX;
@@ -23,16 +28,21 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+//import net.minecraft.util.math.Position;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.chunk.WorldChunk;
 // }
 // logger {
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.ObjectUtils.Null;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+
 // }
 // utils {
 import java.util.Arrays;
@@ -52,7 +62,7 @@ import static java.util.Map.entry;
 @SuppressWarnings({"CommentedOutCode"})
 // TODO: do more Javadoc
 public class ResoundingEngine {
-
+	// static definitions {
 	private ResoundingEngine() { }
 
 	public static EnvType env = null;
@@ -174,9 +184,9 @@ public class ResoundingEngine {
 	private static int sourceID;
 	//private static boolean doDirEval; // TODO: DirEval
 	// }
+	// }
 	
-	// utility function
-	public static <T> double logBase(T x, T b) {
+	/* utility function */ public static <T> double logBase(T x, T b) {
 		return Math.log((Double) x) / Math.log((Double) b);
 	}
 
@@ -207,7 +217,7 @@ public class ResoundingEngine {
 					* ray.dotProduct(planeD)
 					)
 				// TODO research, is this branchless?
-				).normalize(); // retain velocity
+				); // .normalize(); // retain velocity
 	}
 
 	@Environment(EnvType.CLIENT)
@@ -253,8 +263,26 @@ public class ResoundingEngine {
 		lastSoundListener = listener;
 	}
 
+	// wraps playSound() in order to process SVC audio chunks
+	@Contract("_ -> new")
 	@Environment(EnvType.CLIENT)
-	public static void playSound(double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) { // The heart of the Resounding audio pipeline
+	public static void svc_playSound(double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) {
+		// final int sourceID = event.getSource();
+		// // if invalid source
+		// // if (sourceID < 2) { LOGGER.info("invalid sourceID:{}", sourceID); return; }
+		// @Nullable
+		// final de.maxhenkel.voicechat.api.Position pos = event.getPosition();
+		// // if invalid position
+		// if (pos == null) return;
+		lastSoundName = "voice-chat";
+		// second context (voice chat context)
+		playSound(1, posX, posY, posZ, sourceIDIn, auxOnlyIn);
+		LOGGER.info("{}:{},{},{}", sourceID, posX, posY, posZ);
+		//LOGGER.info("{}:{},{},{}", sourceID, pos.getX(), pos.getY(), pos.getZ());
+	}
+
+	@Environment(EnvType.CLIENT)
+	public static void playSound(final int context, double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) { // The heart of the Resounding audio pipeline
 		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 		long startTime = 0;
 		if (pC.pLog) startTime = System.nanoTime();
@@ -325,7 +353,7 @@ public class ResoundingEngine {
 			} else {
 				LOGGER.debug(message);
 			}
-			try { setEnv(processEnv(new EnvData(Collections.emptySet(), Collections.emptySet())));
+			try { setEnv(context, processEnv(new EnvData(Collections.emptySet(), Collections.emptySet())));
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
 			message = String.format(
@@ -333,8 +361,8 @@ public class ResoundingEngine {
 Playing sound!
 	Player Pos:    {}
 	Listener Pos:    {}
-	Source ID:    {}
 	Source Pos:    {}
+	Source ID:    {}
 	Sound category:    {}
 	Sound name:    {}""", playerPos, listenerPos, sourceID, soundPos, lastSoundCategory, lastSoundName);
 		if (pC.dLog) {
@@ -344,7 +372,7 @@ Playing sound!
 		}
 		try {  ////////  CORE SOUND PIPELINE  ////////
 
-			setEnv(processEnv(evalEnv()));
+			setEnv(context, processEnv(evalEnv()));
 
 		} catch (Exception e) { e.printStackTrace(); }
 		if (pC.pLog) {
@@ -820,7 +848,7 @@ Playing sound!
 	}
 
 	@Environment(EnvType.CLIENT)
-	public static void setEnv(final @NotNull SoundProfile profile) {
+	public static void setEnv(final int context, final @NotNull SoundProfile profile) {
 		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 
 		if (profile.sendGain().length != pC.resolution + 1 || profile.sendCutoff().length != pC.resolution + 1) {
@@ -836,9 +864,9 @@ Playing sound!
 		}
 
 		// Set reverb send filter values and set source to send to all reverb fx slots
-		ResoundingEFX.setFilter(finalSend.slot(), profile.sourceID(), (float) finalSend.gain(), (float) finalSend.cutoff());
+		ResoundingEFX.setFilter(context, finalSend.slot(), profile.sourceID(), (float) finalSend.gain(), (float) finalSend.cutoff());
 		// Set direct filter values
-		ResoundingEFX.setDirectFilter(profile.sourceID(), (float) profile.directGain(), (float) profile.directCutoff());
+		ResoundingEFX.setDirectFilter(context, profile.sourceID(), (float) profile.directGain(), (float) profile.directCutoff());
 	}
 
 
