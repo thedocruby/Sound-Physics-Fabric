@@ -1,5 +1,7 @@
 package dev.thedocruby.resounding.openal;
 
+import dev.thedocruby.resounding.openal.Effect;
+
 import dev.thedocruby.resounding.ResoundingEngine;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -24,7 +26,7 @@ import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
  */
 
 @Environment(EnvType.CLIENT)
-public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EFX instead of using pC.dLog
+public class ResoundingEFX extends Effect { // TODO: Create separate debug toggle for OpenAl EFX instead of using pC.dLog
 
     private ResoundingEFX() {}
 
@@ -184,38 +186,22 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
 
 // java's type system sucks... overloading, ugh - even python could do better...
 // an overloaded array length extender function boolean[], int[], int[][] {
+
 // utility function for increasing an int[][]'s size whilst keeping content
 private static int[][] increaseLengthMatrix (final int[][] old, final int min) {
-	// increase size
-	int[][] out = new int[Math.max(old.length + 1, min)][];
-	// retain prior contexts
-	for (int i = 0; i<old.length; i++) {
-		out[i] = old[i];
-	}
-	return out;
+	return ArrayUtils.addAll(old, new int[Math.max(1,old.length - min)][]);
 }
 
 // utility function for increasing an int[]'s size whilst keeping content
 private static int[] increaseLengthArray (final int[] old, final int min) {
-	// increase size
-	int[] out = new int[Math.max(old.length + 1, min)];
-	// retain prior contexts
-	for (int i = 0; i<old.length; i++) {
-		out[i] = old[i];
-	}
-	return out;
+	return ArrayUtils.addAll(old, new int[Math.max(1,old.length - min)]);
 }
 
-// utility function for increasing an boolean[]'s size whilst keeping content
+// utility function for increasing a  boolean[]'s size whilst keeping content
 private static boolean[] increaseLengthArray (final boolean[] old, final int min) {
-	// increase size
-	boolean[] out = new boolean[Math.max(old.length + 1, min)];
-	// retain prior contexts
-	for (int i = 0; i<old.length; i++) {
-		out[i] = old[i];
-	}
-	return out;
+	return ArrayUtils.addAll(old, new boolean[Math.max(1,old.length - min)]);
 }
+
 // }
 
 private static void createContext(final int minContext) {
