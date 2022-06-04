@@ -97,6 +97,7 @@ public class ResoundingEFX { // TODO: Create separate debug toggle for OpenAl EF
         if (!(efxEnabled && initialized[context])) throw new IllegalStateException("EFX is not enabled/initialized! Cannot complete request.");
         EXTEfx.alFilterf(filters[context][id], EXTEfx.AL_LOWPASS_GAIN, gain);
         ALUtils.checkErrors("Error while assigning \"gain\" property to Effect object "+filters[context][id]+"! Attempted to assign value of \""+gain+"\".");
+//ResoundingEngine.LOGGER.info("directFilter: {}", directFilter);
 
         EXTEfx.alFilterf(filters[context][id], EXTEfx.AL_LOWPASS_GAINHF, cutoff);
         ALUtils.checkErrors("Error while assigning \"cutoff\" property to Filter object "+filters[context][id]+"! Attempted to assign value of \""+cutoff+"\".");
@@ -226,18 +227,15 @@ private static void createContext(final int minContext) {
 	createEffectObjects       (context);
 	createFilterObjects       (context);
 	initialized  = increaseLengthArray(initialized, context);
-	initialized[context] = true;
 	ResoundingEngine.LOGGER.info("initializing context: {}", context);
 }
 
     private static void initEAXReverb(final int context){
 		if (!efxEnabled) return;
-        /* if (directFilter.length <= context) */ createContext(context);
+        if (slots.length > context && pC.resolution == slots[context].length) return;
+        createContext(context);
         if (initialized[context]) return;
 
-
-        ResoundingEngine.LOGGER.info("{} ? {}", pC.resolution, slots[context].length);
-        if (pC.resolution == slots[context].length) return;
         initialized[context] = true;
 
         for(int i = 1; i <= pC.resolution; i++){
@@ -295,14 +293,14 @@ private static void createContext(final int minContext) {
         directGain = MathHelper.clamp(directGain, 0, 1);
         directCutoff = MathHelper.clamp(directCutoff, 0, 1);
         if (!(efxEnabled && initialized[context])) throw new IllegalStateException("EFX is not enabled/initialized! Cannot complete request.");
-        final int filter = directFilter[context];
-        EXTEfx.alFilterf(filter, EXTEfx.AL_LOWPASS_GAIN, directGain);
+//      final int filter = directFilter[context];
+        EXTEfx.alFilterf(directFilter[context], EXTEfx.AL_LOWPASS_GAIN, directGain);
         ALUtils.checkErrors("Error while assigning \"gain\" property to direct filter object! Attempted to assign value of \""+directGain+"\".");
 
-        EXTEfx.alFilterf(filter, EXTEfx.AL_LOWPASS_GAINHF, directCutoff);
+        EXTEfx.alFilterf(directFilter[context], EXTEfx.AL_LOWPASS_GAINHF, directCutoff);
         ALUtils.checkErrors("Error while assigning \"cutoff\" property to direct filter object! Attempted to assign value of \""+directCutoff+"\".");
 
-        AL10.alSourcei(sourceID, EXTEfx.AL_DIRECT_FILTER, filter);
+        AL10.alSourcei(sourceID, EXTEfx.AL_DIRECT_FILTER, directFilter[context]);
         ALUtils.checkErrors("Error applying direct filter object to source "+sourceID+"!");
     }
 
