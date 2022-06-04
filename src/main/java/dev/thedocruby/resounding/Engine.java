@@ -9,8 +9,8 @@ package dev.thedocruby.resounding;
 // internal {
 import dev.thedocruby.resounding.effects.AirEffects;
 import dev.thedocruby.resounding.openal.ResoundingEFX;
-import dev.thedocruby.resounding.raycast.RaycastFix;
-import dev.thedocruby.resounding.raycast.RaycastRenderer;
+import dev.thedocruby.resounding.raycast.Fix;
+import dev.thedocruby.resounding.raycast.Renderer;
 import dev.thedocruby.resounding.raycast.SPHitResult;
 import dev.thedocruby.resounding.toolbox.*;
 // }
@@ -414,7 +414,7 @@ Playing sound!
 		// TODO modify to use sound velocity, and properly check blocks along a
 		// tangent, e.g. using .25-.5 stepping values ... performance must be
 		// considered here too
-		SPHitResult rayHit = RaycastFix.fixedRaycast(
+		SPHitResult rayHit = Fix.fixedRaycast(
 				soundPos,
 				soundPos.add(dir.multiply(pC.maxTraceDist)),
 				mc.world,
@@ -422,7 +422,7 @@ Playing sound!
 				soundChunk
 		);
 
-		if (pC.dRays) RaycastRenderer.addSoundBounceRay(soundPos, rayHit.getPos(), Formatting.GREEN.getColorValue());
+		if (pC.dRays) Renderer.addSoundBounceRay(soundPos, rayHit.getPos(), Formatting.GREEN.getColorValue());
 
 		// TODO understand wtf this is - boolean(trap)
 		if (rayHit.isMissed()) {
@@ -478,25 +478,25 @@ Playing sound!
 
 		// TODO integrate exception into algorithm, must use a refactor, removes
 		// duplicated code
-		SPHitResult finalRayHit = RaycastFix.fixedRaycast(lastHitPos, listenerPos, mc.world, lastHitBlock, rayHit.chunk);
+		SPHitResult finalRayHit = Fix.fixedRaycast(lastHitPos, listenerPos, mc.world, lastHitBlock, rayHit.chunk);
 
 		int color = Formatting.GRAY.getColorValue();
 		if (finalRayHit.isMissed()) {
 			color = Formatting.WHITE.getColorValue();
 			shared[0] = 1;
 		}
-		if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
+		if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
 
 		// Secondary ray bounces
 		for (int i = 1; i < pC.nRayBounces; i++) {
 
 			// TODO handle velocity here, specifically
 			final Vec3d newRayDir = pseudoReflect(lastRayDir, lastHitNormal);
-			rayHit = RaycastFix.fixedRaycast(lastHitPos, lastHitPos.add(newRayDir.multiply(pC.maxTraceDist - totalDistance)), mc.world, lastHitBlock, rayHit.chunk);
+			rayHit = Fix.fixedRaycast(lastHitPos, lastHitPos.add(newRayDir.multiply(pC.maxTraceDist - totalDistance)), mc.world, lastHitBlock, rayHit.chunk);
 
 			// TODO consider infinite void, for reverb
 			if (rayHit.isMissed()) {
-				if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, rayHit.getPos(), Formatting.DARK_RED.getColorValue());
+				if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, rayHit.getPos(), Formatting.DARK_RED.getColorValue());
 				// TODO airspace fresnel?
 				missed = Math.pow(totalReflectivity, pC.globalReflRcp);
 				break;
@@ -509,7 +509,7 @@ Playing sound!
 			bounceDistance[i] = lastHitPos.distanceTo(newRayHitPos);
 			totalDistance += bounceDistance[i];
 			if (pC.maxTraceDist - totalDistance < newRayHitPos.distanceTo(listenerPos)) {
-				if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
+				if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
 				missed = Math.pow(totalReflectivity, pC.globalReflRcp);
 				break;
 			}
@@ -518,12 +518,12 @@ Playing sound!
 			totalReflectivity *= newBlockReflectivity;
 			// TODO integrate with velocity and fresnels+refraction
 			if (totalReflectivity < minEnergy){
-				if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
+				if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
 				break;
 			}
 
 			// if surface hit, and velocity still high enough, trace bounce
-			if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.BLUE.getColorValue());
+			if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.BLUE.getColorValue());
 
 			lastBlockReflectivity = newBlockReflectivity;
 			lastHitPos = newRayHitPos;
@@ -543,14 +543,14 @@ Playing sound!
 			// unobstructed, then the sound source and the player
 			// share airspace.
 
-			finalRayHit = RaycastFix.fixedRaycast(lastHitPos, listenerPos, mc.world, lastHitBlock, rayHit.chunk);
+			finalRayHit = Fix.fixedRaycast(lastHitPos, listenerPos, mc.world, lastHitBlock, rayHit.chunk);
 
 			color = Formatting.GRAY.getColorValue();
 			if (finalRayHit.isMissed()) {
 				color = Formatting.WHITE.getColorValue();
 				shared[i] = 1;
 			}
-			if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
+			if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
 		}
 		// TODO reorganize class structure for more logical order?
 		return new ReflectedRayData(
@@ -597,7 +597,7 @@ Playing sound!
 				lastBlockPos = rayHit.getBlockPos();
 				//If we hit a block
 
-				if (pC.dRays) RaycastRenderer.addOcclusionRay(rayOrigin, rayHit.getPos(), Color.getHSBColor((float) (1F / 3F * (1F - Math.min(1F, occlusionAccumulation / 12F))), 1F, 1F).getRGB());
+				if (pC.dRays) Renderer.addOcclusionRay(rayOrigin, rayHit.getPos(), Color.getHSBColor((float) (1F / 3F * (1F - Math.min(1F, occlusionAccumulation / 12F))), 1F, 1F).getRGB());
 				if (rayHit.isMissed()) {
 					if (pC.soundDirectionEvaluation) directions.add(Map.entry(rayOrigin.subtract(playerPos), // TODO: DirEval
 							(_9ray?9:1) * Math.pow(soundPos.distanceTo(playerPos), 2.0)* pC.rcpTotRays
@@ -654,18 +654,18 @@ Playing sound!
 		//  It may be faster to skim through the snapshot changelog instead of digging through the code.
 		//  TODO split cache into chunks, refresh only relevant chunks,
 		//  implement forgetting-system
-		if (RaycastFix.lastUpd != timeT) {
-			RaycastFix.shapeCache.clear();
-			RaycastFix.lastUpd = timeT;
+		if (Fix.lastUpd != timeT) {
+			Fix.shapeCache.clear();
+			Fix.lastUpd = timeT;
 		}
 
 		// TODO make irrelevant with infinite possibility logic
-		RaycastFix.maxY = mc.world.getTopY();
-		RaycastFix.minY = mc.world.getBottomY();
-		RaycastFix.maxX = (int) (playerPos.getX() + (viewDist * 16));
-		RaycastFix.minX = (int) (playerPos.getX() - (viewDist * 16));
-		RaycastFix.maxZ = (int) (playerPos.getZ() + (viewDist * 16));
-		RaycastFix.minZ = (int) (playerPos.getZ() - (viewDist * 16));
+		Fix.maxY = mc.world.getTopY();
+		Fix.minY = mc.world.getBottomY();
+		Fix.maxX = (int) (playerPos.getX() + (viewDist * 16));
+		Fix.minX = (int) (playerPos.getX() - (viewDist * 16));
+		Fix.maxZ = (int) (playerPos.getZ() + (viewDist * 16));
+		Fix.minZ = (int) (playerPos.getZ() - (viewDist * 16));
 
 		// Throw rays around
 		// TODO implement with tagging system, and di-quadrant optimization
@@ -829,7 +829,7 @@ Playing sound!
 
 			//TODO: Occlusion calculation here
 
-		double occlusion = RaycastFix.fixedRaycast(soundPos, listenerPos, mc.world, soundBlockPos, soundChunk).isMissed() ? 1 : 0; // TODO: occlusion coeff from processing goes here IF fancy or fabulous occl
+		double occlusion = Fix.fixedRaycast(soundPos, listenerPos, mc.world, soundBlockPos, soundChunk).isMissed() ? 1 : 0; // TODO: occlusion coeff from processing goes here IF fancy or fabulous occl
 
 		directGain *= Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos))
 				/ Math.pow(listenerPos.distanceTo(soundPos), 2.0 * missedSum)
