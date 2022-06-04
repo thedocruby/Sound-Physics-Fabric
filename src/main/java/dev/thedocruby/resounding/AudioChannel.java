@@ -29,7 +29,7 @@ public class AudioChannel {
         }
 
 //      SoundPhysics.setLastSoundCategoryAndName(SoundSource.MASTER, "voicechat");
-        ResoundingEngine.svc_playSound(pos.getX(), pos.getY(), pos.getZ(), source, false);
+        Engine.svc_playSound(pos.getX(), pos.getY(), pos.getZ(), source, false);
 
         lastUpdate = time;
         lastPos = pos;

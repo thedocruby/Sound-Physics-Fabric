@@ -1,6 +1,6 @@
 package dev.thedocruby.resounding.openal;
 
-import dev.thedocruby.resounding.ResoundingEngine;
+import dev.thedocruby.resounding.Engine;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import org.apache.commons.lang3.ArrayUtils;
@@ -63,7 +63,7 @@ public class EFXContext { // TODO: Create separate debug toggle for OpenAl EFX i
 		initSlots  ();
 		initEffects();
 		initFilters();
-		ResoundingEngine.LOGGER.info("New context: {}.", id == null ? "<unnamed>" : id);
+		Engine.LOGGER.info("New context: {}.", id == null ? "<unnamed>" : id);
 
 		return false;
 	}

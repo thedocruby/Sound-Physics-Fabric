@@ -1,6 +1,6 @@
 package dev.thedocruby.resounding.openal;
 
-import dev.thedocruby.resounding.ResoundingEngine;
+import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.Utils;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -90,7 +90,7 @@ public class ResoundingEFX extends Effect { // TODO: Create separate debug toggl
 		//Attach updated effect object
 		EXTEfx.alAuxiliaryEffectSloti(slots[context][id], EXTEfx.AL_EFFECTSLOT_EFFECT, effects[context][id]);
 		if (!ALUtils.checkErrors("Error applying Effect object "+effects[context][id]+" to aux slot "+slots[context][id]+"!") && pC.dLog){
-			ResoundingEngine.LOGGER.info("Successfully initialized Effect object {}!", effects[context][id]);
+			Engine.LOGGER.info("Successfully initialized Effect object {}!", effects[context][id]);
 		}
 	}
 
@@ -98,7 +98,7 @@ public class ResoundingEFX extends Effect { // TODO: Create separate debug toggl
 		if (!(efxEnabled && initialized[context])) throw new IllegalStateException("EFX is not enabled/initialized! Cannot complete request.");
 		EXTEfx.alFilterf(filters[context][id], EXTEfx.AL_LOWPASS_GAIN, gain);
 		ALUtils.checkErrors("Error while assigning \"gain\" property to Effect object "+filters[context][id]+"! Attempted to assign value of \""+gain+"\".");
-//ResoundingEngine.LOGGER.info("directFilter: {}", directFilter);
+//Engine.LOGGER.info("directFilter: {}", directFilter);
 
 		EXTEfx.alFilterf(filters[context][id], EXTEfx.AL_LOWPASS_GAINHF, cutoff);
 		ALUtils.checkErrors("Error while assigning \"cutoff\" property to Filter object "+filters[context][id]+"! Attempted to assign value of \""+cutoff+"\".");
@@ -110,75 +110,75 @@ public class ResoundingEFX extends Effect { // TODO: Create separate debug toggl
 	private static void createAuxiliaryEffectSlots(final int context){       // Create new OpenAL Auxiliary Effect slots
 			slots = Utils.extendArray(slots, context+1);
 			slots[context] = new int[pC.resolution];
-			if (pC.dLog) ResoundingEngine.LOGGER.info("Creating {} new Auxiliary Effect slots...", pC.resolution);
+			if (pC.dLog) Engine.LOGGER.info("Creating {} new Auxiliary Effect slots...", pC.resolution);
 			EXTEfx.alGenAuxiliaryEffectSlots(slots[context]);
 			for(int i = 0; i < pC.resolution; i++) {
 				if(EXTEfx.alIsAuxiliaryEffectSlot(slots[context][i])){
 					EXTEfx.alAuxiliaryEffectSloti(slots[context][i], EXTEfx.AL_EFFECTSLOT_AUXILIARY_SEND_AUTO, AL10.AL_TRUE);
 					if (!ALUtils.checkErrors("Failed to initialize Auxiliary Effect slot "+slots[context][i]+"!")) {
-						if (pC.dLog) ResoundingEngine.LOGGER.info("Auxiliary Effect slot {} created!", slots[context][i]); continue;
+						if (pC.dLog) Engine.LOGGER.info("Auxiliary Effect slot {} created!", slots[context][i]); continue;
 					} initialized[context] = false; continue;
-				} ResoundingEngine.LOGGER.error("Failed to create Auxiliary Effect slot! (index {})", i); initialized[context] = false;
+				} Engine.LOGGER.error("Failed to create Auxiliary Effect slot! (index {})", i); initialized[context] = false;
 			}
 		}
 
 	private static void deleteAuxiliaryEffectSlots(final int context){       // Remove OpenAL Auxiliary Effect slots
-		if (pC.dLog) ResoundingEngine.LOGGER.info("Removing {} Auxiliary Effect slots...", slots[context].length);
+		if (pC.dLog) Engine.LOGGER.info("Removing {} Auxiliary Effect slots...", slots[context].length);
 		EXTEfx.alDeleteAuxiliaryEffectSlots(slots[context].clone());
 		for (int j : slots[context]) {
-			if (EXTEfx.alIsAuxiliaryEffectSlot(j)) { ResoundingEngine.LOGGER.error("Failed to delete Auxiliary Effect slot {}!", j); continue;}
+			if (EXTEfx.alIsAuxiliaryEffectSlot(j)) { Engine.LOGGER.error("Failed to delete Auxiliary Effect slot {}!", j); continue;}
 			slots[context] = ArrayUtils.removeElement(slots[context], j);
-			if (pC.dLog) { ResoundingEngine.LOGGER.info("Auxiliary Effect slot {} deleted.", j); }
+			if (pC.dLog) { Engine.LOGGER.info("Auxiliary Effect slot {} deleted.", j); }
 		}
 	}
 
 	private static void createEffectObjects(final int context){       // Create new OpenAL Effect objects
 		effects = Utils.extendArray(effects, context+1);
 		effects[context] = new int[pC.resolution];
-		if (pC.dLog) ResoundingEngine.LOGGER.info("Creating {} new Effect objects...", pC.resolution);
+		if (pC.dLog) Engine.LOGGER.info("Creating {} new Effect objects...", pC.resolution);
 		EXTEfx.alGenEffects(effects[context]);
 		for(int i = 0; i < pC.resolution; i++) {
 			if(EXTEfx.alIsEffect(effects[context][i])){
 				EXTEfx.alEffecti(effects[context][i], EXTEfx.AL_EFFECT_TYPE, EXTEfx.AL_EFFECT_EAXREVERB); // Set effect type to EAX Reverb
 				if (!ALUtils.checkErrors("Failed to initialize Effect object "+effects[context][i]+"!")) {
-					if (pC.dLog) ResoundingEngine.LOGGER.info("Effect object {} created!", effects[context][i]); continue;
+					if (pC.dLog) Engine.LOGGER.info("Effect object {} created!", effects[context][i]); continue;
 				} initialized[context] = false; continue;
-			} ResoundingEngine.LOGGER.error("Failed to create Effect object! (index {})", i); initialized[context] = false;
+			} Engine.LOGGER.error("Failed to create Effect object! (index {})", i); initialized[context] = false;
 		}
 	}
 
 	private static void deleteEffectObjects(final int context){       // Remove OpenAL Effect objects
-		if (pC.dLog) ResoundingEngine.LOGGER.info("Removing {} Effect objects...", effects[context].length);
+		if (pC.dLog) Engine.LOGGER.info("Removing {} Effect objects...", effects[context].length);
 		EXTEfx.alDeleteEffects(effects[context].clone());
 		for (int j : effects[context]) {
-			if (EXTEfx.alIsEffect(j)) { ResoundingEngine.LOGGER.error("Failed to delete Effect object {}!", j); continue;}
+			if (EXTEfx.alIsEffect(j)) { Engine.LOGGER.error("Failed to delete Effect object {}!", j); continue;}
 			effects[context] = ArrayUtils.removeElement(effects[context], j);
-			if (pC.dLog) { ResoundingEngine.LOGGER.info("Effect object {} deleted.", j); }
+			if (pC.dLog) { Engine.LOGGER.info("Effect object {} deleted.", j); }
 		}
 	}
 
 	private static void createFilterObjects(final int context){       // Create new OpenAL Filter objects
 		filters = Utils.extendArray(filters, context+1);
 		filters[context] = new int[pC.resolution];
-		if (pC.dLog) ResoundingEngine.LOGGER.info("Creating {} new Filter objects...", pC.resolution);
+		if (pC.dLog) Engine.LOGGER.info("Creating {} new Filter objects...", pC.resolution);
 		EXTEfx.alGenFilters(filters[context]);
 		for(int i = 0; i < pC.resolution; i++) {
 			if(EXTEfx.alIsFilter(filters[context][i])){
 				EXTEfx.alFilteri(filters[context][i], EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
 				if (!ALUtils.checkErrors("Failed to initialize Filter object "+filters[context][i]+"!")) {
-					if (pC.dLog) ResoundingEngine.LOGGER.info("Filter object {} created!", filters[context][i]); continue;
+					if (pC.dLog) Engine.LOGGER.info("Filter object {} created!", filters[context][i]); continue;
 				} initialized[context] = false; continue;
-			} ResoundingEngine.LOGGER.error("Failed to create Filter object! (index {})", i); initialized[context] = false;
+			} Engine.LOGGER.error("Failed to create Filter object! (index {})", i); initialized[context] = false;
 		}
 	}
 
 	private static void deleteFilterObjects(final int context){      // Remove OpenAL Filter objects
-		if (pC.dLog) ResoundingEngine.LOGGER.info("Removing {} Filter objects...", filters[context].length);
+		if (pC.dLog) Engine.LOGGER.info("Removing {} Filter objects...", filters[context].length);
 		EXTEfx.alDeleteFilters(filters[context].clone());
 		for (int j : filters[context]) {
-			if (EXTEfx.alIsFilter(j)) { ResoundingEngine.LOGGER.error("Failed to delete Filter object {}!", j); continue;}
+			if (EXTEfx.alIsFilter(j)) { Engine.LOGGER.error("Failed to delete Filter object {}!", j); continue;}
 			filters[context] = ArrayUtils.removeElement(filters[context], j);
-			if (pC.dLog) { ResoundingEngine.LOGGER.info("Filter object {} deleted.", j); }
+			if (pC.dLog) { Engine.LOGGER.info("Filter object {} deleted.", j); }
 		}
 	}
 
@@ -192,7 +192,7 @@ private static void createContext(final int minContext) {
 	createEffectObjects       (context);
 	createFilterObjects       (context);
 	initialized  = Utils.extendArray(initialized, context);
-	ResoundingEngine.LOGGER.info("initializing context: {}", context);
+	Engine.LOGGER.info("initializing context: {}", context);
 }
 
 	private static void initEAXReverb(final int context){
@@ -219,14 +219,14 @@ private static void createContext(final int minContext) {
 		}
 		directFilter[context] = EXTEfx.alGenFilters();
 		if(!EXTEfx.alIsFilter(directFilter[context])) {
-			ResoundingEngine.LOGGER.error("Failed to create direct filter object!");
+			Engine.LOGGER.error("Failed to create direct filter object!");
 			initialized[context] = false;
 		}
-		else if(pC.dLog){ ResoundingEngine.LOGGER.info("Direct filter object created with ID {}", directFilter[context]); }
+		else if(pC.dLog){ Engine.LOGGER.info("Direct filter object created with ID {}", directFilter[context]); }
 		EXTEfx.alFilteri(directFilter[context], EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
 		initialized[context] &= !ALUtils.checkErrors("Failed to initialize direct filter object!");
-		if (initialized[context]) { ResoundingEngine.LOGGER.info("Finished initializing OpenAL Auxiliary Effect slots!"); return; }
-		ResoundingEngine.LOGGER.info("Failed to properly initialize OpenAL Auxiliary Effect slots. Aborting");
+		if (initialized[context]) { Engine.LOGGER.info("Finished initializing OpenAL Auxiliary Effect slots!"); return; }
+		Engine.LOGGER.info("Failed to properly initialize OpenAL Auxiliary Effect slots. Aborting");
 		efxEnabled = false;
 	}
 
@@ -234,10 +234,10 @@ private static void createContext(final int minContext) {
 		final long currentContext = ALC10.alcGetCurrentContext();
 		final long currentDevice = ALC10.alcGetContextsDevice(currentContext);
 		if (!ALC10.alcIsExtensionPresent(currentDevice, "ALC_EXT_EFX")) {
-			ResoundingEngine.LOGGER.error("EFX Extension not found on current device, Aborting."); return false;
+			Engine.LOGGER.error("EFX Extension not found on current device, Aborting."); return false;
 		}
 		efxEnabled = true;
-		ResoundingEngine.LOGGER.info("EFX Extension recognized! Initializing Auxiliary Effect slots...");
+		Engine.LOGGER.info("EFX Extension recognized! Initializing Auxiliary Effect slots...");
 		initEAXReverb(context);
 		return efxEnabled && initialized[context];
 	}
@@ -247,8 +247,8 @@ private static void createContext(final int minContext) {
 		deleteEffectObjects       (context);
 		deleteFilterObjects       (context);
 		EXTEfx.alDeleteFilters(directFilter[context]);
-		if(EXTEfx.alIsFilter(directFilter[context])) { ResoundingEngine.LOGGER.error("Failed to delete direct filter object!"); }
-		else if(pC.dLog){ ResoundingEngine.LOGGER.info("Direct filter object deleted with ID {}", directFilter[context]); }
+		if(EXTEfx.alIsFilter(directFilter[context])) { Engine.LOGGER.error("Failed to delete direct filter object!"); }
+		else if(pC.dLog){ Engine.LOGGER.info("Direct filter object deleted with ID {}", directFilter[context]); }
 
 		initialized[context] = false;
 		efxEnabled = false;

@@ -1,6 +1,6 @@
 package dev.thedocruby.resounding.config.presets;
 
-import dev.thedocruby.resounding.ResoundingEngine;
+import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
 import dev.thedocruby.resounding.config.ResoundingConfig;
 import dev.thedocruby.resounding.toolbox.MaterialData;
@@ -22,7 +22,7 @@ public class ConfigChanger {
     ) {
         if (enabled != null) config.enabled = enabled;
         // setGeneral(config.general, attenuationFactor, globalReverbGain, globalReverbBrightness, globalBlockAbsorption, globalBlockReflectance, soundSimulationDistance, airAbsorption, humidityAbsorption, rainAbsorption, underwaterFilter);
-        if(ResoundingEngine.env == EnvType.SERVER) return;
+        if(Engine.env == EnvType.SERVER) return;
         // setPerformance(config.Performance, skipRainOcclusionTracing, environmentEvaluationRays, environmentEvaluationRayBounces, simplerSharedAirspaceSimulation);
         setMaterialProperties(config.materials, materialProperties);
         // setMisc(config.misc, continuousRefreshRate, maxDirectOcclusionFromBlocks, _9RayDirectOcclusion, soundDirectionEvaluation, directRaysDirEvalMultiplier, notOccludedNoRedirect);

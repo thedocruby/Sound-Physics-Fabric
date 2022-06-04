@@ -1,6 +1,6 @@
 package dev.thedocruby.resounding.config;
 
-import dev.thedocruby.resounding.ResoundingEngine;
+import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.toolbox.MaterialData;
 import dev.thedocruby.resounding.toolbox.OcclusionMode;
 import dev.thedocruby.resounding.toolbox.SharedAirspaceMode;
@@ -11,7 +11,7 @@ import net.minecraft.util.math.MathHelper;
 
 import java.util.*;
 
-import static dev.thedocruby.resounding.ResoundingEngine.nameToGroup;
+import static dev.thedocruby.resounding.Engine.nameToGroup;
 import static java.util.Map.entry;
 
 /*
@@ -171,7 +171,7 @@ public class PrecomputedConfig {
         if (pC != null && pC.active) throw new CloneNotSupportedException("Tried creating second instance of precomputedConfig");
         enabled = c.enabled;
 
-        if(ResoundingEngine.env == EnvType.CLIENT) { // TODO: organize
+        if(Engine.env == EnvType.CLIENT) { // TODO: organize
             globalRvrbGain = MathHelper.clamp(c.general.globalReverbGain/100d, 0.0d, 1.0d);
             energyFix = 1 / Math.max(c.general.globalReverbStrength, Double.MIN_NORMAL);
             resolution = c.quality.reverbResolution;
@@ -210,7 +210,7 @@ public class PrecomputedConfig {
                             }
                             return;
                         }
-                        ResoundingEngine.LOGGER.error("Missing material data for {}, Default entry created.", e.getLeft());
+                        Engine.LOGGER.error("Missing material data for {}, Default entry created.", e.getLeft());
                         final MaterialData newData = new MaterialData(e.getLeft(), defaultRefl, defaultAbs);
                         matProp.put(e.getLeft(), newData);
                     });
@@ -229,7 +229,7 @@ public class PrecomputedConfig {
                 }
             });
             if (!wrong.isEmpty()) {
-                ResoundingEngine.LOGGER.error("Material Data map contains {} extra entries:\n{}\nPatching Material Data...", wrong.size(), Arrays.toString(new List[]{wrong}));
+                Engine.LOGGER.error("Material Data map contains {} extra entries:\n{}\nPatching Material Data...", wrong.size(), Arrays.toString(new List[]{wrong}));
                 toRemove.forEach(matProp::remove);
             }
 

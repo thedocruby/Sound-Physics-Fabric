@@ -1,6 +1,6 @@
 package dev.thedocruby.resounding.mixin;
 
-import dev.thedocruby.resounding.ResoundingEngine;
+import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.raycast.RaycastRenderer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -19,7 +19,7 @@ public class RendererMixin {
 
     @Inject(method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider$Immediate;DDD)V", at = @At("HEAD"))
     private void onDrawBlockOutline(MatrixStack matrices, VertexConsumerProvider.Immediate vertexConsumers, double cameraX, double cameraY, double cameraZ, CallbackInfo ci) {
-        if (ResoundingEngine.isOff) return;
+        if (Engine.isOff) return;
         RaycastRenderer.renderRays(cameraX, cameraY, cameraZ, MinecraftClient.getInstance().world);
     }
 

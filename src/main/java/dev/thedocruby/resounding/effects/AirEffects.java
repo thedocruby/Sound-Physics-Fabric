@@ -5,7 +5,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.util.math.MathHelper;
 
-import static dev.thedocruby.resounding.ResoundingEngine.mc;
+import static dev.thedocruby.resounding.Engine.mc;
 
 @Environment(EnvType.CLIENT)
 public class AirEffects {

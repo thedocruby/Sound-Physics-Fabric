@@ -7,7 +7,7 @@ import net.fabricmc.api.EnvType;
 public class ResoundingModClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
-        ResoundingEngine.env = EnvType.CLIENT;
+        Engine.env = EnvType.CLIENT;
         ConfigManager.registerAutoConfig();
     }
 }

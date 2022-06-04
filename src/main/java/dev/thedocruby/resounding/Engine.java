@@ -61,9 +61,9 @@ import static java.util.Map.entry;
 
 @SuppressWarnings({"CommentedOutCode"})
 // TODO: do more Javadoc
-public class ResoundingEngine {
+public class Engine {
 	// static definitions {
-	private ResoundingEngine() { }
+	private Engine() { }
 
 	public static EnvType env = null;
 	public static MinecraftClient mc;
@@ -256,7 +256,7 @@ public class ResoundingEngine {
 
 	@Environment(EnvType.CLIENT)
 	public static void updateYeetedSoundInfo(SoundInstance sound, SoundListener listener) {
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
+		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 		lastSoundInstance = sound;
 		lastSoundCategory = lastSoundInstance.getCategory();
 		lastSoundName = lastSoundInstance.getId().getPath();
@@ -283,7 +283,7 @@ public class ResoundingEngine {
 
 	@Environment(EnvType.CLIENT)
 	public static void playSound(final int context, double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) { // The heart of the Resounding audio pipeline
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
+		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 		long startTime = 0;
 		if (pC.pLog) startTime = System.nanoTime();
 		long endTime;
@@ -409,7 +409,7 @@ Playing sound!
 
 	@Environment(EnvType.CLIENT)
 	private static @NotNull ReflectedRayData throwReflRay(@NotNull Vec3d dir) {
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
+		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 
 		// TODO modify to use sound velocity, and properly check blocks along a
 		// tangent, e.g. using .25-.5 stepping values ... performance must be
@@ -562,7 +562,7 @@ Playing sound!
 
 	@Environment(EnvType.CLIENT)
 	private static @NotNull Set<OccludedRayData> throwOcclRay(@NotNull Vec3d sourcePos, @NotNull Vec3d sinkPos) { //Direct sound occlusion
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
+		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 
 		// TODO: This still needs to be rewritten
 		// TODO: fix reflection/absorption calc with fresnels
@@ -645,7 +645,7 @@ Playing sound!
 
 	@Environment(EnvType.CLIENT)
 	private static @NotNull EnvData evalEnv() {
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
+		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 
 		// Clear the block shape cache every tick, just in case the local block grid has changed
 		// TODO: Do this more efficiently.
@@ -686,7 +686,7 @@ Playing sound!
 			}
 		}
 		Set<ReflectedRayData> reflRays = isRain ? Collections.emptySet() :
-				rays.stream().parallel().unordered().map(ResoundingEngine::throwReflRay).collect(Collectors.toSet());
+				rays.stream().parallel().unordered().map(Engine::throwReflRay).collect(Collectors.toSet());
 		if(!isRain) {
 			if (pC.eLog) {
 				int rayCount = 0;
@@ -714,7 +714,7 @@ Playing sound!
 	@Contract("_ -> new")
 	@Environment(EnvType.CLIENT)
 	private static @NotNull SoundProfile processEnv(final EnvData data) {
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
+		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 		// TODO: DirEval is on hold while I rewrite, will be re-added later
 		// Take weighted (on squared distance) average of the directions sound reflection came from
 		//doDirEval = pC.soundDirectionEvaluation && (occlusionAccumulation > 0 || pC.notOccludedRedirect); // TODO: DirEval
@@ -849,7 +849,7 @@ Playing sound!
 
 	@Environment(EnvType.CLIENT)
 	public static void setEnv(final int context, final @NotNull SoundProfile profile) {
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
+		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 
 		if (profile.sendGain().length != pC.resolution + 1 || profile.sendCutoff().length != pC.resolution + 1) {
 			throw new IllegalArgumentException("Error: Reverb parameter count does not match reverb resolution!");

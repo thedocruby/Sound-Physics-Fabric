@@ -1,6 +1,6 @@
 package dev.thedocruby.resounding.openal;
 
-import dev.thedocruby.resounding.ResoundingEngine;
+import dev.thedocruby.resounding.Engine;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import org.apache.commons.lang3.ArrayUtils;
