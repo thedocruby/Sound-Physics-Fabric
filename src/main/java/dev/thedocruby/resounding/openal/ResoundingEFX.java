@@ -108,7 +108,7 @@ public class ResoundingEFX extends Effect { // TODO: Create separate debug toggl
 	}
 
 	private static void createAuxiliaryEffectSlots(final int context){       // Create new OpenAL Auxiliary Effect slots
-			slots = Utils.extendArray(slots, context+1);
+			slots = extendArray(slots, context+1);
 			slots[context] = new int[pC.resolution];
 			if (pC.dLog) Engine.LOGGER.info("Creating {} new Auxiliary Effect slots...", pC.resolution);
 			EXTEfx.alGenAuxiliaryEffectSlots(slots[context]);
@@ -133,7 +133,7 @@ public class ResoundingEFX extends Effect { // TODO: Create separate debug toggl
 	}
 
 	private static void createEffectObjects(final int context){       // Create new OpenAL Effect objects
-		effects = Utils.extendArray(effects, context+1);
+		effects = extendArray(effects, context+1);
 		effects[context] = new int[pC.resolution];
 		if (pC.dLog) Engine.LOGGER.info("Creating {} new Effect objects...", pC.resolution);
 		EXTEfx.alGenEffects(effects[context]);
@@ -158,7 +158,7 @@ public class ResoundingEFX extends Effect { // TODO: Create separate debug toggl
 	}
 
 	private static void createFilterObjects(final int context){       // Create new OpenAL Filter objects
-		filters = Utils.extendArray(filters, context+1);
+		filters = extendArray(filters, context+1);
 		filters[context] = new int[pC.resolution];
 		if (pC.dLog) Engine.LOGGER.info("Creating {} new Filter objects...", pC.resolution);
 		EXTEfx.alGenFilters(filters[context]);
@@ -186,12 +186,12 @@ public class ResoundingEFX extends Effect { // TODO: Create separate debug toggl
 private static void createContext(final int minContext) {
 	// if enough contexts
 	if (directFilter.length > minContext) return;
-	directFilter = Utils.extendArray(directFilter, minContext+1);
+	directFilter = extendArray(directFilter, minContext+1);
 	final int context = directFilter.length-1;
 	createAuxiliaryEffectSlots(context);
 	createEffectObjects       (context);
 	createFilterObjects       (context);
-	initialized  = Utils.extendArray(initialized, context);
+	initialized  = extendArray(initialized, context);
 	Engine.LOGGER.info("initializing context: {}", context);
 }
 

@@ -1,4 +1,4 @@
-package dev.thedocruby.resounding.effects;
+package dev.thedocruby.resounding.effects.math;
 
 import dev.thedocruby.resounding.config.PrecomputedConfig;
 import net.fabricmc.api.EnvType;
@@ -8,8 +8,8 @@ import net.minecraft.util.math.MathHelper;
 import static dev.thedocruby.resounding.Engine.mc;
 
 @Environment(EnvType.CLIENT)
-public class AirEffects {
-    private AirEffects() {}
+public class Air {
+    private Air() {}
 
     private static final float rainDecayConstant = (float) (Math.log(2.0) / 1200);
     private static float rainAccumulator;

@@ -7,7 +7,7 @@ package dev.thedocruby.resounding;
 //import de.maxhenkel.voicechat.api.Position;
 // }
 // internal {
-import dev.thedocruby.resounding.effects.AirEffects;
+import dev.thedocruby.resounding.effects.math.Air;
 import dev.thedocruby.resounding.openal.ResoundingEFX;
 import dev.thedocruby.resounding.raycast.Fix;
 import dev.thedocruby.resounding.raycast.Renderer;
@@ -745,7 +745,7 @@ Playing sound!
 		// submerged? emitter:true  player:true  = lowpass (or highpass?) filter
 		//    and bass volume boost
 		boolean inWater = mc.player != null && mc.player.isSubmergedInWater();
-		final double airAbsorptionHF = AirEffects.getAbsorptionHF();
+		final double airAbsorptionHF = Air.getAbsorptionHF();
 		double directGain = (auxOnly ? 0 : inWater ? pC.waterFilt : 1) * Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos)) ;
 
 		if (data.reflRays().isEmpty()) {

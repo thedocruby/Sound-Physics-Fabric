@@ -1,6 +1,9 @@
 package dev.thedocruby.resounding.openal;
 
 import dev.thedocruby.resounding.Engine;
+import dev.thedocruby.resounding.Utils;
+import dev.thedocruby.resounding.effects.*;
+
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import org.apache.commons.lang3.ArrayUtils;
@@ -18,7 +21,7 @@ import javax.annotation.Nullable;
 
 
 @Environment(EnvType.CLIENT)
-public class EFXContext { // TODO: Create separate debug toggle for OpenAl EFX instead of using pC.dLog
+public class Context extends Utils { // TODO: Create separate debug toggle for OpenAl EFX instead of using pC.dLog
 
 	// class containing AL context information
 	private class ALContext {
@@ -37,14 +40,14 @@ public class EFXContext { // TODO: Create separate debug toggle for OpenAl EFX i
 	private static ALContext context        ;
 	public  static boolean   active  = false;
 	public  static boolean   enabled = true ;
+	public  static boolean   garbage = false; // for custom-garbage collector
 
 	// optional values
-	@Nullable public static String id;
+	@Nullable public static String id = null;
 	// main interface
 	// allow inheritance of settings via children contexts
-	public         EFXContext[] children = new EFXContext[0];
-	// pipeline
-	public  static Effect[] effects = new Effect[0];
+	public         Context[] children = new Context[0];
+	public  static Effect[]  effects  = new Effect[0] ; // pipeline
 
 	// context control {
 	public static boolean activate() {
@@ -57,16 +60,51 @@ public class EFXContext { // TODO: Create separate debug toggle for OpenAl EFX i
 		return !ALUtils.checkErrors("Error while reactivating openAL context "+context.old+".");
 	}
 	// }
-
-	public static boolean setup() {
-		if (enabled || !active || context.direct > 0) return true; // already setup?
-//		initSlots  ();
-//		initEffects();
-//		initFilters();
-//		Engine.LOGGER.info("New context: {}.", id == null ? "<unnamed>" : id);
-
-		return false;
+	
+	// TODO (maybe?) make dynamic
+	private static void populateEffects() {
+		effects    = new Effect[8];
+		// alphabetical
+		effects[0] = new Doppler();
+		effects[1] = new EarDamage();
+		effects[2] = new Echo();
+		effects[3] = new Occlusion();
+		effects[4] = new Resonance();
+		effects[5] = new Reverb();
+		effects[6] = new Style();
+		effects[7] = new Travel();
 	}
-	public boolean clean() {return false;}
+
+	public static boolean setup(@Nullable final String name) {
+		if (enabled || !active || context.direct > 0) return true; // already setup?
+		id = name;
+//		if (!(
+//			setupSlots  () &&
+//			setupEffects() &&
+//			setupFilters() )) {
+//			Engine.LOGGER.error("Failed context: {}.", id);
+//			return false;
+//		}
+		Engine.LOGGER.info("Created context: {}.", id);
+		enabled = true;
+		populateEffects();
+		for (int i = 0; i<effects.length; i++) effects[i].init();
+		return enabled && active;
+	}
+
+	public static boolean clean(@Nullable final boolean force) {
+		if (enabled || !active || context.direct > 0) return true; // already setup?
+//		if (!(
+//			cleanSlots  () &&
+//			cleanEffects() &&
+//			cleanFilters() )) {
+//			Engine.LOGGER.error("Context remains: {}.", id);
+//			if (force) enabled = false; garbage = true;
+//			return false;
+//		}
+		Engine.LOGGER.info("Cleaned context: {}.", id);
+		enabled = false; garbage = true;
+		return true;
+	}
 
 }
