@@ -23,24 +23,11 @@ import javax.annotation.Nullable;
 @Environment(EnvType.CLIENT)
 public class Context extends Utils { // TODO: Create separate debug toggle for OpenAl EFX instead of using pC.dLog
 
-	// class containing AL context information
-	private class ALContext {
-		private ALContext() {}
-
-		// AL objects, intentionally non-static
-		public long   old     = -1        ; // context id
-		public long   self    = -1        ; // context id
-		public int    direct  = -1        ; // directFilter
-		public int[]  slots   = new int[0];
-		public int[]  effects = new int[0];
-		public int[]  filters = new int[0];
-	}
-
 	// default values
-	private static ALContext context        ;
-	public  static boolean   active  = false;
-	public  static boolean   enabled = true ;
-	public  static boolean   garbage = false; // for custom-garbage collector
+	private static ALContext context = new ALContext();
+	public  static boolean   active  = false          ;
+	public  static boolean   enabled = true           ;
+	public  static boolean   garbage = false          ; // for custom-garbage collector
 
 	// optional values
 	@Nullable public static String id = null;
@@ -76,7 +63,14 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 	}
 
 	public static boolean setup(@Nullable final String name) {
+		// TODO create new context here
+		final long newContext = 1; // placeholder
+		return bind(newContext, name);
+	}
+
+	public static boolean bind(final long existing, @Nullable final String name) {
 		if (enabled || !active || context.direct > 0) return true; // already setup?
+		context.self = existing;
 		id = name;
 //		if (!(
 //			setupSlots  () &&
