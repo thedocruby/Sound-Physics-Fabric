@@ -22,7 +22,7 @@ public class SoundEngineMixin {
         if (!Engine.isOff) throw new IllegalStateException("ResoundingEngine has already been started! You may need to reload the sound system using SoundManager.reloadSounds()");
         if (!pC.enabled){
             Engine.LOGGER.info("Skipped starting Resounding engine: disabled in config.");
-            ResoundingEngine.isOff = true;
+            Engine.isOff = true;
             return;
         }
         Engine.LOGGER.info("Starting Resounding engine...");

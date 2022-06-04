@@ -60,10 +60,10 @@ public class EFXContext { // TODO: Create separate debug toggle for OpenAl EFX i
 
 	public static boolean setup() {
 		if (enabled || !active || context.direct > 0) return true; // already setup?
-		initSlots  ();
-		initEffects();
-		initFilters();
-		Engine.LOGGER.info("New context: {}.", id == null ? "<unnamed>" : id);
+//		initSlots  ();
+//		initEffects();
+//		initFilters();
+//		Engine.LOGGER.info("New context: {}.", id == null ? "<unnamed>" : id);
 
 		return false;
 	}
