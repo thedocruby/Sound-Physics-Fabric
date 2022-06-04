@@ -20,10 +20,10 @@
   "environment": "*",
   "entrypoints": {
     "client": [
-      "dev.thedocruby.resounding.ResoundingModClient"
+      "dev.thedocruby.resounding.ModClient"
     ],
     "server": [
-      "dev.thedocruby.resounding.ResoundingModServer"
+      "dev.thedocruby.resounding.ModServer"
     ],
     "modmenu": [
       "dev.thedocruby.resounding.config.BlueTapePack.ModMenuIntegration"
