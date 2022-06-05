@@ -2,6 +2,7 @@ package dev.thedocruby.resounding.openal;
 
 import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.Utils;
+import dev.thedocruby.resounding.openal.ALContext;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import org.apache.commons.lang3.ArrayUtils;
@@ -16,8 +17,11 @@ import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 // TODO fill in later
 public class Effect extends Utils {
 
-	public Effect() {}
+	// TODO check if this just returns "loading effect Effect"
+	public Effect() {if (pC.dLog) Engine.LOGGER.info("loading effect {}", this);}
 
-	public boolean init(){return true;}
+	public boolean init(ALContext context){return true;}
+
+	public void update(){}
 
 };
