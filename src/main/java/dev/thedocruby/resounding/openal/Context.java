@@ -1,5 +1,6 @@
 package dev.thedocruby.resounding.openal;
 
+import dev.thedocruby.resounding.toolbox.*;
 import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.Utils;
 import dev.thedocruby.resounding.effects.*;
@@ -23,138 +24,115 @@ import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.IntConsumer;
 import java.util.function.Consumer;
+import java.util.Optional;
 
 
 @Environment(EnvType.CLIENT)
 public class Context extends Utils { // TODO: Create separate debug toggle for OpenAl EFX instead of using pC.dLog
 
 	// default values
-	private static ALContext context = new ALContext();
-	public  static boolean   active  = false          ;
-	public  static boolean   enabled = true           ;
-	public  static boolean   garbage = false          ; // for custom-garbage collector
+	private ALset[] contexts;
+	public  boolean active  = false;
+	public  boolean enabled = true ;
+	public  boolean garbage = false; // for custom-garbage collector
+
+	// context ids
+	private long old  = -1;
+	private long self = 0 ;
+
+	private boolean bound = false;
 
 	// optional values
-	@Nullable public static String id = null;
+	@Nullable public String id = null;
 	// main interface
 	// allow inheritance of settings via children contexts
-	public         Context[] children = new Context[0];
-	public  static Effect[]  effects  = new Effect[0] ; // pipeline
+	public  Context[] children;
+	public  Effect[]  effects; // pipeline
 
 	// context control {
-	public static boolean activate() {
-		context.old = EXTThreadLocalContext.alcGetThreadContext();
-		EXTThreadLocalContext.alcSetThreadContext(context.self);
-		return !ALUtils.checkErrors("Error while activating openAL context "+context.self+".");
+	public boolean activate() {
+		old = EXTThreadLocalContext.alcGetThreadContext();
+		EXTThreadLocalContext.alcSetThreadContext(self);
+		return !ALUtils.checkErrors("Error while activating openAL context "+self+".");
 	}
-	public static boolean deactivate() {
-		EXTThreadLocalContext.alcSetThreadContext(context.old);
-		return !ALUtils.checkErrors("Error while reactivating openAL context "+context.old+".");
+	public boolean deactivate() {
+		if (old == -1) return false;
+		EXTThreadLocalContext.alcSetThreadContext(old);
+		return !ALUtils.checkErrors("Error while reactivating openAL context "+old+".");
 	}
 	// }
 	
 	// INFO can't be reasonably made dynamic, don't try
-	private static void populateEffects() {
+	private void populateEffects() {
 		// alphabetical
-		Effect[] temp =
-		{ new Doppler()
+		// TODO implement other effects
+		effects = new Effect[]
+		{ /*new Doppler()
 		, new EarDamage()
 		, new Echo()
-		, new Occlusion()
+		, new Occlusion() // bunched in with reverb, for now
 		, new Resonance()
-		, new Reverb()
+		*/new Reverb()/*
 		, new Style()
-		, new Travel()
+		, new Travel()*/
 		}; // cleaner syntax...
-		effects = temp;
+		contexts = new ALset[effects.length];
 	}
 
-	public  static boolean bind(final long existing, final @Nullable String name) {
-		if (enabled || !active || context.direct > 0) return true; // already setup?
-		context.self = existing;
+	public         boolean bind(long context, @Nullable final String name) {
+		bound = true;
+		self = context;
+		return setup(name);
+	}
+
+	public         boolean setup(@Nullable final String name) {
+		if (active) return false;
+		//if (children != null) clean(true);
+		children = new Context[0];
+		effects  = new Effect[0];
+		garbage = false;
 		id = name;
-		if (!(
-			setupSlots  () &&
-			setupEffects() &&
-			setupFilters() )) {
-			Engine.LOGGER.error("Failed to create context: {}.", id);
-			active = false;
-			return false;
-		}
-		Engine.LOGGER.info("Created context: {}.", id);
-		enabled = true;
-		populateEffects();
-		for (Effect effect : effects) effect.init(context);
-		return enabled && active;
-	}
-	public  static boolean setup(@Nullable final String name) {
 		// TODO create new context here
-		final long newContext = 1; // placeholder
-		return bind(newContext, name);
-	}
-	// it's a pun! General function for setup of slots/effects/filters
-	private static int[]   generAL(final String type, Consumer<int[]> generate, IntPredicate verify, IntConsumer init) {
-			if (pC.dLog) Engine.LOGGER.info("Creating {}[{}]", type, pC.resolution);
-			// create array
-			int[] set = new int[pC.resolution];
-			generate.accept(set);      // generate   set
-			for(int bit : set) {       // loop over  set
-				if(verify.test(bit)) { // verify     bit
-					init.accept(bit);  // initialize bit
-					// if successful (otherwise error)
-					if (!ALUtils.checkErrors(
-						s -> Engine.LOGGER.info(s+"Failed to create {}.{}", type, bit)
-						)) {
-						// log
-						if (pC.dLog) Engine.LOGGER.info("Created {}.{}", type, bit); continue;
-					} active = false; continue; // fail gracefully ← & ↓
-				} Engine.LOGGER.error("Failed create {}.{}", type, bit); active = false;
-			}
-			return active ? set : new int[0];
+		if (bound) old  = EXTThreadLocalContext.alcGetThreadContext();
+		else       self = EXTThreadLocalContext.alcGetThreadContext();
+		activate();
+		populateEffects();
+		for (int i = 0; i<effects.length; i++) {
+			contexts[i] = effects[i].setup(self);
+			effects[i].init();
 		}
-	private static boolean setupSlots() {
-		context.slots = generAL(
-			"slot",
-			EXTEfx::alGenAuxiliaryEffectSlots,
-			EXTEfx::alIsAuxiliaryEffectSlot,
-			s -> EXTEfx.alAuxiliaryEffectSloti(s, EXTEfx.AL_EFFECTSLOT_AUXILIARY_SEND_AUTO, AL10.AL_TRUE)
-		);
-		return context.slots.length > 0;
-	}
-	private static boolean setupEffects() {
-		context.effects = generAL(
-			"effect",
-			EXTEfx::alGenEffects,
-			EXTEfx::alIsEffect,
-			e -> EXTEfx.alEffecti(e, EXTEfx.AL_EFFECT_TYPE, EXTEfx.AL_EFFECT_EAXREVERB) // Set effect type to EAX Reverb
-		);
-		return context.effects.length > 0;
-	}
-	private static boolean setupFilters() {
-		context.filters = generAL(
-			"filter",
-			EXTEfx::alGenFilters,
-			EXTEfx::alIsFilter,
-			f -> EXTEfx.alFilteri(f, EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS)
-		);
-		return context.filters.length > 0;
-	}
-
-	public  static boolean clean(@Nullable final boolean force) {
-		if (!(
-			cleanSlots  () &&
-			cleanEffects() &&
-			cleanFilters() )) {
-			Engine.LOGGER.error("Context remains: {}.", id);
-			if (force) enabled = false; garbage = true;
-			return false;
-		}
-		Engine.LOGGER.info("Cleaned context: {}.", id);
-		enabled = false; garbage = true;
+		deactivate();
+		active = true;
 		return true;
 	}
+	public  boolean clean(@Nullable final boolean force) {
+		if (garbage) return true;
+		Engine.LOGGER.info("{}: cleaning children[{}]", id, children.length);
+		boolean success = cleanObjects();
+		activate();
+		//for (Context child : children) success = child.clean(force) ? success : false;
+		// deactivate();
+		garbage = force || success;
+		active = false;
+		if (pC.dLog) {
+			if (success) Engine.LOGGER.info ("Cleaned context: {}.", id);
+			else         Engine.LOGGER.error("Context remains: {}.", id);
+		}
+		return success;
+	}
+
+	public  boolean cleanObjects() {
+		boolean success = true;
+		for (ALset context : contexts) {
+			success = cleanSlots  (context) ? success : false;
+			success = cleanEffects(context) ? success : false;
+			success = cleanFilters(context) ? success : false;
+			success = cleanDirect (context) ? success : false;
+		}
+		return success;
+	}
 	// it's a pun! General function for cleaning slots/effects/filters
-	private static int[]   deleteAL(final String type, int[] set, Consumer<int[]> delete, IntPredicate verify) {
+	private int[]   deleteAL(final String type, int[] set, Consumer<int[]> delete, IntPredicate verify) {
 		if (pC.dLog) Engine.LOGGER.info("Removing {}[{}]", type, set.length);
 		delete.accept(set.clone());
 		// loop through slots
@@ -165,7 +143,7 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 		}
 		return set;
 	}
-	private static boolean cleanSlots() {
+	private boolean cleanSlots(ALset context) {
 		context.slots = deleteAL(
 			"slot", context.slots,
 			EXTEfx::alDeleteAuxiliaryEffectSlots,
@@ -173,7 +151,7 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 		);
 		return context.slots.length == 0;
 	}
-	private static boolean cleanEffects() {
+	private boolean cleanEffects(ALset context) {
 		context.effects = deleteAL(
 			"effect", context.effects,
 			EXTEfx::alDeleteEffects,
@@ -181,7 +159,7 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 		);
 		return context.effects.length == 0;
 	}
-	private static boolean cleanFilters() {
+	private boolean cleanFilters(ALset context) {
 		context.filters = deleteAL(
 			"filter", context.filters,
 			EXTEfx::alDeleteFilters,
@@ -189,10 +167,41 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 		);
 		return context.filters.length == 0;
 	}
+	private boolean cleanDirect(ALset context) {
+		EXTEfx.alDeleteFilters(context.direct);
+		if (EXTEfx.alIsFilter(context.direct)) {
+			Engine.LOGGER.error("Failed to delete direct filter object!"); return false;
+		} else if (pC.dLog) {
+			Engine.LOGGER.info("Direct filter object deleted with ID {}", context.direct);
+		}
+		return true;
+	}
 
-	public  static void    update() {
+	public  boolean addChild(Context child) {
+		final boolean query = queryChild(child.getID()) == -1;
+		if (query) {
+			children = ArrayUtils.add(children, child);
+		}
+		return query;
+	}
+	public  int queryChild(@Nullable String name) {
+		for (int i = 0; i<children.length; i++) {
+			if (children[i].getID(name)) return i;
+		}
+		return -1;
+	}
+
+	public  boolean getID(@Nullable String guess) {return guess == id;}
+	public  String  getID()                       {return id;}
+	public  boolean isGarbage()                   {return garbage;}
+
+	public  void update(SlotProfile slot, SoundProfile sound) {
 		if (!(active && enabled)) return;
-		for (Effect effect : effects) effect.update();
+		activate();
+		for (int i = 0; i<effects.length; i++) {
+			contexts[i] = effects[i].update(slot, sound);
+		}
+		deactivate();
 	}
 
 }

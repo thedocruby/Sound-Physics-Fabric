@@ -1,8 +1,10 @@
 package dev.thedocruby.resounding.effects;
 
+import dev.thedocruby.resounding.toolbox.*;
 import dev.thedocruby.resounding.openal.*;
 import dev.thedocruby.resounding.Engine;
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
+import net.minecraft.util.math.MathHelper;
 
 import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.AL11;
@@ -13,13 +15,13 @@ import org.lwjgl.openal.EXTEfx;
 // sound again, you're hearing it travel away from you.
 public class Reverb extends Effect {
 
-	public Reverb() {}
+	public String id = "reverb";
+//	public Reverb() {}
 
-	private static ALContext context;
+//	private ALset context;
 
-	public static void apply(
-			int slot,
-			int effect,
+	public void apply(
+			int id,
 			// Effect_properties {
 			float decayTime,
 			float density,
@@ -32,6 +34,8 @@ public class Reverb extends Effect {
 			float lateReverbDelay
 			// }
 	)  {
+		int slot   = context.slots  [id];
+		int effect = context.effects[id];
 		// define effects to be applied
 		SIF[] effects = {
 		new SIF("density"            , EXTEfx.AL_EAXREVERB_DENSITY              , density         ),
@@ -57,50 +61,68 @@ public class Reverb extends Effect {
 		}
 	}
 
-	public static void setFilter(int slot, int filter, int sourceID, float gain, float cutoff) {  // Set reverb send filter values and set source to send to all reverb fx slots
+	public void lowpass(int   filter, float gain, float cutoff) {  // Set reverb send filter values and set source to send to all reverb fx slots
 		EXTEfx.alFilterf(filter, EXTEfx.AL_LOWPASS_GAIN, gain);
 		ALUtils.errorProperty("filter", filter, "gain", gain);
 
 		EXTEfx.alFilterf(filter, EXTEfx.AL_LOWPASS_GAINHF, cutoff);
 		ALUtils.errorProperty("filter", filter, "cutoff", cutoff);
-
+	}
+	public void setFilter(int source, int id, float gain, float cutoff) {
+		final int filter = context.filters[id];
+		final int slot   = context.slots  [id];
+		lowpass(filter, gain, cutoff);
 		// TODO: figure out how to properly use `AL11.alSource3i(` so i don't have to predetermine reverb.
-		AL11.alSource3i(sourceID, EXTEfx.AL_AUXILIARY_SEND_FILTER, slot, 1, filter);
-		ALUtils.errorApply(new String[]{"filter", "slot"}, new int[]{filter, slot}, "source", sourceID);
+		AL11.alSource3i(source, EXTEfx.AL_AUXILIARY_SEND_FILTER, slot, 1, filter);
+		ALUtils.errorApply(new String[]{"filter", "slot"}, new int[]{filter, slot}, "source", source);
 	}
 
-	@Override
-	public boolean init(ALContext alc) {
+	public void setDirect(final int sourceID, float gain, float cutoff) {
+		gain   = MathHelper.clamp(gain,   0, 1);
+		cutoff = MathHelper.clamp(cutoff, 0, 1);
+		lowpass(context.direct, gain, cutoff);
+
+		AL10.alSourcei(sourceID, EXTEfx.AL_DIRECT_FILTER, context.direct);
+		ALUtils.errorApply("direct filter", context.direct, "source", sourceID);
+	}
+
+@Override
+	public ALset update(SlotProfile slot, SoundProfile sound) {
+		// Set reverb send filter values and set source to send to all reverb fx slots
+		setFilter(sound.sourceID(), slot.slot(), (float) slot.gain(), (float) slot.cutoff());
+		// Set direct filter values
+		setDirect(sound.sourceID(), (float) sound.directGain(), (float) sound.directCutoff());
+		return context;
+	}
+
+
+@Override
+	public boolean init() {
 		boolean success = true;
-		context = alc;
 		for(int i = 1; i <= pC.resolution; i++){
 			double t = (double) i / pC.resolution;
-//			setEffect(i - 1,
-//					(float) Math.max(t * pC.maxDecayTime, 0.1),
-//					(float) (t * 0.5 + 0.5),
-//					(float) MathHelper.lerp(pC.rvrbDiff, 1-t, 1),
-//					(float) (0.95 - (0.75 * t)),
-//					(float) Math.max(0.95 - (0.3 * t), 0.1),
-//					(float) Math.max(Math.pow(1 - t, 0.5) + 0.618, 0.1),
-//					(float) (t * 0.01),
-//					(float) (Math.pow(t, 0.5) + 0.618),
-//					(float) (t * 0.01)
-//			);
+			apply(i - 1,
+					(float) Math.max(t * pC.maxDecayTime, 0.1),
+					(float) (t * 0.5 + 0.5),
+					(float) MathHelper.lerp(pC.rvrbDiff, 1-t, 1),
+					(float) (0.95 - (0.75 * t)),
+					(float) Math.max(0.95 - (0.3 * t), 0.1),
+					(float) Math.max(Math.pow(1 - t, 0.5) + 0.618, 0.1),
+					(float) (t * 0.01),
+					(float) (Math.pow(t, 0.5) + 0.618),
+					(float) (t * 0.01)
+			);
 		}
-		context.direct = EXTEfx.alGenFilters();
-		if(!EXTEfx.alIsFilter(context.direct)) {
-			Engine.LOGGER.error("Failed to create direct filter object!");
-			success = false;
-		}
-		else if(pC.dLog){ Engine.LOGGER.info("Direct filter object created with ID {}", context.direct); }
 		EXTEfx.alFilteri(context.direct, EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
 		success &= !ALUtils.checkErrors("Failed to initialize direct filter object!");
-		if (success) { Engine.LOGGER.info("Finished initializing OpenAL Auxiliary Effect slots!"); return success; }
+		if (success) {
+			if (pC.dLog) Engine.LOGGER.info("Finished initializing OpenAL Auxiliary Effect slots!");
+			return success;
+		}
 		Engine.LOGGER.info("Failed to properly initialize OpenAL Auxiliary Effect slots. Aborting");
 		// TODO ? what ?
 		// efxEnabled = false;
 		return success;
 	}
-
 
 }

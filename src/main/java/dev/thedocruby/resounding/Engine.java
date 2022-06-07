@@ -8,7 +8,7 @@ package dev.thedocruby.resounding;
 // }
 // internal {
 import dev.thedocruby.resounding.effects.math.Air;
-import dev.thedocruby.resounding.openal.ResoundingEFX;
+import dev.thedocruby.resounding.openal.Context;
 import dev.thedocruby.resounding.raycast.Fix;
 import dev.thedocruby.resounding.raycast.Renderer;
 import dev.thedocruby.resounding.raycast.SPHitResult;
@@ -34,17 +34,18 @@ import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.chunk.WorldChunk;
 // }
 // logger {
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.ObjectUtils.Null;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 
 // }
 // utils {
+import org.apache.commons.lang3.ArrayUtils;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.apache.commons.lang3.ObjectUtils.Null;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -64,6 +65,8 @@ import static java.util.Map.entry;
 public class Engine {
 	// static definitions {
 	private Engine() { }
+
+	public static Context root = new Context();
 
 	public static EnvType env = null;
 	public static MinecraftClient mc;
@@ -186,6 +189,7 @@ public class Engine {
 	// }
 	// }
 	
+	public static void setRoot(Context context) {root=context;}
 	/* utility function */ public static <T> double logBase(T x, T b) {
 		return Math.log((Double) x) / Math.log((Double) b);
 	}
@@ -212,8 +216,8 @@ public class Engine {
 		// for a visualization, see: https://www.math3d.org/UYUQRza8n
 		return ray.subtract(
 				planeD.multiply
-					( normal / 3d // localize scale properly
-					/ Math.min(.01d, air)
+					( 2 // normal / 3d // localize scale properly
+					// / Math.min(.01d, air) // min of .01
 					* ray.dotProduct(planeD)
 					)
 				// TODO research, is this branchless?
@@ -266,23 +270,13 @@ public class Engine {
 	// wraps playSound() in order to process SVC audio chunks
 	@Contract("_ -> new")
 	@Environment(EnvType.CLIENT)
-	public static void svc_playSound(double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) {
-		// final int sourceID = event.getSource();
-		// // if invalid source
-		// // if (sourceID < 2) { LOGGER.info("invalid sourceID:{}", sourceID); return; }
-		// @Nullable
-		// final de.maxhenkel.voicechat.api.Position pos = event.getPosition();
-		// // if invalid position
-		// if (pos == null) return;
+	public static void svc_playSound(Context context, double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) {
 		lastSoundName = "voice-chat";
-		// second context (voice chat context)
-		playSound(1, posX, posY, posZ, sourceIDIn, auxOnlyIn);
-		LOGGER.info("{}:{},{},{}", sourceID, posX, posY, posZ);
-		//LOGGER.info("{}:{},{},{}", sourceID, pos.getX(), pos.getY(), pos.getZ());
+		playSound(context, posX, posY, posZ, sourceIDIn, auxOnlyIn);
 	}
 
 	@Environment(EnvType.CLIENT)
-	public static void playSound(final int context, double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) { // The heart of the Resounding audio pipeline
+	public static void playSound(Context context, double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) { // The heart of the Resounding audio pipeline
 		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 		long startTime = 0;
 		if (pC.pLog) startTime = System.nanoTime();
@@ -294,9 +288,9 @@ public class Engine {
 		if (mc.player == null || mc.world == null || uiPattern.matcher(lastSoundName).matches()) {
 			if (pC.dLog) {
 				LOGGER.info("Skipped playing sound \"{}\": Not a world sound.", lastSoundName);
-			} else {
+			} /* else {
 				LOGGER.debug("Skipped playing sound \"{}\": Not a world sound.", lastSoundName);
-			}
+			} */ // disabled for performance
 			return;
 		}
 
@@ -350,9 +344,9 @@ public class Engine {
 		if (message != "") {
 			if (pC.dLog) {
 				LOGGER.info(message);
-			} else {
+			} /* else {
 				LOGGER.debug(message);
-			}
+			} */ // disabled for performance
 			try { setEnv(context, processEnv(new EnvData(Collections.emptySet(), Collections.emptySet())));
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
@@ -367,9 +361,9 @@ Playing sound!
 	Sound name:    {}""", playerPos, listenerPos, sourceID, soundPos, lastSoundCategory, lastSoundName);
 		if (pC.dLog) {
 			LOGGER.info(message);
-		} else {
+		} /* else {
 			LOGGER.debug(message);
-		}
+		} */ // disabled for performance
 		try {  ////////  CORE SOUND PIPELINE  ////////
 
 			setEnv(context, processEnv(evalEnv()));
@@ -675,30 +669,32 @@ Playing sound!
 		if (pC.dLog || pC.eLog) {
 			if (isRain) {
 				LOGGER.info("Skipped reverb ray tracing for rain sound.");
-			} else {
+			} /* else {
 				LOGGER.info("Sampling environment with {} seed rays...", pC.nRays);
-			}
+			} */ // disabled for performance
 		} else {
 			if (isRain) {
 				LOGGER.debug("Skipped reverb ray tracing for rain sound.");
-			} else {
+			} /* else {
 				LOGGER.debug("Sampling environment with {} seed rays...", pC.nRays);
-			}
+			} */ // disabled for performance
 		}
 		Set<ReflectedRayData> reflRays = isRain ? Collections.emptySet() :
 				rays.stream().parallel().unordered().map(Engine::throwReflRay).collect(Collectors.toSet());
 		if(!isRain) {
+			String message = "";
 			if (pC.eLog) {
 				int rayCount = 0;
 				for (ReflectedRayData reflRay : reflRays){
 					rayCount += reflRay.size() * 2 + 1;
 				}
-				LOGGER.info("Environment sampled! Total number of rays casted: {}", rayCount); // TODO: This is not precise
+				message = " Total number of rays casted: "+rayCount;
+				// LOGGER.info("Environment sampled! Total number of rays casted: {}", rayCount); // TODO: This is not precise
 			} else if (pC.dLog) {
-				LOGGER.info("Environment sampled!");
-			} else {
+				LOGGER.info("Environment sampled!"+message);
+			} /* else {
 				LOGGER.debug("Environment sampled!");
-			}
+			} */ // disabled for performance
 		}
 
 		// TODO: Occlusion. Also, add occlusion profiles.
@@ -840,15 +836,15 @@ Playing sound!
 
 		if (pC.eLog || pC.dLog) {
 			LOGGER.info("Processed sound profile:\n{}", profile);
-		} else {
+		} /* else {
 			LOGGER.debug("Processed sound profile:\n{}", profile);
-		}
+		} */ // disabled for performance
 
 		return profile;
 	}
 
 	@Environment(EnvType.CLIENT)
-	public static void setEnv(final int context, final @NotNull SoundProfile profile) {
+	public static void setEnv(Context context, final @NotNull SoundProfile profile) {
 		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 
 		if (profile.sendGain().length != pC.resolution + 1 || profile.sendCutoff().length != pC.resolution + 1) {
@@ -859,20 +855,17 @@ Playing sound!
 
 		if (pC.eLog || pC.dLog) {
 			LOGGER.info("Final reverb settings:\n{}", finalSend);
-		} else {
+		} /* else {
 			LOGGER.debug("Final reverb settings:\n{}", finalSend);
-		}
+		} */ // disabled for performance
 
-		// Set reverb send filter values and set source to send to all reverb fx slots
-		ResoundingEFX.setFilter(context, finalSend.slot(), profile.sourceID(), (float) finalSend.gain(), (float) finalSend.cutoff());
-		// Set direct filter values
-		ResoundingEFX.setDirectFilter(context, profile.sourceID(), (float) profile.directGain(), (float) profile.directCutoff());
+		context.update(finalSend, profile);
 	}
 
 
 	@Contract("_, _ -> new")
 	@Environment(EnvType.CLIENT)
-	private static @NotNull SlotProfile selectSlot(double[] sendGain, double[] sendCutoff) {
+	public static @NotNull SlotProfile selectSlot(double[] sendGain, double[] sendCutoff) {
 		if (pC.fastPick) { // TODO: find cause of block.lava.ambient NaN
 			final double max = Arrays.stream(ArrayUtils.remove(sendGain, 0)).max().orElse(Double.NaN);
 			int imax = 0; for (int i = 1; i <= pC.resolution; i++) { if (sendGain[i] == max){ imax=i; break; } }

@@ -106,6 +106,19 @@ public class ResoundingEFX extends Effect { // TODO: Create separate debug toggl
 		AL11.alSource3i(sourceID, EXTEfx.AL_AUXILIARY_SEND_FILTER, slots[context][id], 1, filters[context][id]); // TODO: figure out how to properly use `AL11.alSource3i(` so i don't have to predetermine reverb.
 		ALUtils.checkErrors("Error applying Filter object "+filters[context][id]+" and aux slot "+slots[context][id]+" to source "+sourceID+"!");
 	}
+	public static void setDirectFilter(final int context, final int sourceID, float directGain, float directCutoff) {
+		directGain = MathHelper.clamp(directGain, 0, 1);
+		directCutoff = MathHelper.clamp(directCutoff, 0, 1);
+		if (!(efxEnabled && initialized[context])) throw new IllegalStateException("EFX is not enabled/initialized! Cannot complete request.");
+		EXTEfx.alFilterf(directFilter[context], EXTEfx.AL_LOWPASS_GAIN, directGain);
+		ALUtils.checkErrors("Error while assigning \"gain\" property to direct filter object! Attempted to assign value of \""+directGain+"\".");
+
+		EXTEfx.alFilterf(directFilter[context], EXTEfx.AL_LOWPASS_GAINHF, directCutoff);
+		ALUtils.checkErrors("Error while assigning \"cutoff\" property to direct filter object! Attempted to assign value of \""+directCutoff+"\".");
+
+		AL10.alSourcei(sourceID, EXTEfx.AL_DIRECT_FILTER, directFilter[context]);
+		ALUtils.checkErrors("Error applying direct filter object to source "+sourceID+"!");
+	}
 
 	private static void createAuxiliaryEffectSlots(final int context){       // Create new OpenAL Auxiliary Effect slots
 			slots = extendArray(slots, context+1);
@@ -252,20 +265,6 @@ private static void createContext(final int minContext) {
 
 		initialized[context] = false;
 		efxEnabled = false;
-	}
-
-	public static void setDirectFilter(final int context, final int sourceID, float directGain, float directCutoff) {
-		directGain = MathHelper.clamp(directGain, 0, 1);
-		directCutoff = MathHelper.clamp(directCutoff, 0, 1);
-		if (!(efxEnabled && initialized[context])) throw new IllegalStateException("EFX is not enabled/initialized! Cannot complete request.");
-		EXTEfx.alFilterf(directFilter[context], EXTEfx.AL_LOWPASS_GAIN, directGain);
-		ALUtils.checkErrors("Error while assigning \"gain\" property to direct filter object! Attempted to assign value of \""+directGain+"\".");
-
-		EXTEfx.alFilterf(directFilter[context], EXTEfx.AL_LOWPASS_GAINHF, directCutoff);
-		ALUtils.checkErrors("Error while assigning \"cutoff\" property to direct filter object! Attempted to assign value of \""+directCutoff+"\".");
-
-		AL10.alSourcei(sourceID, EXTEfx.AL_DIRECT_FILTER, directFilter[context]);
-		ALUtils.checkErrors("Error applying direct filter object to source "+sourceID+"!");
 	}
 
 	/* public static void setSoundPos(final int sourceID, final Vec3d pos) {

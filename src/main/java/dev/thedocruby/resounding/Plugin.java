@@ -1,6 +1,7 @@
 package dev.thedocruby.resounding;
 
-import dev.thedocruby.resounding.openal.ResoundingEFX;
+import dev.thedocruby.resounding.Engine;
+import dev.thedocruby.resounding.openal.Context;
 import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
 import net.minecraft.util.math.Vec3d;
 import de.maxhenkel.voicechat.api.Position;
@@ -24,12 +25,14 @@ import javax.annotation.Nullable;
 public class Plugin implements VoicechatPlugin {
 
     private Map<UUID, AudioChannel> audioChannels;
+	private Context context;
 
 //  public static VoicechatApi voicechatApi;
 //  @Nullable
 //  public static VoicechatServerApi voicechatServerApi;
 
     public Plugin() {
+        context = new Context();
         audioChannels = new HashMap<>();
     }
 
@@ -44,12 +47,8 @@ public class Plugin implements VoicechatPlugin {
     }
 
     private void onCreateALContext(CreateOpenALContextEvent event) {
-        long oldContext = EXTThreadLocalContext.alcGetThreadContext();
-        EXTThreadLocalContext.alcSetThreadContext(event.getContext());
-
-        ResoundingEFX.setUpEXTEfx(1);
-
-        EXTThreadLocalContext.alcSetThreadContext(oldContext);
+		context.bind(event.getContext(), "Simple Voice Chat");
+//		Engine.root.addChild(context);
     }
 
     private void onConnection(ClientVoicechatConnectionEvent event) {
@@ -82,7 +81,7 @@ public class Plugin implements VoicechatPlugin {
             audioChannels.put(channelId, audioChannel);
         }
 
-        audioChannel.onSound(event.getSource(), position == null ? null : new Vec3d(position.getX(), position.getY(), position.getZ()));
+        audioChannel.onSound(context, event.getSource(), position == null ? null : new Vec3d(position.getX(), position.getY(), position.getZ()));
     }
 
 }

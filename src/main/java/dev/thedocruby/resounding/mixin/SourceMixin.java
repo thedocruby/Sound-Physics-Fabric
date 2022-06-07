@@ -1,5 +1,6 @@
 package dev.thedocruby.resounding.mixin;
 
+import dev.thedocruby.resounding.openal.Context;
 import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.toolbox.SourceAccessor;
 import net.fabricmc.api.EnvType;
@@ -33,13 +34,13 @@ public class SourceMixin implements SourceAccessor {
     private void onPlaySoundInjector(CallbackInfo ci) {
         if (Engine.isOff) return;
 		// TODO make context dynamic
-        Engine.playSound(0, pos.x, pos.y, pos.z, pointer, false);
+        Engine.playSound(Engine.root, pos.x, pos.y, pos.z, pointer, false);
     }
 
     public void calculateReverb(SoundInstance sound, SoundListener listener) {
         if (Engine.isOff) return;
         Engine.updateYeetedSoundInfo(sound, listener);
 		// TODO make context dynamic
-        Engine.playSound(0, pos.x, pos.y, pos.z, pointer, false);
+        Engine.playSound(Engine.root, pos.x, pos.y, pos.z, pointer, false);
     }
 }

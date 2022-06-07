@@ -2,7 +2,7 @@ package dev.thedocruby.resounding.mixin;
 
 import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.config.BlueTapePack.ConfigManager;
-import dev.thedocruby.resounding.openal.ResoundingEFX;
+import dev.thedocruby.resounding.openal.Context;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
@@ -26,7 +26,8 @@ public class SoundEngineMixin {
             return;
         }
         Engine.LOGGER.info("Starting Resounding engine...");
-        if (!ResoundingEFX.setUpEXTEfx(0)) {
+		Engine.setRoot(new Context());
+        if (!Engine.root.setup("Base Game")) {
             Engine.LOGGER.info("Failed to prime OpenAL EFX for Resounding effects. ResoundingEngine will not be active.");
             Engine.isOff = true;
             return;
@@ -45,9 +46,7 @@ public class SoundEngineMixin {
     private void resoundingStopInjector(CallbackInfo ci){
         if (Engine.isOff) return;
         Engine.LOGGER.info("Stopping Resounding engine...");
-		for (int i = 0; i<ResoundingEFX.initialized.length; i++) {
-			if (ResoundingEFX.initialized[i]) ResoundingEFX.cleanUpEXTEfx(i);
-		}
+		Engine.root.clean(false);
         Engine.mc = null;
         Engine.isOff = true;
     }

@@ -1,6 +1,7 @@
 package dev.thedocruby.resounding;
 
 import net.minecraft.util.math.Vec3d;
+import dev.thedocruby.resounding.openal.Context;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
@@ -15,7 +16,7 @@ public class AudioChannel {
         this.channelId = channelId;
     }
 
-    public void onSound(int source, @Nullable Vec3d pos) {
+    public void onSound(Context context, int source, @Nullable Vec3d pos) {
 //      if (soundPos == null) {
 //          SoundPhysics.setDefaultEnvironment(source);
 //          return;
@@ -29,7 +30,7 @@ public class AudioChannel {
         }
 
 //      SoundPhysics.setLastSoundCategoryAndName(SoundSource.MASTER, "voicechat");
-        Engine.svc_playSound(pos.getX(), pos.getY(), pos.getZ(), source, false);
+        Engine.svc_playSound(context, pos.getX(), pos.getY(), pos.getZ(), source, false);
 
         lastUpdate = time;
         lastPos = pos;
