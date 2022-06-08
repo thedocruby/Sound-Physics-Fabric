@@ -6,13 +6,13 @@ import dev.thedocruby.resounding.openal.Context;
 import javax.annotation.Nullable;
 import java.util.UUID;
 
-public class AudioChannel {
+public class SVCchannel {
 
     private final UUID channelId;
     private long lastUpdate;
     private Vec3d lastPos;
 
-    public AudioChannel(UUID channelId) {
+    public SVCchannel(UUID channelId) {
         this.channelId = channelId;
     }
 

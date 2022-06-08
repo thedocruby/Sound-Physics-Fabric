@@ -7,9 +7,7 @@ import net.minecraft.util.math.Vec3d;
 import de.maxhenkel.voicechat.api.Position;
 import de.maxhenkel.voicechat.api.VoicechatApi;
 import de.maxhenkel.voicechat.api.VoicechatPlugin;
-//import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.events.EventRegistration;
-//import de.maxhenkel.voicechat.api.events.VoicechatServerStartedEvent;
 import de.maxhenkel.voicechat.api.events.OpenALSoundEvent;
 import de.maxhenkel.voicechat.api.events.CreateOpenALContextEvent;
 import de.maxhenkel.voicechat.api.events.ClientVoicechatConnectionEvent;
@@ -22,18 +20,15 @@ import javax.annotation.Nullable;
 
 //import javax.annotation.Nullable;
 
-public class Plugin implements VoicechatPlugin {
+public class SVC implements VoicechatPlugin {
 
-    private Map<UUID, AudioChannel> audioChannels;
+    private Map<UUID, SVCchannel> channels;
 	private Context context;
 
-//  public static VoicechatApi voicechatApi;
-//  @Nullable
-//  public static VoicechatServerApi voicechatServerApi;
 
-    public Plugin() {
+    public SVC() {
         context = new Context();
-        audioChannels = new HashMap<>();
+        channels = new HashMap<>();
     }
 
     @Override
@@ -43,16 +38,16 @@ public class Plugin implements VoicechatPlugin {
 
     @Override
     public void initialize(VoicechatApi api) {
-        audioChannels.clear();
+        channels.clear();
     }
 
     private void onCreateALContext(CreateOpenALContextEvent event) {
 		context.bind(event.getContext(), "Simple Voice Chat");
-//		Engine.root.addChild(context);
+		Engine.root.addChild(context);
     }
 
     private void onConnection(ClientVoicechatConnectionEvent event) {
-        audioChannels.values().removeIf(AudioChannel::canBeRemoved);
+        channels.values().removeIf(SVCchannel::canBeRemoved);
     }
 
     @Override
@@ -74,14 +69,14 @@ public class Plugin implements VoicechatPlugin {
         }
 
         @Nullable
-        AudioChannel audioChannel = audioChannels.get(channelId);
+        SVCchannel channel = channels.get(channelId);
 
-        if (audioChannel == null) {
-            audioChannel = new AudioChannel(channelId);
-            audioChannels.put(channelId, audioChannel);
+        if (channel == null) {
+            channel = new SVCchannel(channelId);
+            channels.put(channelId, channel);
         }
 
-        audioChannel.onSound(context, event.getSource(), position == null ? null : new Vec3d(position.getX(), position.getY(), position.getZ()));
+        channel.onSound(context, event.getSource(), position == null ? null : new Vec3d(position.getX(), position.getY(), position.getZ()));
     }
 
 }
