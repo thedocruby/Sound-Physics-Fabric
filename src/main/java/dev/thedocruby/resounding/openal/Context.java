@@ -195,11 +195,11 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 	public  String  getID()                       {return id;}
 	public  boolean isGarbage()                   {return garbage;}
 
-	public  void update(SlotProfile slot, SoundProfile sound) {
+	public  void update(SlotProfile slot, SoundProfile sound, boolean isGentle) {
 		if (!(active && enabled)) return;
 		activate();
 		for (int i = 0; i<effects.length; i++) {
-			contexts[i] = effects[i].update(slot, sound);
+			contexts[i] = effects[i].update(slot, sound, isGentle);
 		}
 		deactivate();
 	}

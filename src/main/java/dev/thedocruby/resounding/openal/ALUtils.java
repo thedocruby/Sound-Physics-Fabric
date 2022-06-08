@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.ALC10;
 
+import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 import static dev.thedocruby.resounding.Engine.LOGGER;
 import java.util.function.Consumer;
 
@@ -33,6 +34,8 @@ public class ALUtils {
 	}
 
 	public static boolean checkErrors(Consumer<String> callback) {
+		// TODO introduce an error log toggle
+		if (!pC.dLog) return false;
 		int i = AL10.alGetError();
 		if (i != AL10.AL_NO_ERROR) {
 			callback.accept("OpenAL AL error "+getErrorMessage(i)+": ");

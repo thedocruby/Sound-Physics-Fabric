@@ -163,6 +163,7 @@ public class Engine {
 	public static final Pattern rainPattern = Pattern.compile(".*rain.*");
 	public static final Pattern stepPattern = Pattern.compile(".*step.*"); // TODO: step sounds
 	public static final Pattern stepPatternPF = Pattern.compile(".*pf_presence.*"); // TODO: step sounds
+	public static final Pattern gentlePattern = Pattern.compile(".*(ambient|splash|swim|note|compounded|disc).*");
 	// public static final Pattern blockPattern = Pattern.compile(".*block..*");TODO: Occlusion
 	public static final Pattern uiPattern = Pattern.compile("ui..*");
 	// }
@@ -298,7 +299,7 @@ public class Engine {
 		if (lastSoundCategory == SoundCategory.RECORDS){posX+=0.5;posY+=0.5;posZ+=0.5;/*isBlock = true;*/} // TODO: Occlusion
 		if (stepPattern.matcher(lastSoundName).matches() || stepPatternPF.matcher(lastSoundName).matches()) {posY+=0.2;} // TODO: step sounds
 		// doNineRay = pC.nineRay && (lastSoundCategory == SoundCategory.BLOCKS || isBlock); // TODO: Occlusion
-		{ // mem.saver
+		{ // get pose - mem.saver
 			Vec3d playerPosOld = mc.player.getPos();
 			playerPos = new Vec3d(playerPosOld.x, playerPosOld.y + mc.player.getEyeHeight(mc.player.getPose()), playerPosOld.z);
 		}
@@ -317,6 +318,7 @@ public class Engine {
 		soundChunk = mc.world.getChunk(((int)Math.floor(soundPos.x))>>4,((int)Math.floor(soundPos.z))>>4);
 		soundBlockPos = new BlockPos(soundPos.x, soundPos.y, soundPos.z);
 		timeT = mc.world.getTime();
+		boolean isGentle = gentlePattern.matcher(lastSoundName).matches();
 
 		String message = "";
 		// TODO use secondary tracer or branch to recognize void locations as air
@@ -347,10 +349,10 @@ public class Engine {
 			} /* else {
 				LOGGER.debug(message);
 			} */ // disabled for performance
-			try { setEnv(context, processEnv(new EnvData(Collections.emptySet(), Collections.emptySet())));
+			try { setEnv(context, processEnv(new EnvData(Collections.emptySet(), Collections.emptySet())), isGentle);
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
-			message = String.format(
+/*			message = String.format(
 """
 Playing sound!
 	Player Pos:    {}
@@ -358,7 +360,7 @@ Playing sound!
 	Source Pos:    {}
 	Source ID:    {}
 	Sound category:    {}
-	Sound name:    {}""", playerPos, listenerPos, sourceID, soundPos, lastSoundCategory, lastSoundName);
+	Sound name:    {}""", playerPos, listenerPos, sourceID, soundPos, lastSoundCategory, lastSoundName); */ // disabled for debug, need better method
 		if (pC.dLog) {
 			LOGGER.info(message);
 		} /* else {
@@ -366,7 +368,7 @@ Playing sound!
 		} */ // disabled for performance
 		try {  ////////  CORE SOUND PIPELINE  ////////
 
-			setEnv(context, processEnv(evalEnv()));
+			setEnv(context, processEnv(evalEnv()), isGentle);
 
 		} catch (Exception e) { e.printStackTrace(); }
 		if (pC.pLog) {
@@ -672,13 +674,13 @@ Playing sound!
 			} /* else {
 				LOGGER.info("Sampling environment with {} seed rays...", pC.nRays);
 			} */ // disabled for performance
-		} else {
+		} /* else {
 			if (isRain) {
 				LOGGER.debug("Skipped reverb ray tracing for rain sound.");
-			} /* else {
+			} else {
 				LOGGER.debug("Sampling environment with {} seed rays...", pC.nRays);
-			} */ // disabled for performance
-		}
+			}
+		} */ // disabled for performance
 		Set<ReflectedRayData> reflRays = isRain ? Collections.emptySet() :
 				rays.stream().parallel().unordered().map(Engine::throwReflRay).collect(Collectors.toSet());
 		if(!isRain) {
@@ -844,7 +846,7 @@ Playing sound!
 	}
 
 	@Environment(EnvType.CLIENT)
-	public static void setEnv(Context context, final @NotNull SoundProfile profile) {
+	public static void setEnv(Context context, final @NotNull SoundProfile profile, boolean isGentle) {
 		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 
 		if (profile.sendGain().length != pC.resolution + 1 || profile.sendCutoff().length != pC.resolution + 1) {
@@ -859,7 +861,7 @@ Playing sound!
 			LOGGER.debug("Final reverb settings:\n{}", finalSend);
 		} */ // disabled for performance
 
-		context.update(finalSend, profile);
+		context.update(finalSend, profile, isGentle);
 	}
 
 

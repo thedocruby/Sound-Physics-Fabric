@@ -62,6 +62,8 @@ public class Reverb extends Effect {
 	}
 
 	public void lowpass(int   filter, float gain, float cutoff) {  // Set reverb send filter values and set source to send to all reverb fx slots
+		if (Float.isNaN(gain  )) gain   = 1.0f;
+		if (Float.isNaN(cutoff)) cutoff = 1.0f;
 		EXTEfx.alFilterf(filter, EXTEfx.AL_LOWPASS_GAIN, gain);
 		ALUtils.errorProperty("filter", filter, "gain", gain);
 
@@ -77,9 +79,10 @@ public class Reverb extends Effect {
 		ALUtils.errorApply(new String[]{"filter", "slot"}, new int[]{filter, slot}, "source", source);
 	}
 
-	public void setDirect(final int sourceID, float gain, float cutoff) {
-		gain   = MathHelper.clamp(gain,   0, 1);
-		cutoff = MathHelper.clamp(cutoff, 0, 1);
+	public void setDirect(final int sourceID, float gain, float cutoff, boolean isGentle) {
+		float min = isGentle ? 0.5f : 0;
+		gain   = MathHelper.clamp(gain,   min, 1);
+		cutoff = MathHelper.clamp(cutoff, min, 1);
 		lowpass(context.direct, gain, cutoff);
 
 		AL10.alSourcei(sourceID, EXTEfx.AL_DIRECT_FILTER, context.direct);
@@ -87,11 +90,11 @@ public class Reverb extends Effect {
 	}
 
 @Override
-	public ALset update(SlotProfile slot, SoundProfile sound) {
+	public ALset update(SlotProfile slot, SoundProfile sound, boolean isGentle) {
 		// Set reverb send filter values and set source to send to all reverb fx slots
 		setFilter(sound.sourceID(), slot.slot(), (float) slot.gain(), (float) slot.cutoff());
 		// Set direct filter values
-		setDirect(sound.sourceID(), (float) sound.directGain(), (float) sound.directCutoff());
+		setDirect(sound.sourceID(), (float) sound.directGain(), (float) sound.directCutoff(), isGentle);
 		return context;
 	}
 

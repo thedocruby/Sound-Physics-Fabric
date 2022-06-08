@@ -59,7 +59,7 @@ public class Effect extends Utils {
 		return context;
 	}
 
-	public  ALset update(SlotProfile slot, SoundProfile sound) {return context;}
+	public  ALset update(SlotProfile slot, SoundProfile sound, boolean isGentle) {return context;}
 
 	// it's a pun! General function for setup of slots/effects/filters
 	private int[]   generAL(final String type, Consumer<int[]> generate, IntPredicate verify, IntConsumer init) {
