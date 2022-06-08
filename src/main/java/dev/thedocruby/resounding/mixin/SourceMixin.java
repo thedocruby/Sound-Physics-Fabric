@@ -1,6 +1,5 @@
 package dev.thedocruby.resounding.mixin;
 
-import dev.thedocruby.resounding.openal.Context;
 import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.toolbox.SourceAccessor;
 import net.fabricmc.api.EnvType;

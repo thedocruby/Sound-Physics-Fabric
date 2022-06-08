@@ -2,7 +2,6 @@ package dev.thedocruby.resounding.mixin;
 
 import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
-import dev.thedocruby.resounding.effects.math.Air;
 import dev.thedocruby.resounding.toolbox.SourceAccessor;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -37,8 +36,8 @@ public class SoundSystemMixin {
         Engine.updateYeetedSoundInfo(sound, this.listener); // TODO: do this better maybe
     }
 
-    @Inject(method = "tick()V", at = @At(value = "HEAD"))
-    private void ticker(CallbackInfo ci){ Air.updateSmoothedRain(); }
+//  @Inject(method = "tick()V", at = @At(value = "HEAD"))
+//  private void ticker(CallbackInfo ci){ Air.updateSmoothedRain(); }
 
     @ModifyArg(method = "getAdjustedVolume", at = @At(value = "INVOKE", target = "net/minecraft/util/math/MathHelper.clamp (FFF)F"), index = 0)
     private float volumeMultiplierInjector(float vol){ if (Engine.isOff) return vol; return vol * PrecomputedConfig.globalVolumeMultiplier; }

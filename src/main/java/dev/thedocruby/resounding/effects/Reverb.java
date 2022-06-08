@@ -2,7 +2,7 @@ package dev.thedocruby.resounding.effects;
 
 import dev.thedocruby.resounding.toolbox.*;
 import dev.thedocruby.resounding.openal.*;
-import dev.thedocruby.resounding.Engine;
+import static dev.thedocruby.resounding.Engine.LOGGER;
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 import net.minecraft.util.math.MathHelper;
 
@@ -57,7 +57,7 @@ public class Reverb extends Effect {
 		//Attach updated effect object
 		EXTEfx.alAuxiliaryEffectSloti(slot, EXTEfx.AL_EFFECTSLOT_EFFECT, effect);
 		if (pC.dLog && !ALUtils.errorApply("effect", effect, "slot", slot)) {
-			Engine.LOGGER.info("Initialized effect.{}", effect);
+			LOGGER.info("Initialized effect.{}", effect);
 		}
 	}
 
@@ -119,10 +119,10 @@ public class Reverb extends Effect {
 		EXTEfx.alFilteri(context.direct, EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
 		success &= !ALUtils.checkErrors("Failed to initialize direct filter object!");
 		if (success) {
-			if (pC.dLog) Engine.LOGGER.info("Finished initializing OpenAL Auxiliary Effect slots!");
+			if (pC.dLog) LOGGER.info("Finished initializing OpenAL Auxiliary Effect slots!");
 			return success;
 		}
-		Engine.LOGGER.info("Failed to properly initialize OpenAL Auxiliary Effect slots. Aborting");
+		LOGGER.info("Failed to properly initialize OpenAL Auxiliary Effect slots. Aborting");
 		// TODO ? what ?
 		// efxEnabled = false;
 		return success;

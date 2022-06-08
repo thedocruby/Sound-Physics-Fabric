@@ -20,9 +20,7 @@ public class PlayerEntityMixin {
 
     @ModifyArg(method = "playSound", at = @At(value = "INVOKE", target = "net/minecraft/world/World.playSound (Lnet/minecraft/entity/player/PlayerEntity;DDDLnet/minecraft/sound/SoundEvent;Lnet/minecraft/sound/SoundCategory;FF)V"), index = 2)
     private double EyeHeightOffsetInjector(@Nullable PlayerEntity player, double x, double y, double z, @NotNull SoundEvent sound, SoundCategory category, float volume, float pitch) {
-        return  ( Engine.stepPattern.matcher(sound.getId().getPath()).matches()
-                ||Engine.stepPatternPF.matcher(sound.getId().getPath()).matches()) ?
-                y : getEyeY(); // TODO: step sounds
+        return  Engine.stepPattern.matcher(sound.getId().getPath()).matches() ? y : getEyeY(); // TODO: step sounds
     }
 
 }

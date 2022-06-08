@@ -1,5 +1,6 @@
-package dev.thedocruby.resounding.openal;
+package dev.thedocruby.resounding.effects;
 
+import dev.thedocruby.resounding.openal.*;
 import dev.thedocruby.resounding.toolbox.*;
 import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.Utils;
@@ -32,10 +33,8 @@ import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 public class Effect extends Utils {
 
 	public  ALset   context       ; // instantiated
-	public  String  name = ""     ;
+	public  String  name   = ""   ;
 	public  boolean active = false;
-
-//	public Effect() {}
 
 	public  boolean init() {return true;};
 
@@ -116,6 +115,4 @@ public class Effect extends Utils {
 			Engine.LOGGER.info("Direct filter object created with ID {}", context.direct);
 		}
 		return true;
-	}
-
-};
+	}};

@@ -66,15 +66,18 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 	private void populateEffects() {
 		// alphabetical
 		// TODO implement other effects
-		effects = new Effect[]
-		{ /*new Doppler()
+		effects = new Effect[] {
+		/*new Atmosphere()
+		, new Doppler()
 		, new EarDamage()
 		, new Echo()
 		, new Occlusion() // bunched in with reverb, for now
 		, new Resonance()
-		*/new Reverb()/*
-		, new Style()
-		, new Travel()*/
+		*/new Reverb()
+		/*new Style()
+		, new Travel()
+		, new Water()
+		*/
 		}; // cleaner syntax...
 		contexts = new ALset[effects.length];
 	}

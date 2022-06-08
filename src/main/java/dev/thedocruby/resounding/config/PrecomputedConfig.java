@@ -181,9 +181,10 @@ public class PrecomputedConfig {
             globalAbsHFRcp = 1 / Math.max(c.general.globalAbsorptionBrightness, Double.MIN_NORMAL);
             globalRefl = c.general.globalBlockReflectance;
             globalReflRcp = 1 / globalRefl;
-            airAbs = (float) MathHelper.clamp(c.effects.airAbsorption, 0.0, 10.0);
-            humAbs = (float) MathHelper.clamp(c.effects.humidityAbsorption, 0.0, 4.0);
-            rainAbs = (float) MathHelper.clamp(c.effects.rainAbsorption, 0.0, 2.0);
+            // TODO implement environment functions
+            // airAbs = (float) MathHelper.clamp(c.effects.airAbsorption, 0.0, 10.0);
+            // humAbs = (float) MathHelper.clamp(c.effects.humidityAbsorption, 0.0, 4.0);
+            // rainAbs = (float) MathHelper.clamp(c.effects.rainAbsorption, 0.0, 2.0);
             waterFilt = 1 - MathHelper.clamp(c.effects.underwaterFilter, 0.0, 1.0);
             soundSimulationDistance = c.quality.soundSimulationDistance;
 

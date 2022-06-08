@@ -2,7 +2,7 @@ package dev.thedocruby.resounding;
 
 import org.apache.commons.lang3.ArrayUtils;
 
-import dev.thedocruby.resounding.openal.Effect;
+import dev.thedocruby.resounding.effects.Effect;
 
 /**
 * Utils
