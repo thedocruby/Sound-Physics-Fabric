@@ -2,10 +2,6 @@
 package dev.thedocruby.resounding;
 
 // imports {
-// svc {
-//import de.maxhenkel.voicechat.api.events.OpenALSoundEvent;
-//import de.maxhenkel.voicechat.api.Position;
-// }
 // internal {
 import dev.thedocruby.resounding.openal.Context;
 import dev.thedocruby.resounding.raycast.Patch;
@@ -27,7 +23,6 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-//import net.minecraft.util.math.Position;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.chunk.WorldChunk;
@@ -35,8 +30,6 @@ import net.minecraft.world.chunk.WorldChunk;
 // logger {
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-
 // }
 // utils {
 import org.apache.commons.lang3.ArrayUtils;

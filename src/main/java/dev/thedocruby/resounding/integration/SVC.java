@@ -1,4 +1,4 @@
-package dev.thedocruby.resounding;
+package dev.thedocruby.resounding.integration;
 
 import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.openal.Context;
@@ -17,8 +17,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
-
-//import javax.annotation.Nullable;
 
 public class SVC implements VoicechatPlugin {
 

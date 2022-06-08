@@ -8,23 +8,15 @@ import dev.thedocruby.resounding.effects.*;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import org.apache.commons.lang3.ArrayUtils;
-import org.lwjgl.openal.AL10;
-import org.lwjgl.openal.AL11;
-import org.lwjgl.openal.ALC10;
 import org.lwjgl.openal.EXTEfx;
 import org.lwjgl.openal.EXTThreadLocalContext;
-
-import net.minecraft.util.math.MathHelper;
 
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 
 import javax.annotation.Nullable;
 
-import java.util.function.Function;
 import java.util.function.IntPredicate;
-import java.util.function.IntConsumer;
 import java.util.function.Consumer;
-import java.util.Optional;
 
 
 @Environment(EnvType.CLIENT)

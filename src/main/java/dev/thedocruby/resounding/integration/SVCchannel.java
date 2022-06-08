@@ -1,7 +1,8 @@
-package dev.thedocruby.resounding;
+package dev.thedocruby.resounding.integration;
 
 import net.minecraft.util.math.Vec3d;
 import dev.thedocruby.resounding.openal.Context;
+import dev.thedocruby.resounding.Engine;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
