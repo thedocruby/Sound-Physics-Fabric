@@ -1,4 +1,4 @@
-package dev.thedocruby.resounding.integration;
+package dev.thedocruby.resounding;
 
 import net.minecraft.util.math.Vec3d;
 import dev.thedocruby.resounding.openal.Context;
@@ -7,13 +7,13 @@ import dev.thedocruby.resounding.Engine;
 import javax.annotation.Nullable;
 import java.util.UUID;
 
-public class SVCchannel {
+public class AudioChannel {
 
     private final UUID channelId;
     private long lastUpdate;
     private Vec3d lastPos;
 
-    public SVCchannel(UUID channelId) {
+    public AudioChannel(UUID channelId) {
         this.channelId = channelId;
     }
 

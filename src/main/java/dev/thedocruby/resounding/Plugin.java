@@ -1,4 +1,4 @@
-package dev.thedocruby.resounding.integration;
+package dev.thedocruby.resounding;
 
 import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.openal.Context;
@@ -18,13 +18,13 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-public class SVC implements VoicechatPlugin {
+public class Plugin implements VoicechatPlugin {
 
-    private Map<UUID, SVCchannel> channels;
+    private Map<UUID, AudioChannel> channels;
 	private Context context;
 
 
-    public SVC() {
+    public Plugin() {
         context = new Context();
         channels = new HashMap<>();
     }
@@ -45,7 +45,7 @@ public class SVC implements VoicechatPlugin {
     }
 
     private void onConnection(ClientVoicechatConnectionEvent event) {
-        channels.values().removeIf(SVCchannel::canBeRemoved);
+        channels.values().removeIf(AudioChannel::canBeRemoved);
     }
 
     @Override
@@ -67,10 +67,10 @@ public class SVC implements VoicechatPlugin {
         }
 
         @Nullable
-        SVCchannel channel = channels.get(channelId);
+        AudioChannel channel = channels.get(channelId);
 
         if (channel == null) {
-            channel = new SVCchannel(channelId);
+            channel = new AudioChannel(channelId);
             channels.put(channelId, channel);
         }
 
