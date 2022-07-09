@@ -20,61 +20,61 @@ import javax.annotation.Nullable;
 
 public class Plugin implements VoicechatPlugin {
 
-    private Map<UUID, AudioChannel> channels;
+	private Map<UUID, AudioChannel> channels;
 	private Context context;
 
 
-    public Plugin() {
-        context = new Context();
-        channels = new HashMap<>();
-    }
+	public Plugin() {
+		context  = new Context();
+		channels = new HashMap<>();
+	}
 
-    @Override
-    public String getPluginId() {
-        return "resounding";
-    }
+	@Override
+	public String getPluginId() {
+		return "resounding";
+	}
 
-    @Override
-    public void initialize(VoicechatApi api) {
-        channels.clear();
-    }
+	@Override
+	public void initialize(VoicechatApi api) {
+		channels.clear();
+	}
 
-    private void onCreateALContext(CreateOpenALContextEvent event) {
+	private void onCreateALContext(CreateOpenALContextEvent event) {
 		context.bind(event.getContext(), "Simple Voice Chat");
 		Engine.root.addChild(context);
-    }
+	}
 
-    private void onConnection(ClientVoicechatConnectionEvent event) {
-        channels.values().removeIf(AudioChannel::canBeRemoved);
-    }
+	private void onConnection(ClientVoicechatConnectionEvent event) {
+		channels.values().removeIf(AudioChannel::canBeRemoved);
+	}
 
-    @Override
-    public void registerEvents(EventRegistration registration) {
-        registration.registerEvent(ClientVoicechatConnectionEvent.class, this::onConnection);
-        registration.registerEvent(OpenALSoundEvent.class, this::onOpenALSound);
-        registration.registerEvent(CreateOpenALContextEvent.class, this::onCreateALContext);
-    }
+	@Override
+	public void registerEvents(EventRegistration registration) {
+		registration.registerEvent(ClientVoicechatConnectionEvent.class, this::onConnection);
+		registration.registerEvent(OpenALSoundEvent              .class, this::onOpenALSound);
+		registration.registerEvent(CreateOpenALContextEvent      .class, this::onCreateALContext);
+	}
 
 
-    private void onOpenALSound(OpenALSoundEvent event) {
-        @Nullable
-        final Position position = event.getPosition();
-        @Nullable
-        final UUID channelId = event.getChannelId();
+	private void onOpenALSound(OpenALSoundEvent event) {
+		@Nullable
+		final Position position = event.getPosition();
+		@Nullable
+		final UUID channelId = event.getChannelId();
 
-        if (channelId == null) {
-            return;
-        }
+		if (channelId == null) {
+			return;
+		}
 
-        @Nullable
-        AudioChannel channel = channels.get(channelId);
+		@Nullable
+		AudioChannel channel = channels.get(channelId);
 
-        if (channel == null) {
-            channel = new AudioChannel(channelId);
-            channels.put(channelId, channel);
-        }
+		if (channel == null) {
+			channel = new AudioChannel(channelId);
+			channels.put(channelId, channel);
+		}
 
-        channel.onSound(context, event.getSource(), position == null ? null : new Vec3d(position.getX(), position.getY(), position.getZ()));
-    }
+		channel.onSound(context, event.getSource(), position == null ? null : new Vec3d(position.getX(), position.getY(), position.getZ()));
+	}
 
 }

@@ -105,15 +105,15 @@ public class Reverb extends Effect {
 		for(int i = 1; i <= pC.resolution; i++){
 			double t = (double) i / pC.resolution;
 			apply(i - 1,
-					(float) Math.max(t * pC.maxDecayTime, 0.1),
-					(float) (t * 0.5 + 0.5),
-					(float) MathHelper.lerp(pC.rvrbDiff, 1-t, 1),
-					(float) (0.95 - (0.75 * t)),
-					(float) Math.max(0.95 - (0.3 * t), 0.1),
-					(float) Math.max(Math.pow(1 - t, 0.5) + 0.618, 0.1),
-					(float) (t * 0.01),
-					(float) (Math.pow(t, 0.5) + 0.618),
-					(float) (t * 0.01)
+					(float) Math.max(t * pC.maxDecayTime, 0.1),          // decayTime
+					(float) (t * 0.5 + 0.5),                             // density
+					(float) MathHelper.lerp(pC.rvrbDiff, 1-t, 1),        // diffusion
+					(float) (0.95 - (0.75 * t)),                         // gainHF
+					(float) Math.max(0.95 - (0.3 * t), 0.1),             // decayHFRatio
+					(float) Math.max(Math.pow(1 - t, 0.5) + 0.618, 0.1), // reflectionsGain
+					(float) (t * 0.01),                                  // reflectionsDelay
+					(float) (Math.pow(t, 0.5) + 0.618),                  // lateReverbGain
+					(float) (t * 0.01)                                   // lateReverbDelay
 			);
 		}
 		EXTEfx.alFilteri(context.direct, EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);

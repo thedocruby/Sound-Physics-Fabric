@@ -40,11 +40,11 @@
     "java": ">=17",
     "cloth-config2": ">=6.2.57",
     "fabricloader": ">=0.13.3",
-    "minecraft": "1.18.2",
-    "voicechat": ">=1.18.2-2.2.39"
+    "minecraft": "=1.18.2"
   },
   "suggests": {
-    "modmenu": ">=3.1.0"
+    "modmenu": ">=3.1.0",
+    "voicechat": ">=1.18.2-2.2.39"
   },
   "custom": {
     "modmenu": {
