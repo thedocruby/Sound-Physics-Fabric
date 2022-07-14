@@ -40,7 +40,7 @@ public class SoundSystemMixin {
     @Inject(method = "tick()V", at = @At(value = "HEAD"))
     private void ticker(CallbackInfo ci){ AirEffects.updateSmoothedRain(); }
 
-    @ModifyArg(method = "getAdjustedVolume", at = @At(value = "INVOKE", target = "net/minecraft/util/math/MathHelper.clamp (FFF)F"), index = 0)
+    @ModifyArg(method = "getAdjustedVolume(FLnet/minecraft/sound/SoundCategory;)F", at = @At(value = "INVOKE", target = "net/minecraft/util/math/MathHelper.clamp (FFF)F"), index = 0)
     private float volumeMultiplierInjector(float vol){ if (ResoundingEngine.isOff) return vol; return vol * PrecomputedConfig.globalVolumeMultiplier; }
 
     @SuppressWarnings("InvalidInjectorMethodSignature")
