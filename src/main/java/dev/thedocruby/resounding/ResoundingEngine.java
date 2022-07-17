@@ -285,11 +285,11 @@ public class ResoundingEngine {
 		final int top = mc.world.getTopY();
 		isRain = rainPattern.matcher(lastSoundName).matches();
 		soundPos = new Vec3d(posX, posY, posZ);
-		viewDist = mc.options.getViewDistance();
+		viewDist = mc.options.getClampedViewDistance();
 		double maxDist = Math.min(
 				Math.min(
 					Math.min(
-						mc.options.simulationDistance, viewDist),
+						mc.options.getSimulationDistance().getValue(), viewDist),
 					pC.soundSimulationDistance) * 16,
 				pC.maxTraceDist / 2);
 		soundChunk = mc.world.getChunk(((int)Math.floor(soundPos.x))>>4,((int)Math.floor(soundPos.z))>>4);
