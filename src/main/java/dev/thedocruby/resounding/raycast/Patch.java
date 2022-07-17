@@ -25,10 +25,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 
 @Environment(EnvType.CLIENT)
-public class RaycastFix {
+public class Patch {
 
-    private RaycastFix() {}
-
+    private Patch() {}
     public static long lastUpd = 0;
     public static Map<Long, Shapes> shapeCache = new ConcurrentHashMap<>(2048);
     // reset every tick, usually up to 2200

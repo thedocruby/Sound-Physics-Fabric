@@ -1,11 +1,11 @@
+//cd ../../../../../../ && ./gradlew remapjar #
 package dev.thedocruby.resounding;
 
 // imports {
 // internal {
-import dev.thedocruby.resounding.effects.AirEffects;
-import dev.thedocruby.resounding.openal.ResoundingEFX;
-import dev.thedocruby.resounding.raycast.RaycastFix;
-import dev.thedocruby.resounding.raycast.RaycastRenderer;
+import dev.thedocruby.resounding.openal.Context;
+import dev.thedocruby.resounding.raycast.Patch;
+import dev.thedocruby.resounding.raycast.Renderer;
 import dev.thedocruby.resounding.raycast.SPHitResult;
 import dev.thedocruby.resounding.toolbox.*;
 // }
@@ -28,13 +28,16 @@ import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.chunk.WorldChunk;
 // }
 // logger {
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
 // }
 // utils {
+import org.apache.commons.lang3.ArrayUtils;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.apache.commons.lang3.ObjectUtils.Null;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -51,9 +54,11 @@ import static java.util.Map.entry;
 
 @SuppressWarnings({"CommentedOutCode"})
 // TODO: do more Javadoc
-public class ResoundingEngine {
+public class Engine {
+	// static definitions {
+	private Engine() { }
 
-	private ResoundingEngine() { }
+	public static Context root;
 
 	public static EnvType env = null;
 	public static MinecraftClient mc;
@@ -147,11 +152,14 @@ public class ResoundingEngine {
 	public static final Map<String, BlockSoundGroup> nameToGroup = groupToName.keySet().stream().collect(Collectors.toMap(groupToName::get, k -> k));
 
 	// pattern vars {
-	public static final Pattern rainPattern = Pattern.compile(".*rain.*");
-	public static final Pattern stepPattern = Pattern.compile(".*step.*"); // TODO: step sounds
-	public static final Pattern stepPatternPF = Pattern.compile(".*pf_presence.*"); // TODO: step sounds
-	// public static final Pattern blockPattern = Pattern.compile(".*block..*");TODO: Occlusion
-	public static final Pattern uiPattern = Pattern.compile("ui..*");
+	// TODO tagging system
+	public static final Pattern spamPattern   = Pattern.compile(".*(rain|lava).*"); // spammy sounds
+	public static final Pattern stepPattern   = Pattern.compile(".*(step|pf_).*");  // includes presence_footseps
+	public static final Pattern gentlePattern = Pattern.compile(".*(ambient|splash|swim|note|compounded).*");
+	public static final Pattern ignorePattern = Pattern.compile(".*(music|voice).*");
+	// TODO Occlusion
+	//ublic static final Pattern blockPattern = Pattern.compile(".*block..*");
+	public static final Pattern uiPattern     = Pattern.compile("ui..*");
 	// }
 
 	// init vars {
@@ -167,16 +175,18 @@ public class ResoundingEngine {
 	private static Vec3d soundPos;
 	private static BlockPos soundBlockPos;
 	private static boolean auxOnly;
-	private static boolean isRain;
+	private static boolean isSpam;
 	//private static boolean isBlock; // TODO: Occlusion
 	//private static boolean doNineRay; // TODO: Occlusion
 	private static long timeT;
 	private static int sourceID;
 	//private static boolean doDirEval; // TODO: DirEval
 	// }
+	// }
 	
-	// utility function
-	public static <T> double logBase(T x, T b) {
+	public static void setRoot(Context context) {root=context;}
+
+	/* utility function */ public static <T> double logBase(T x, T b) {
 		return Math.log((Double) x) / Math.log((Double) b);
 	}
 
@@ -202,12 +212,12 @@ public class ResoundingEngine {
 		// for a visualization, see: https://www.math3d.org/UYUQRza8n
 		return ray.subtract(
 				planeD.multiply
-					( normal / 3d // localize scale properly
-					/ Math.min(.01d, air)
+					( 2 // normal / 3d // localize scale properly
+					// / Math.min(.01d, air) // min of .01
 					* ray.dotProduct(planeD)
 					)
 				// TODO research, is this branchless?
-				).normalize(); // retain velocity
+				); // .normalize(); // retain velocity
 	}
 
 	@Environment(EnvType.CLIENT)
@@ -246,16 +256,23 @@ public class ResoundingEngine {
 
 	@Environment(EnvType.CLIENT)
 	public static void updateYeetedSoundInfo(SoundInstance sound, SoundListener listener) {
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 		lastSoundInstance = sound;
 		lastSoundCategory = lastSoundInstance.getCategory();
 		lastSoundName = lastSoundInstance.getId().getPath();
 		lastSoundListener = listener;
 	}
 
+	// wraps playSound() in order to process SVC audio chunks
+	@Contract("_ -> new")
 	@Environment(EnvType.CLIENT)
-	public static void playSound(double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) { // The heart of the Resounding audio pipeline
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
+	public static void svc_playSound(Context context, double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) {
+		lastSoundName = "voice-chat";
+		playSound(context, posX, posY, posZ, sourceIDIn, auxOnlyIn);
+	}
+
+	@Environment(EnvType.CLIENT)
+	public static void playSound(Context context, double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) { // The heart of the Resounding audio pipeline
+		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 		long startTime = 0;
 		if (pC.pLog) startTime = System.nanoTime();
 		long endTime;
@@ -263,27 +280,27 @@ public class ResoundingEngine {
 		sourceID = sourceIDIn;
 
 		// TODO integrate with audio tagging
-		if (mc.player == null || mc.world == null || uiPattern.matcher(lastSoundName).matches()) {
+		if (mc.player == null || mc.world == null || uiPattern.matcher(lastSoundName).matches() || ignorePattern.matcher(lastSoundName).matches()) {
 			if (pC.dLog) {
 				LOGGER.info("Skipped playing sound \"{}\": Not a world sound.", lastSoundName);
-			} else {
+			} /* else {
 				LOGGER.debug("Skipped playing sound \"{}\": Not a world sound.", lastSoundName);
-			}
+			} */ // disabled for performance
 			return;
 		}
 
 		// isBlock = blockPattern.matcher(lastSoundName).matches(); // && !stepPattern.matcher(lastSoundName).matches(); //  TODO: Occlusion, step sounds
 		if (lastSoundCategory == SoundCategory.RECORDS){posX+=0.5;posY+=0.5;posZ+=0.5;/*isBlock = true;*/} // TODO: Occlusion
-		if (stepPattern.matcher(lastSoundName).matches() || stepPatternPF.matcher(lastSoundName).matches()) {posY+=0.2;} // TODO: step sounds
+		if (stepPattern.matcher(lastSoundName).matches()) {posY+=0.2;} // TODO: step sounds
 		// doNineRay = pC.nineRay && (lastSoundCategory == SoundCategory.BLOCKS || isBlock); // TODO: Occlusion
-		{ // mem.saver
+		{ // get pose - mem.saver
 			Vec3d playerPosOld = mc.player.getPos();
 			playerPos = new Vec3d(playerPosOld.x, playerPosOld.y + mc.player.getEyeHeight(mc.player.getPose()), playerPosOld.z);
 		}
 		listenerPos = lastSoundListener.getPos();
 		final int bottom = mc.world.getBottomY();
 		final int top = mc.world.getTopY();
-		isRain = rainPattern.matcher(lastSoundName).matches();
+		isSpam = spamPattern.matcher(lastSoundName).matches();
 		soundPos = new Vec3d(posX, posY, posZ);
 		viewDist = mc.options.getViewDistance();
 		double maxDist = Math.min(
@@ -295,6 +312,7 @@ public class ResoundingEngine {
 		soundChunk = mc.world.getChunk(((int)Math.floor(soundPos.x))>>4,((int)Math.floor(soundPos.z))>>4);
 		soundBlockPos = new BlockPos(soundPos.x, soundPos.y, soundPos.z);
 		timeT = mc.world.getTime();
+		boolean isGentle = gentlePattern.matcher(lastSoundName).matches();
 
 		String message = "";
 		// TODO use secondary tracer or branch to recognize void locations as air
@@ -316,35 +334,35 @@ public class ResoundingEngine {
 		if (pC.recordsDisable && lastSoundCategory == SoundCategory.RECORDS){
 			message = String.format("Skipped environment sampling for sound \"{}\": Disabled sound.", lastSoundName);
 		} else
-		if (/*pC.skipRainOcclusionTracing && */isRain) { // TODO: Occlusion
+		if (/*pC.skipRainOcclusionTracing && */isSpam) { // TODO: Occlusion
 			message = String.format("Skipped environment sampling for sound \"{}\": Rain sound", lastSoundName);
 		}
 		if (message != "") {
 			if (pC.dLog) {
 				LOGGER.info(message);
-			} else {
+			} /* else {
 				LOGGER.debug(message);
-			}
-			try { setEnv(processEnv(new EnvData(Collections.emptySet(), Collections.emptySet())));
+			} */ // disabled for performance
+			try { setEnv(context, processEnv(new EnvData(Collections.emptySet(), Collections.emptySet())), isGentle);
 			} catch (IllegalArgumentException e) { e.printStackTrace(); } return;
 		}
-			message = String.format(
+/*			message = String.format(
 """
 Playing sound!
 	Player Pos:    {}
 	Listener Pos:    {}
-	Source ID:    {}
 	Source Pos:    {}
+	Source ID:    {}
 	Sound category:    {}
-	Sound name:    {}""", playerPos, listenerPos, sourceID, soundPos, lastSoundCategory, lastSoundName);
+	Sound name:    {}""", playerPos, listenerPos, sourceID, soundPos, lastSoundCategory, lastSoundName); */ // disabled for debug, need better method
 		if (pC.dLog) {
 			LOGGER.info(message);
-		} else {
+		} /* else {
 			LOGGER.debug(message);
-		}
+		} */ // disabled for performance
 		try {  ////////  CORE SOUND PIPELINE  ////////
 
-			setEnv(processEnv(evalEnv()));
+			setEnv(context, processEnv(evalEnv()), isGentle);
 
 		} catch (Exception e) { e.printStackTrace(); }
 		if (pC.pLog) {
@@ -381,12 +399,10 @@ Playing sound!
 
 	@Environment(EnvType.CLIENT)
 	private static @NotNull ReflectedRayData throwReflRay(@NotNull Vec3d dir) {
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
-
 		// TODO modify to use sound velocity, and properly check blocks along a
 		// tangent, e.g. using .25-.5 stepping values ... performance must be
 		// considered here too
-		SPHitResult rayHit = RaycastFix.fixedRaycast(
+		SPHitResult rayHit = Patch.fixedRaycast(
 				soundPos,
 				soundPos.add(dir.multiply(pC.maxTraceDist)),
 				mc.world,
@@ -394,7 +410,7 @@ Playing sound!
 				soundChunk
 		);
 
-		if (pC.dRays) RaycastRenderer.addSoundBounceRay(soundPos, rayHit.getPos(), Formatting.GREEN.getColorValue());
+		if (pC.dRays) Renderer.addSoundBounceRay(soundPos, rayHit.getPos(), Formatting.GREEN.getColorValue());
 
 		// TODO understand wtf this is - boolean(trap)
 		if (rayHit.isMissed()) {
@@ -450,25 +466,25 @@ Playing sound!
 
 		// TODO integrate exception into algorithm, must use a refactor, removes
 		// duplicated code
-		SPHitResult finalRayHit = RaycastFix.fixedRaycast(lastHitPos, listenerPos, mc.world, lastHitBlock, rayHit.chunk);
+		SPHitResult finalRayHit = Patch.fixedRaycast(lastHitPos, listenerPos, mc.world, lastHitBlock, rayHit.chunk);
 
 		int color = Formatting.GRAY.getColorValue();
 		if (finalRayHit.isMissed()) {
 			color = Formatting.WHITE.getColorValue();
 			shared[0] = 1;
 		}
-		if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
+		if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
 
 		// Secondary ray bounces
 		for (int i = 1; i < pC.nRayBounces; i++) {
 
 			// TODO handle velocity here, specifically
 			final Vec3d newRayDir = pseudoReflect(lastRayDir, lastHitNormal);
-			rayHit = RaycastFix.fixedRaycast(lastHitPos, lastHitPos.add(newRayDir.multiply(pC.maxTraceDist - totalDistance)), mc.world, lastHitBlock, rayHit.chunk);
+			rayHit = Patch.fixedRaycast(lastHitPos, lastHitPos.add(newRayDir.multiply(pC.maxTraceDist - totalDistance)), mc.world, lastHitBlock, rayHit.chunk);
 
 			// TODO consider infinite void, for reverb
 			if (rayHit.isMissed()) {
-				if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, rayHit.getPos(), Formatting.DARK_RED.getColorValue());
+				if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, rayHit.getPos(), Formatting.DARK_RED.getColorValue());
 				// TODO airspace fresnel?
 				missed = Math.pow(totalReflectivity, pC.globalReflRcp);
 				break;
@@ -481,7 +497,7 @@ Playing sound!
 			bounceDistance[i] = lastHitPos.distanceTo(newRayHitPos);
 			totalDistance += bounceDistance[i];
 			if (pC.maxTraceDist - totalDistance < newRayHitPos.distanceTo(listenerPos)) {
-				if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
+				if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
 				missed = Math.pow(totalReflectivity, pC.globalReflRcp);
 				break;
 			}
@@ -490,12 +506,12 @@ Playing sound!
 			totalReflectivity *= newBlockReflectivity;
 			// TODO integrate with velocity and fresnels+refraction
 			if (totalReflectivity < minEnergy){
-				if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
+				if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
 				break;
 			}
 
 			// if surface hit, and velocity still high enough, trace bounce
-			if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.BLUE.getColorValue());
+			if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.BLUE.getColorValue());
 
 			lastBlockReflectivity = newBlockReflectivity;
 			lastHitPos = newRayHitPos;
@@ -515,14 +531,14 @@ Playing sound!
 			// unobstructed, then the sound source and the player
 			// share airspace.
 
-			finalRayHit = RaycastFix.fixedRaycast(lastHitPos, listenerPos, mc.world, lastHitBlock, rayHit.chunk);
+			finalRayHit = Patch.fixedRaycast(lastHitPos, listenerPos, mc.world, lastHitBlock, rayHit.chunk);
 
 			color = Formatting.GRAY.getColorValue();
 			if (finalRayHit.isMissed()) {
 				color = Formatting.WHITE.getColorValue();
 				shared[i] = 1;
 			}
-			if (pC.dRays) RaycastRenderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
+			if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
 		}
 		// TODO reorganize class structure for more logical order?
 		return new ReflectedRayData(
@@ -534,7 +550,7 @@ Playing sound!
 
 	@Environment(EnvType.CLIENT)
 	private static @NotNull Set<OccludedRayData> throwOcclRay(@NotNull Vec3d sourcePos, @NotNull Vec3d sinkPos) { //Direct sound occlusion
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
+		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 
 		// TODO: This still needs to be rewritten
 		// TODO: fix reflection/absorption calc with fresnels
@@ -569,7 +585,7 @@ Playing sound!
 				lastBlockPos = rayHit.getBlockPos();
 				//If we hit a block
 
-				if (pC.dRays) RaycastRenderer.addOcclusionRay(rayOrigin, rayHit.getPos(), Color.getHSBColor((float) (1F / 3F * (1F - Math.min(1F, occlusionAccumulation / 12F))), 1F, 1F).getRGB());
+				if (pC.dRays) Renderer.addOcclusionRay(rayOrigin, rayHit.getPos(), Color.getHSBColor((float) (1F / 3F * (1F - Math.min(1F, occlusionAccumulation / 12F))), 1F, 1F).getRGB());
 				if (rayHit.isMissed()) {
 					if (pC.soundDirectionEvaluation) directions.add(Map.entry(rayOrigin.subtract(playerPos), // TODO: DirEval
 							(_9ray?9:1) * Math.pow(soundPos.distanceTo(playerPos), 2.0)* pC.rcpTotRays
@@ -609,7 +625,7 @@ Playing sound!
 		double directGain = auxOnly ? 0 : Math.pow(directCutoff, 0.01);
 
 		if (pC.oLog) logOcclusion("direct cutoff: " + directCutoff + "  direct gain:" + directGain);
-		if (isRain) { return null; }
+		if (isSpam) { return null; }
 		*/
 
 		return Collections.emptySet();
@@ -617,8 +633,6 @@ Playing sound!
 
 	@Environment(EnvType.CLIENT)
 	private static @NotNull EnvData evalEnv() {
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
-
 		// Clear the block shape cache every tick, just in case the local block grid has changed
 		// TODO: Do this more efficiently.
 		//  In 1.18 there should be something I can mix into to clear only in ticks when the block grid changes
@@ -626,51 +640,44 @@ Playing sound!
 		//  It may be faster to skim through the snapshot changelog instead of digging through the code.
 		//  TODO split cache into chunks, refresh only relevant chunks,
 		//  implement forgetting-system
-		if (RaycastFix.lastUpd != timeT) {
-			RaycastFix.shapeCache.clear();
-			RaycastFix.lastUpd = timeT;
+		if (Patch.lastUpd != timeT) {
+			Patch.shapeCache.clear();
+			Patch.lastUpd = timeT;
 		}
 
 		// TODO make irrelevant with infinite possibility logic
-		RaycastFix.maxY = mc.world.getTopY();
-		RaycastFix.minY = mc.world.getBottomY();
-		RaycastFix.maxX = (int) (playerPos.getX() + (viewDist * 16));
-		RaycastFix.minX = (int) (playerPos.getX() - (viewDist * 16));
-		RaycastFix.maxZ = (int) (playerPos.getZ() + (viewDist * 16));
-		RaycastFix.minZ = (int) (playerPos.getZ() - (viewDist * 16));
+		Patch.maxY = mc.world.getTopY();
+		Patch.minY = mc.world.getBottomY();
+		Patch.maxX = (int) (playerPos.getX() + (viewDist * 16));
+		Patch.minX = (int) (playerPos.getX() - (viewDist * 16));
+		Patch.maxZ = (int) (playerPos.getZ() + (viewDist * 16));
+		Patch.minZ = (int) (playerPos.getZ() - (viewDist * 16));
 
 		// Throw rays around
 		// TODO implement with tagging system, and di-quadrant optimization
 		// idea shared w/ Doc (go read that if you haven't yet)
 		// TODO implement lambda function referencing to remove branches
 		// Function logger = (pC.dLog) ? LOGGER.info : LOGGER.debug;
-		if (pC.dLog || pC.eLog) {
-			if (isRain) {
-				LOGGER.info("Skipped reverb ray tracing for rain sound.");
-			} else {
-				LOGGER.info("Sampling environment with {} seed rays...", pC.nRays);
-			}
+		Set<ReflectedRayData> reflRays;
+		if (isSpam) {
+			if (pC.dLog || pC.eLog) LOGGER.info("Skipped ray tracing for sound: {}", lastSoundName);
+			reflRays = Collections.emptySet();
 		} else {
-			if (isRain) {
-				LOGGER.debug("Skipped reverb ray tracing for rain sound.");
-			} else {
-				LOGGER.debug("Sampling environment with {} seed rays...", pC.nRays);
-			}
-		}
-		Set<ReflectedRayData> reflRays = isRain ? Collections.emptySet() :
-				rays.stream().parallel().unordered().map(ResoundingEngine::throwReflRay).collect(Collectors.toSet());
-		if(!isRain) {
+			if (pC.dLog || pC.eLog) LOGGER.info("Sampling environment with {} seed rays...", pC.nRays);
+			reflRays = rays.stream().parallel().unordered().map(Engine::throwReflRay).collect(Collectors.toSet());
+			String message = "";
 			if (pC.eLog) {
 				int rayCount = 0;
 				for (ReflectedRayData reflRay : reflRays){
 					rayCount += reflRay.size() * 2 + 1;
 				}
-				LOGGER.info("Environment sampled! Total number of rays casted: {}", rayCount); // TODO: This is not precise
+				message = " Total number of rays casted: "+rayCount;
+				// LOGGER.info("Environment sampled! Total number of rays casted: {}", rayCount); // TODO: This is not precise
 			} else if (pC.dLog) {
-				LOGGER.info("Environment sampled!");
-			} else {
+				LOGGER.info("Environment sampled!"+message);
+			} /* else {
 				LOGGER.debug("Environment sampled!");
-			}
+			} */ // disabled for performance
 		}
 
 		// TODO: Occlusion. Also, add occlusion profiles.
@@ -686,7 +693,6 @@ Playing sound!
 	@Contract("_ -> new")
 	@Environment(EnvType.CLIENT)
 	private static @NotNull SoundProfile processEnv(final EnvData data) {
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
 		// TODO: DirEval is on hold while I rewrite, will be re-added later
 		// Take weighted (on squared distance) average of the directions sound reflection came from
 		//doDirEval = pC.soundDirectionEvaluation && (occlusionAccumulation > 0 || pC.notOccludedRedirect); // TODO: DirEval
@@ -710,15 +716,11 @@ Playing sound!
 			// mc.world.addParticle(ParticleTypes.END_ROD, false, pos.getX(), pos.getY(), pos.getZ(), 0,0,0);
 		}*/
 
-		// TODO make bidirectional
-		// submerged? emitter:true  player:false = heavy      occlusion
-		// submerged? emitter:false player:true  = medium     occlusion
-		// submerged? emitter:false player:false = no (added) occlusion
-		// submerged? emitter:true  player:true  = lowpass (or highpass?) filter
-		//    and bass volume boost
+		// TODO move to separate effect
 		boolean inWater = mc.player != null && mc.player.isSubmergedInWater();
-		final double airAbsorptionHF = AirEffects.getAbsorptionHF();
-		double directGain = (auxOnly ? 0 : inWater ? pC.waterFilt : 1) * Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos)) ;
+		// TODO properly implement, move to atmospherics
+		final double airAbsorptionHF = 1.0; // Air.getAbsorptionHF();
+		double directGain = (auxOnly ? 0 : inWater ? pC.waterFilt : 1) * Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos));
 
 		if (data.reflRays().isEmpty()) {
 			return new SoundProfile(sourceID, directGain, Math.pow(directGain, pC.globalAbsHFRcp), new double[pC.resolution + 1], new double[pC.resolution + 1]);
@@ -801,7 +803,7 @@ Playing sound!
 
 			//TODO: Occlusion calculation here
 
-		double occlusion = RaycastFix.fixedRaycast(soundPos, listenerPos, mc.world, soundBlockPos, soundChunk).isMissed() ? 1 : 0; // TODO: occlusion coeff from processing goes here IF fancy or fabulous occl
+		double occlusion = Patch.fixedRaycast(soundPos, listenerPos, mc.world, soundBlockPos, soundChunk).isMissed() ? 1 : 0; // TODO: occlusion coeff from processing goes here IF fancy or fabulous occl
 
 		directGain *= Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos))
 				/ Math.pow(listenerPos.distanceTo(soundPos), 2.0 * missedSum)
@@ -812,17 +814,15 @@ Playing sound!
 
 		if (pC.eLog || pC.dLog) {
 			LOGGER.info("Processed sound profile:\n{}", profile);
-		} else {
+		} /* else {
 			LOGGER.debug("Processed sound profile:\n{}", profile);
-		}
+		} */ // disabled for performance
 
 		return profile;
 	}
 
 	@Environment(EnvType.CLIENT)
-	public static void setEnv(final @NotNull SoundProfile profile) {
-		if (ResoundingEngine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
-
+	public static void setEnv(Context context, final @NotNull SoundProfile profile, boolean isGentle) {
 		if (profile.sendGain().length != pC.resolution + 1 || profile.sendCutoff().length != pC.resolution + 1) {
 			throw new IllegalArgumentException("Error: Reverb parameter count does not match reverb resolution!");
 		}
@@ -831,20 +831,17 @@ Playing sound!
 
 		if (pC.eLog || pC.dLog) {
 			LOGGER.info("Final reverb settings:\n{}", finalSend);
-		} else {
+		} /* else {
 			LOGGER.debug("Final reverb settings:\n{}", finalSend);
-		}
+		} */ // disabled for performance
 
-		// Set reverb send filter values and set source to send to all reverb fx slots
-		ResoundingEFX.setFilter(finalSend.slot(), profile.sourceID(), (float) finalSend.gain(), (float) finalSend.cutoff());
-		// Set direct filter values
-		ResoundingEFX.setDirectFilter(profile.sourceID(), (float) profile.directGain(), (float) profile.directCutoff());
+		context.update(finalSend, profile, isGentle);
 	}
 
 
 	@Contract("_, _ -> new")
 	@Environment(EnvType.CLIENT)
-	private static @NotNull SlotProfile selectSlot(double[] sendGain, double[] sendCutoff) {
+	public static @NotNull SlotProfile selectSlot(double[] sendGain, double[] sendCutoff) {
 		if (pC.fastPick) { // TODO: find cause of block.lava.ambient NaN
 			final double max = Arrays.stream(ArrayUtils.remove(sendGain, 0)).max().orElse(Double.NaN);
 			int imax = 0; for (int i = 1; i <= pC.resolution; i++) { if (sendGain[i] == max){ imax=i; break; } }

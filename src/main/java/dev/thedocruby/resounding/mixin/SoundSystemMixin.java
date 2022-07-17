@@ -1,8 +1,7 @@
 package dev.thedocruby.resounding.mixin;
 
-import dev.thedocruby.resounding.ResoundingEngine;
+import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
-import dev.thedocruby.resounding.effects.AirEffects;
 import dev.thedocruby.resounding.toolbox.SourceAccessor;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -22,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import java.util.Iterator;
 import java.util.Map;
 
-import static dev.thedocruby.resounding.ResoundingEngine.mc;
+import static dev.thedocruby.resounding.Engine.mc;
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 
 @Environment(EnvType.CLIENT)
@@ -33,20 +32,20 @@ public class SoundSystemMixin {
 
     @Inject(method = "play(Lnet/minecraft/client/sound/SoundInstance;)V", at = @At(value = "FIELD", target = "net/minecraft/client/sound/SoundSystem.sounds : Lcom/google/common/collect/Multimap;"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void soundInfoYeeter(SoundInstance sound, CallbackInfo ci, WeightedSoundSet weightedSoundSet, Identifier identifier, Sound sound2, float f, float g, SoundCategory soundCategory){
-        if (ResoundingEngine.isOff) return;
-        ResoundingEngine.updateYeetedSoundInfo(sound, this.listener); // TODO: do this better maybe
+        if (Engine.isOff) return;
+        Engine.updateYeetedSoundInfo(sound, this.listener); // TODO: do this better maybe
     }
 
-    @Inject(method = "tick()V", at = @At(value = "HEAD"))
-    private void ticker(CallbackInfo ci){ AirEffects.updateSmoothedRain(); }
+//  @Inject(method = "tick()V", at = @At(value = "HEAD"))
+//  private void ticker(CallbackInfo ci){ Air.updateSmoothedRain(); }
 
     @ModifyArg(method = "getAdjustedVolume", at = @At(value = "INVOKE", target = "net/minecraft/util/math/MathHelper.clamp (FFF)F"), index = 0)
-    private float volumeMultiplierInjector(float vol){ if (ResoundingEngine.isOff) return vol; return vol * PrecomputedConfig.globalVolumeMultiplier; }
+    private float volumeMultiplierInjector(float vol){ if (Engine.isOff) return vol; return vol * PrecomputedConfig.globalVolumeMultiplier; }
 
     @SuppressWarnings("InvalidInjectorMethodSignature")
     @Inject(method = "tick()V", at = @At(value = "JUMP", opcode = Opcodes.IFEQ, ordinal = 3), locals = LocalCapture.CAPTURE_FAILHARD)
     private void recalculate(CallbackInfo ci, Iterator<?> iterator, Map.Entry<?, ?> entry, Channel.SourceManager f, SoundInstance g, float vec3d){
-        if (ResoundingEngine.isOff) return;
+        if (Engine.isOff) return;
         if (mc.world != null && mc.world.getTime()%pC.srcRefrRate ==0){
             f.run((s) -> ((SourceAccessor)s).calculateReverb(g, this.listener));
         }

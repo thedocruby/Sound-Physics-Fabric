@@ -4,10 +4,11 @@ import dev.thedocruby.resounding.config.BlueTapePack.ConfigManager;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.api.EnvType;
 
-public class ResoundingModServer implements DedicatedServerModInitializer {
+public class ModServer implements DedicatedServerModInitializer {
     @Override
     public void onInitializeServer() {
-        ResoundingEngine.env = EnvType.SERVER;
+        Engine.env = EnvType.SERVER;
         ConfigManager.registerAutoConfig();
     }
 }
+

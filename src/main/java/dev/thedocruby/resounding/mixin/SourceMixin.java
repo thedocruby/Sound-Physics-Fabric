@@ -1,6 +1,6 @@
 package dev.thedocruby.resounding.mixin;
 
-import dev.thedocruby.resounding.ResoundingEngine;
+import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.toolbox.SourceAccessor;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -27,17 +27,19 @@ public class SourceMixin implements SourceAccessor {
     private Vec3d pos;
 
     @Inject(method = "setPosition", at = @At("HEAD"))
-    private void soundPosStealer(Vec3d poss, CallbackInfo ci) { if (ResoundingEngine.isOff) return; this.pos = poss; }
+    private void soundPosStealer(Vec3d poss, CallbackInfo ci) { if (Engine.isOff) return; this.pos = poss; }
 
     @Inject(method = "play", at = @At("HEAD"))
     private void onPlaySoundInjector(CallbackInfo ci) {
-        if (ResoundingEngine.isOff) return;
-        ResoundingEngine.playSound(pos.x, pos.y, pos.z, pointer, false);
+        if (Engine.isOff) return;
+		// TODO make context dynamic
+        Engine.playSound(Engine.root, pos.x, pos.y, pos.z, pointer, false);
     }
 
     public void calculateReverb(SoundInstance sound, SoundListener listener) {
-        if (ResoundingEngine.isOff) return;
-        ResoundingEngine.updateYeetedSoundInfo(sound, listener);
-        ResoundingEngine.playSound(pos.x, pos.y, pos.z, pointer, false);
+        if (Engine.isOff) return;
+        Engine.updateYeetedSoundInfo(sound, listener);
+		// TODO make context dynamic
+        Engine.playSound(Engine.root, pos.x, pos.y, pos.z, pointer, false);
     }
 }
