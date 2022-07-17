@@ -14,43 +14,43 @@ import org.jetbrains.annotations.NotNull;
 
 @Environment(EnvType.CLIENT)
 public class SPHitResult extends HitResult {
-    private final Direction side;
-    private final BlockPos blockPos;
-    private final boolean missed;
-    private final BlockState blockState;
-    public final WorldChunk chunk;
+	private final Direction side;
+	private final BlockPos blockPos;
+	private final boolean missed;
+	private final BlockState blockState;
+	public final WorldChunk chunk;
 
-    @Contract("_, _, _, _ -> new")
-    public static @NotNull SPHitResult createMissed(Vec3d pos, Direction side, BlockPos blockPos, WorldChunk c) {
-        return new SPHitResult(true, pos, side, blockPos, null, c);
-    }
+	@Contract("_, _, _, _ -> new")
+	public static @NotNull SPHitResult createMissed(Vec3d pos, Direction side, BlockPos blockPos, WorldChunk c) {
+		return new SPHitResult(true, pos, side, blockPos, null, c);
+	}
 
-    public SPHitResult(@NotNull BlockHitResult blockHitResult, BlockState bs, WorldChunk c) {
-        super(blockHitResult.getPos());
-        this.missed = false;//blockHitResult.getType() == Type.MISS;
-        this.side = blockHitResult.getSide();
-        this.blockPos = blockHitResult.getBlockPos();
-        this.blockState = bs;
-        this.chunk = c;
-    }
+	public SPHitResult(@NotNull BlockHitResult blockHitResult, BlockState bs, WorldChunk c) {
+		super(blockHitResult.getPos());
+		this.missed = false;//blockHitResult.getType() == Type.MISS;
+		this.side = blockHitResult.getSide();
+		this.blockPos = blockHitResult.getBlockPos();
+		this.blockState = bs;
+		this.chunk = c;
+	}
 
-    public SPHitResult(boolean missed, Vec3d pos, Direction side, BlockPos blockPos, BlockState bs, WorldChunk c) {
-        super(pos);
-        this.missed = missed;
-        this.side = side;
-        this.blockPos = blockPos;
-        this.blockState = bs;
-        this.chunk = c;
-    }
-    public static SPHitResult get(BlockHitResult bhr, BlockState bs, WorldChunk c){
-        if (bhr == null) return null;
-        return new SPHitResult(bhr, bs, c);
-    }
+	public SPHitResult(boolean missed, Vec3d pos, Direction side, BlockPos blockPos, BlockState bs, WorldChunk c) {
+		super(pos);
+		this.missed = missed;
+		this.side = side;
+		this.blockPos = blockPos;
+		this.blockState = bs;
+		this.chunk = c;
+	}
+	public static SPHitResult get(BlockHitResult bhr, BlockState bs, WorldChunk c){
+		if (bhr == null) return null;
+		return new SPHitResult(bhr, bs, c);
+	}
 
-    public BlockPos getBlockPos() {return this.blockPos;}
-    public Direction getSide() {return this.side;}
-    @Deprecated
-    public Type getType() {return this.missed ? Type.MISS : Type.BLOCK;}
-    public boolean isMissed() {return this.missed;}
-    public BlockState getBlockState() {return blockState;}
+	public BlockPos getBlockPos() {return this.blockPos;}
+	public Direction getSide() {return this.side;}
+	@Deprecated
+	public Type getType() {return this.missed ? Type.MISS : Type.BLOCK;}
+	public boolean isMissed() {return this.missed;}
+	public BlockState getBlockState() {return blockState;}
 }

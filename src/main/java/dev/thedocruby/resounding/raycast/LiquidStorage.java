@@ -13,54 +13,54 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Set;
 
 /*
-    Data structure to detect if a desired block is the medium for sound.
+	Data structure to detect if a desired block is the medium for sound.
 
-    Should attach to every chunk
+	Should attach to every chunk
  */
 
 @Environment(EnvType.CLIENT)
 public class LiquidStorage {
-    private boolean full;
-    public int bottom;
-    public int top;
-    private boolean[][] sections;
-    private boolean[] sFull;
-    @Contract(value = " -> new", pure = true)
-    public static boolean @NotNull [] empty() {return new boolean[16*16];}
-    public final WorldChunk chunk;
+	private boolean full;
+	public int bottom;
+	public int top;
+	private boolean[][] sections;
+	private boolean[] sFull;
+	@Contract(value = " -> new", pure = true)
+	public static boolean @NotNull [] empty() {return new boolean[16*16];}
+	public final WorldChunk chunk;
 
-    public WorldChunk xp = null;
-    public WorldChunk xm = null;
-    public WorldChunk zp = null;
-    public WorldChunk zm = null;
+	public WorldChunk xp = null;
+	public WorldChunk xm = null;
+	public WorldChunk zp = null;
+	public WorldChunk zm = null;
 
-    public enum LIQUIDS {
-        //WATER(Set.of(Blocks.WATER, Blocks.BUBBLE_COLUMN)),
-        //LAVA(Set.of(Blocks.LAVA)),
-        AIR(Set.of(Blocks.AIR, Blocks.CAVE_AIR, Blocks.VOID_AIR, Blocks.SCAFFOLDING));
-        final Set<Block> allowed;
-        LIQUIDS(Set<Block> a){allowed = a;}
-        public boolean matches(Block b){ return allowed.contains(b); }
-    }
+	public enum LIQUIDS {
+		//WATER(Set.of(Blocks.WATER, Blocks.BUBBLE_COLUMN)),
+		//LAVA(Set.of(Blocks.LAVA)),
+		AIR(Set.of(Blocks.AIR, Blocks.CAVE_AIR, Blocks.VOID_AIR, Blocks.SCAFFOLDING));
+		final Set<Block> allowed;
+		LIQUIDS(Set<Block> a){allowed = a;}
+		public boolean matches(Block b){ return allowed.contains(b); }
+	}
 
-    public boolean isEmpty(){return !full;}
+	public boolean isEmpty(){return !full;}
 
-    public boolean[] getSection(int y) {
-        if (!full || y > top || y < bottom) return null;
-        return sections[y-bottom];
-    }
+	public boolean[] getSection(int y) {
+		if (!full || y > top || y < bottom) return null;
+		return sections[y-bottom];
+	}
 
-    public boolean[] getOrCreateSection(int y) {
-        if (getSection(y) == null) return initSection(y);
-        return sections[y-bottom];
-    }
+	public boolean[] getOrCreateSection(int y) {
+		if (getSection(y) == null) return initSection(y);
+		return sections[y-bottom];
+	}
 
-    public boolean getBlock(int x, int y, int z) { // must be very fast
-        if (!full || y > top || y < bottom) return false;
-        boolean[] section = sections[y-bottom];
-        if (section == null) return false;
-        return section[x+(z<<4)];
-    }
+	public boolean getBlock(int x, int y, int z) { // must be very fast
+		if (!full || y > top || y < bottom) return false;
+		boolean[] section = sections[y-bottom];
+		if (section == null) return false;
+		return section[x+(z<<4)];
+	}
 
 	public boolean[] initSection(int y) {
 		if (!full) {

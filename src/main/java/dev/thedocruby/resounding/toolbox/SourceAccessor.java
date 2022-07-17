@@ -7,5 +7,5 @@ import net.minecraft.client.sound.SoundListener;
 
 @Environment(EnvType.CLIENT)
 public interface SourceAccessor {
-    void calculateReverb(SoundInstance sound,SoundListener listener);
+	void calculateReverb(SoundInstance sound,SoundListener listener);
 }

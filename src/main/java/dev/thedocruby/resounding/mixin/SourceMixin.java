@@ -20,26 +20,26 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Source.class)
 public class SourceMixin implements SourceAccessor {
 
-    @Shadow
-    @Final
-    private int pointer;
+	@Shadow
+	@Final
+	private int pointer;
 
-    private Vec3d pos;
+	private Vec3d pos;
 
-    @Inject(method = "setPosition", at = @At("HEAD"))
-    private void soundPosStealer(Vec3d poss, CallbackInfo ci) { if (Engine.isOff) return; this.pos = poss; }
+	@Inject(method = "setPosition", at = @At("HEAD"))
+	private void soundPosStealer(Vec3d poss, CallbackInfo ci) { if (Engine.isOff) return; this.pos = poss; }
 
-    @Inject(method = "play", at = @At("HEAD"))
-    private void onPlaySoundInjector(CallbackInfo ci) {
-        if (Engine.isOff) return;
+	@Inject(method = "play", at = @At("HEAD"))
+	private void onPlaySoundInjector(CallbackInfo ci) {
+		if (Engine.isOff) return;
 		// TODO make context dynamic
-        Engine.playSound(Engine.root, pos.x, pos.y, pos.z, pointer, false);
-    }
+		Engine.playSound(Engine.root, pos.x, pos.y, pos.z, pointer, false);
+	}
 
-    public void calculateReverb(SoundInstance sound, SoundListener listener) {
-        if (Engine.isOff) return;
-        Engine.updateYeetedSoundInfo(sound, listener);
+	public void calculateReverb(SoundInstance sound, SoundListener listener) {
+		if (Engine.isOff) return;
+		Engine.updateYeetedSoundInfo(sound, listener);
 		// TODO make context dynamic
-        Engine.playSound(Engine.root, pos.x, pos.y, pos.z, pointer, false);
-    }
+		Engine.playSound(Engine.root, pos.x, pos.y, pos.z, pointer, false);
+	}
 }
