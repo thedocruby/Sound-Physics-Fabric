@@ -1,0 +1,51 @@
+{
+    "text.autoconfig.resounding.title": "Configuration de Resounding",
+  
+    "text.autoconfig.resounding.option.enabled": "Activer Resounding",
+  
+    "text.autoconfig.resounding.option.general": "Paramètres généraux",
+    "text.autoconfig.resounding.option.quality": "Paramètres de qualité",
+    "text.autoconfig.resounding.option.effects": "Effets additionnels",
+    "text.autoconfig.resounding.option.materials": "Propriétés des matériaux",
+    "text.autoconfig.resounding.option.misc": "Options diverses",
+    "text.autoconfig.resounding.option.debug": "Options de logging",
+  
+    "text.autoconfig.resounding.option.general.globalReverbGain": "Volume de réverbération",
+    "text.autoconfig.resounding.option.general.globalReverbStrength": "Force de réverbération",
+    "text.autoconfig.resounding.option.general.globalReverbSmoothness": "Douceur de réverbération",
+    "text.autoconfig.resounding.option.general.globalReverbBrightness": "Luminosité de réverbération",
+    "text.autoconfig.resounding.option.general.globalAbsorptionBrightness": "Luintité d'absorption",
+
+  
+    "text.autoconfig.resounding.option.quality.reverbResolution": "Résolution de la réverbération",
+    "text.autoconfig.resounding.option.quality.envEvalRays": "Rayons par son",
+    "text.autoconfig.resounding.option.quality.occlusionMode": "Mode occlusion",
+    "text.autoconfig.resounding.option.quality.sharedAirspaceMode": "Mode d'air partagé",
+    "text.autoconfig.resounding.option.quality.envEvalRayBounces": "Nombre de rebonds additionnels",
+    "text.autoconfig.resounding.option.quality.soundSimulationDistance": "Distance de simulation",
+    "text.autoconfig.resounding.option.quality.rayLength": "Taille des rayons",
+    "text.autoconfig.resounding.option.quality.sourceRefreshRate": "Intervalle de rafraîchissement",
+  
+    "text.autoconfig.resounding.option.effects.airAbsorption": "Absorption des sons par l'air",
+    "text.autoconfig.resounding.option.effects.humidityAbsorption": "Absorption des sons par l'humidité",
+    "text.autoconfig.resounding.option.effects.rainAbsorption": "Absorption des sons par la pluie",
+    "text.autoconfig.resounding.option.effects.underwaterFilter": "Force du filtre sous-marin",
+  
+    "text.autoconfig.resounding.option.materials.materialProperties": "Par catégorie",
+    "text.autoconfig.resounding.option.materials.blockWhiteList": "Par objet (autoriser)",
+  
+    "text.autoconfig.resounding.option.MaterialData": "Entrée des données sur les matériaux",
+    "text.autoconfig.resounding.option.MaterialData.example": "Matériau",
+    "text.autoconfig.resounding.option.MaterialData.reflectivity": "Réflexivité",
+    "text.autoconfig.resounding.option.MaterialData.absorption": "Densité d'occlusion",
+  
+    "text.autoconfig.resounding.option.misc.recordsDisable": "Sauter l'occlusion du Jukebox/Bloc musical",
+  
+    "text.autoconfig.resounding.option.debug.debugLogging": "Logs de débogage généraux",
+    "text.autoconfig.resounding.option.debug.occlusionLogging": "Logs d'occlusion",
+    "text.autoconfig.resounding.option.debug.environmentLogging": "Logs d'environnement",
+    "text.autoconfig.resounding.option.debug.performanceLogging": "Logs de performance",
+    "text.autoconfig.resounding.option.debug.raytraceParticles": "Raytracing des particules",
+  
+    "text.autoconfig.resounding.option.preset": "Préréglages"
+  }
