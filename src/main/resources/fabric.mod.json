@@ -37,7 +37,7 @@
     "java": ">=17",
     "cloth-config2": ">=7.0.72",
     "fabricloader": ">=0.14.6",
-    "minecraft": "1.19"
+    "minecraft": "1.19.*"
   },
   "suggests": {
     "modmenu": ">=4.0.3"
