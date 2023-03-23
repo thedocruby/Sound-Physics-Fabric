@@ -6,7 +6,7 @@ package dev.thedocruby.resounding;
 import dev.thedocruby.resounding.openal.Context;
 import dev.thedocruby.resounding.raycast.Patch;
 import dev.thedocruby.resounding.raycast.Renderer;
-import dev.thedocruby.resounding.raycast.SPHitResult;
+import dev.thedocruby.resounding.raycast.Collision;
 import dev.thedocruby.resounding.toolbox.*;
 // }
 // fabric {
@@ -397,10 +397,7 @@ Playing sound!
 
 	@Environment(EnvType.CLIENT)
 	private static @NotNull ReflectedRayData throwReflRay(@NotNull Vec3d dir) {
-		// TODO modify to use sound velocity, and properly check blocks along a
-		// tangent, e.g. using .25-.5 stepping values ... performance must be
-		// considered here too
-		SPHitResult rayHit = Patch.fixedRaycast(
+		Collision rayHit = Patch.fixedRaycast(
 				soundPos,
 				soundPos.add(dir.multiply(pC.maxTraceDist)),
 				mc.world,
@@ -464,7 +461,7 @@ Playing sound!
 
 		// TODO integrate exception into algorithm, must use a refactor, removes
 		// duplicated code
-		SPHitResult finalRayHit = Patch.fixedRaycast(lastHitPos, listenerPos, mc.world, lastHitBlock, rayHit.chunk);
+		Collision finalRayHit = Patch.fixedRaycast(lastHitPos, listenerPos, mc.world, lastHitBlock, rayHit.chunk);
 
 		int color = Formatting.GRAY.getColorValue();
 		if (finalRayHit.isMissed()) {

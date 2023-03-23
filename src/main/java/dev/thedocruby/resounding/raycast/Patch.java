@@ -32,7 +32,6 @@ public class Patch {
 	public static Map<Long, Shapes> shapeCache = new ConcurrentHashMap<>(2048);
 	// reset every tick, usually up to 2200
 		// {pos, (block state, block, fluid) }
-
 	public static int maxY;
 	public static int minY;
 	public static int maxX;
@@ -45,16 +44,24 @@ public class Patch {
 
 	// ===copied and modified===
 
-	public static SPHitResult fixedRaycast(@NotNull Vec3d start, Vec3d end, World world, @Nullable BlockPos ignore, @Nullable WorldChunk chunk) {
-		LiquidStorage currentNotAirStorage = chunk == null ? null : ((WorldChunkAccess)chunk).getNotAirLiquidStorage();
-		int currentX = chunk == null ? ((int) Math.floor(start.x)) >> 4 : chunk.getPos().x;
-		int currentZ = chunk == null ? ((int) Math.floor(start.z)) >> 4 : chunk.getPos().z;
-		boolean[] currentSlice = currentNotAirStorage == null ? null :currentNotAirStorage.getSection((int)Math.floor(start.y));
-		int currentY = (int) start.y;
-		// <editor-fold desc="end = clamp(context.getEnd(), start);">
+	public static Collision fixedRaycast(@NotNull Vec3d start, Vec3d end, World world, @Nullable BlockPos ignore, @Nullable WorldChunk chunk) {
+		LiquidStorage storage;
+		int posX, posZ;
+		if (chunk == null) {
+			storage = null;
+			posX = (int) Math.floor(start.x) >> 4;
+			posZ = (int) Math.floor(start.z) >> 4;
+		} else {
+			storage = ((WorldChunkAccess)chunk).getNotAirLiquidStorage();
+			posX = chunk.getPos().x;
+			posZ = chunk.getPos().z;
+		}
+		boolean[] slice = storage == null ? null : storage.getSection((int)Math.floor(start.y));
+		int posY = (int) start.y;
 
+		// end = clamp(context.getEnd(), start) {
 		if (start.x > maxX || start.y > maxY || start.z > maxZ || start.x < minX || start.y < minY || start.z < minZ) {
-			return SPHitResult.createMissed(start, null, new BlockPos(start), chunk);
+			return Collision.miss(start, null, new BlockPos(start), chunk);
 		}
 		Vec3d delta = end.subtract(start);
 		if (!(end.x <= maxX && end.y <= maxY && end.z <= maxZ && end.x >= minX && end.y >= minY && end.z >= minZ)) {
@@ -64,12 +71,15 @@ public class Patch {
 			double factor = Math.min(Math.min(fx, fy), fz);
 			delta = delta.multiply(factor);
 			end = start.add(delta);
-		}//</editor-fold>
+		}
+		// }
 
 
+		// TODO: fix this entire section (use nearest-wall jumping instead of stepping algorithm)
 		if (start.equals(end)) {
-			return SPHitResult.createMissed(end, null, new BlockPos(end), chunk);
+			return Collision.miss(end, null, new BlockPos(end), chunk);
 		} else {
+			// move along trajectory
 			double xe1 = MathHelper.lerp(-1.0E-7D, end.x, start.x); // x end v1.1
 			double ye1 = MathHelper.lerp(-1.0E-7D, end.y, start.y);
 			double ze1 = MathHelper.lerp(-1.0E-7D, end.z, start.z);
@@ -80,32 +90,42 @@ public class Patch {
 			int ybs = MathHelper.floor(ys1);
 			int zbs = MathHelper.floor(zs1);
 			BlockPos.Mutable blockPosStart1 = new BlockPos.Mutable(xbs, ybs, zbs);
-			//////////////////////
-			int xx = xbs >> 4; int zz = zbs >> 4;
-			if (currentX != xx || currentZ != zz) {
-				if (currentNotAirStorage != null) {
-					int ddx = currentX - xx; int ddz = currentZ - zz;
-					if (ddz == 0) {
-						if (ddx == -1) chunk = currentNotAirStorage.xm;
-						else if (ddx == 1) chunk = currentNotAirStorage.xp;
-					} else if (ddx == 0) {
-						if (ddz == -1) chunk = currentNotAirStorage.zm;
-						else if (ddz == 1) chunk = currentNotAirStorage.zp;
-					} else chunk = (WorldChunk) world.getChunk(xx, zz, ChunkStatus.FULL, false);
-				} else chunk = (WorldChunk) world.getChunk(xx, zz, ChunkStatus.FULL, false);
-				currentX = xx; currentZ = zz; currentY = ybs;
-				currentNotAirStorage = chunk == null ? null : ((WorldChunkAccess)chunk).getNotAirLiquidStorage();
-				currentSlice = currentNotAirStorage == null ? null : currentNotAirStorage.getSection(ybs);
-			} else if (ybs != currentY) {
-				currentSlice = currentNotAirStorage == null ? null : currentNotAirStorage.getSection(ybs);
-				currentY = ybs;
+			int x, z;
+			/// chunk.new.needed? {
+			x = xbs >> 4; z = zbs >> 4;
+			// if in new chunk
+			// 2 additions, 1 branch, instead of 2 branches
+			if (posX + posZ != x + z) {
+				if (storage == null) {
+					chunk = (WorldChunk) world.getChunk(x, z, ChunkStatus.FULL, false);
+				} else {
+					int ddz = posZ - z;
+					// TODO: verify -- some inferences made here
+					chunk = ddz == 0
+							// only calculate ddx when necessary
+							? posX - x == -1 ? storage.xm : storage.xp
+							: ddz       == -1 ? storage.zm : storage.zp;
+				}
+				if (chunk == null) {
+					storage = null;
+					slice = null;
+				} else {
+					storage = ((WorldChunkAccess) chunk).getNotAirLiquidStorage();
+					slice = storage.getSection(ybs);
+				}
+				posX = x; posZ = z; posY = ybs;
+				// only get new section when necessary
+			} else if (ybs >> 4 != posY >> 4) {
+				slice = storage == null ? null : storage.getSection(ybs);
+				posY = ybs;
 			}
-			/////////////////////
-			final SPHitResult hitResultStart;
-			if (currentSlice == null || !currentSlice[(xbs & 15) + ((zbs & 15) << 4)] || blockPosStart1.equals(ignore))
+			// }
+			final Collision hitResultStart;
+			if (slice == null || !slice[(xbs & 15) + ((zbs & 15) << 4)] || blockPosStart1.equals(ignore))
 				hitResultStart = null;
 			else {
 				BlockState bs1 = chunk.getBlockState(blockPosStart1);
+				// TODO: peel off this horrid duct-tape...
 				if (bs1.isAir() || bs1.getBlock().equals(Blocks.MOVING_PISTON)) hitResultStart = null;
 				else hitResultStart = finalRaycast(world, bs1, blockPosStart1, start, end, chunk, (short)4);
 			}
@@ -126,14 +146,16 @@ public class Patch {
 				double ty = rdy * (diry > 0 ? 1.0D - MathHelper.fractionalPart(ys1) : MathHelper.fractionalPart(ys1));
 				double tz = rdz * (dirz > 0 ? 1.0D - MathHelper.fractionalPart(zs1) : MathHelper.fractionalPart(zs1));
 
-				SPHitResult object2 = null;
+				Collision object2 = null;
+				// main loop {
 				do {
 					if (tx > 1.0D && ty > 1.0D && tz > 1.0D) {
-						return SPHitResult.createMissed(end, null, new BlockPos(end), chunk);
+						return Collision.miss(end, null, new BlockPos(end), chunk);
 					}
 
 					short side;
 
+					// adjust trajectory and side
 					if (tx < ty) {
 						if (tx < tz) {
 							xbs += dirx;
@@ -154,58 +176,71 @@ public class Patch {
 						side = 3;
 					}
 
-					/////////////////////
-					int x = xbs >> 4; int z = zbs >> 4;
-					if (currentX != x || currentZ != z) {
-						if (currentNotAirStorage != null) {
-							int ddx = currentX - x; int ddz = currentZ - z;
-							if (ddz == 0) {
-								if (ddx == -1) chunk = currentNotAirStorage.xm;
-								else if (ddx == 1) chunk = currentNotAirStorage.xp;
-							} else if (ddx == 0) {
-								if (ddz == -1) chunk = currentNotAirStorage.zm;
-								else if (ddz == 1) chunk = currentNotAirStorage.zp;
-							} else chunk = (WorldChunk) world.getChunk(x, z, ChunkStatus.FULL, false);
-						} else chunk = (WorldChunk) world.getChunk(x, z, ChunkStatus.FULL, false);
-						currentX = x; currentZ = z; currentY = ybs;
-						currentNotAirStorage = chunk == null ? null : ((WorldChunkAccess)chunk).getNotAirLiquidStorage();
-						currentSlice = currentNotAirStorage == null ? null : currentNotAirStorage.getSection(ybs);
-					} else if (ybs != currentY) {
-						currentSlice = currentNotAirStorage == null ? null : currentNotAirStorage.getSection(ybs);
-						currentY = ybs;
+					/// chunk.new.needed? {
+					x = xbs >> 4; z = zbs >> 4;
+					// if in new chunk
+					// 2 additions, 1 branch, instead of 2 branches
+					if (posX + posZ != x + z) {
+						if (storage == null) {
+							chunk = (WorldChunk) world.getChunk(x, z, ChunkStatus.FULL, false);
+						} else {
+							int ddz = posZ - z;
+							// TODO: verify -- some inferences made here
+							chunk = ddz == 0
+									// only calculate ddx when necessary
+									? posX - x == -1 ? storage.xm : storage.xp
+									: ddz      == -1 ? storage.zm : storage.zp;
+						}
+						if (chunk == null) {
+							storage = null;
+							slice = null;
+						} else {
+							storage = ((WorldChunkAccess) chunk).getNotAirLiquidStorage();
+							slice = storage.getSection(ybs);
+						}
+						posX = x; posZ = z; posY = ybs;
+						// only get new section when necessary
+					} else if (ybs >> 4 != posY >> 4) {
+						slice = storage == null ? null : storage.getSection(ybs);
+						posY = ybs;
 					}
-					/////////////////////
+					// }
 					blockPosStart1.set(xbs, ybs, zbs);
 
-					if (currentSlice != null) {
-						if (currentSlice[(xbs & 15) + ((zbs & 15) << 4)] && !blockPosStart1.equals(ignore)) {
+					// block present -> calculate interaction {
+					if (slice != null) {
+						if (slice[(xbs & 15) + ((zbs & 15) << 4)] && !blockPosStart1.equals(ignore)) {
 							BlockState bs = chunk.getBlockState(blockPosStart1);
 
 							if (!bs.isAir() && !bs.getBlock().equals(Blocks.MOVING_PISTON)) {
 								Vec3d start1;
 								double f;
+								// calculate side end position
 								if (side == 1) {
-									f = (((-dirx * 0.499 + xbs + 0.5) - start.x) * rdx * dirx);
+									f = (-dirx * 0.499 + xbs + 0.5) - start.x * rdx * dirx;
 								} else if (side == 2) {
-									f = (((-diry * 0.499 + ybs + 0.5) - start.y) * rdy * diry);
+									f = (-diry * 0.499 + ybs + 0.5) - start.y * rdy * diry;
 								} else {
-									f = (((-dirz * 0.499 + zbs + 0.5) - start.z) * rdz * dirz);
+									f = (-dirz * 0.499 + zbs + 0.5 - start.z) * rdz * dirz;
 								}
 								start1 = start.add(delta.multiply(f));
 								Vec3d end1;
-								double fx = (((dirx * 0.5001 + xbs + 0.5) - start.x) * rdx * dirx);
-								double fy = (((diry * 0.5001 + ybs + 0.5) - start.y) * rdy * diry);
-								double fz = (((dirz * 0.5001 + zbs + 0.5) - start.z) * rdz * dirz);
+								double fx = (dirx * 0.5001 + xbs + 0.5 - start.x) * rdx * dirx;
+								double fy = (diry * 0.5001 + ybs + 0.5 - start.y) * rdy * diry;
+								double fz = (dirz * 0.5001 + zbs + 0.5 - start.z) * rdz * dirz;
 								end1 = start.add(delta.multiply(Math.min(Math.min(fx, fy), fz)));
 
+								// interact with complex (or optimized/simple) geometry
 								object2 = finalRaycast(world, bs, blockPosStart1, start1, end1, chunk, side);
 							}
 						}
+					// }
+					// handle gaps in liquid storage / empty space {
 					} else {
 						int dx1 = ((dirx * 15 + (x<<5) + 15)>>1) - xbs; int dz1 = ((dirz * 15 + (z<<5) + 15)>>1) - zbs;
 						double dtx1 = dx1 * rdx * dirx; double dtz1 = dz1 * rdz * dirz;
-						if (currentNotAirStorage == null || currentNotAirStorage.isEmpty()
-								|| (diry == 1 && ybs > currentNotAirStorage.top) || (diry == -1 && ybs < currentNotAirStorage.bottom)
+						if (storage == null || storage.isEmpty()
+								|| (diry == 1 && ybs > storage.top) || (diry == -1 && ybs < storage.bottom)
 								|| (dtx1+tx < ty && dtz1+tz < ty)) {
 
 							if (dtx1 > dtz1){
@@ -233,17 +268,44 @@ public class Patch {
 							}
 						} }
 					}
+				// }
 				} while(object2 == null);
+				// }
 
 				return object2;
 			}
 		}
 	}
 
-	private static @Nullable SPHitResult finalRaycast(World world, BlockState bs, @NotNull BlockPos pos, Vec3d start, Vec3d end, WorldChunk c, Short side) {
+	// TODO: figure out mutation/return scheme to make this feasible
+	/*
+	private static void accessSection(World world, WorldChunk chunk, LiquidStorage storage, int posX, int posY, int posZ, int newX, int newY, int newZ, int yBlock) {
+		// 2 additions, 1 branch, instead of 2 branches
+		if (posX + posZ != newX + newZ) {
+			if (storage == null) {
+				chunk = (WorldChunk) world.getChunk(newX, newZ, ChunkStatus.FULL, false);
+			} else {
+				int ddz = posZ - newZ;
+				// TODO: verify -- some inferences made here
+				chunk = ddz == 0
+						// only calculate ddx when necessary
+						? posX - newX == -1 ? storage.xm : storage.xp
+						: ddz         == -1 ? storage.zm : storage.zp;
+			}
+			posX = newX; posZ = newZ; posY = ybs;
+			storage = chunk == null ? null : ((WorldChunkAccess)chunk).getNotAirLiquidStorage();
+			slice = storage == null ? null : storage.getSection(ybs);
+			// only get new section when necessary
+		} else if (ybs >> 4 != posY >> 4) {
+			slice = storage == null ? null : storage.getSection(ybs);
+			posY = ybs;
+		}
+	}
+	 */
+
+	private static @Nullable Collision finalRaycast(World world, BlockState bs, @NotNull BlockPos pos, Vec3d start, Vec3d end, WorldChunk c, Short side) {
 		long posl = pos.asLong();
-		Shapes shapes;
-		shapes = shapeCache.get(posl);
+		Shapes shapes = shapeCache.get(posl);
 		if (shapes == null) {
 			if (pC.dRays) world.addParticle(ParticleTypes.END_ROD, false, pos.getX() + 0.5d, pos.getY() + 1d, pos.getZ() + 0.5d, 0, 0, 0);
 			VoxelShape collisionShape = bs.getCollisionShape(world, pos);
@@ -258,8 +320,9 @@ public class Patch {
 					side == 2 ? Direction.UP :
 					side == 3 ? Direction.NORTH :
 					Direction.getFacing(start.x-pos.getX()-0.5, start.y-pos.getY()-0.5, start.z-pos.getZ()-0.5);
-			return new SPHitResult(false, start, direction, pos, bs, c);
+			return new Collision(false, start, direction, pos, bs, c);
 		}
-		return voxelShape == null ? null : SPHitResult.get(voxelShape.raycast(start, end, pos), bs, c);
+		return voxelShape == null ? null : Collision.hit(voxelShape.raycast(start, end, pos), bs, c);
 	}
+
 }

@@ -11,40 +11,57 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.chunk.WorldChunk;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @Environment(EnvType.CLIENT)
-public class SPHitResult extends HitResult {
+public class Collision extends HitResult {
 	private final Direction side;
 	private final BlockPos blockPos;
 	private final boolean missed;
 	private final BlockState blockState;
 	public final WorldChunk chunk;
 
+	// TODO: determine if this is still needed
+	public final Vec3d split;
+
 	@Contract("_, _, _, _ -> new")
-	public static @NotNull SPHitResult createMissed(Vec3d pos, Direction side, BlockPos blockPos, WorldChunk c) {
-		return new SPHitResult(true, pos, side, blockPos, null, c);
+	public static @NotNull Collision miss(Vec3d pos, Direction side, BlockPos blockPos, WorldChunk c) {
+		return new Collision(true, pos, side, blockPos, null, c);
 	}
 
-	public SPHitResult(@NotNull BlockHitResult blockHitResult, BlockState bs, WorldChunk c) {
+	public Collision(@NotNull BlockHitResult blockHitResult, BlockState bs, WorldChunk c) {
 		super(blockHitResult.getPos());
 		this.missed = false;//blockHitResult.getType() == Type.MISS;
 		this.side = blockHitResult.getSide();
 		this.blockPos = blockHitResult.getBlockPos();
 		this.blockState = bs;
 		this.chunk = c;
+		this.split = null;
 	}
 
-	public SPHitResult(boolean missed, Vec3d pos, Direction side, BlockPos blockPos, BlockState bs, WorldChunk c) {
+	public Collision(boolean missed, Vec3d pos, Direction side, BlockPos blockPos, BlockState bs, WorldChunk c) {
 		super(pos);
 		this.missed = missed;
 		this.side = side;
 		this.blockPos = blockPos;
 		this.blockState = bs;
 		this.chunk = c;
+		this.split = null;
 	}
-	public static SPHitResult get(BlockHitResult bhr, BlockState bs, WorldChunk c){
+
+	public Collision(Vec3d split, Vec3d pos, Direction side, BlockPos blockPos, BlockState bs, WorldChunk c) {
+		super(pos);
+		this.missed = false;
+		this.side = side;
+		this.blockPos = blockPos;
+		this.blockState = bs;
+		this.chunk = c;
+		this.split = null;
+	}
+
+	public static Collision hit(BlockHitResult bhr, BlockState bs, WorldChunk c){
 		if (bhr == null) return null;
-		return new SPHitResult(bhr, bs, c);
+		return new Collision(bhr, bs, c);
 	}
 
 	public BlockPos getBlockPos() {return this.blockPos;}
@@ -53,4 +70,5 @@ public class SPHitResult extends HitResult {
 	public Type getType() {return this.missed ? Type.MISS : Type.BLOCK;}
 	public boolean isMissed() {return this.missed;}
 	public BlockState getBlockState() {return blockState;}
+	public @Nullable Vec3d getSplit() {return this.split;}
 }
