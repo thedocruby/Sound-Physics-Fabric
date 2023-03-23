@@ -35,8 +35,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.apache.commons.lang3.ObjectUtils.Null;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -192,7 +190,7 @@ public class Engine {
 
 	// low-accuracy/performance mode
 	@Contract("_, _ -> new") // reflection
-	private static @NotNull Vec3d pseudoReflect(Vec3d ray, @NotNull Vec3i plane) {
+	public static @NotNull Vec3d pseudoReflect(Vec3d ray, @NotNull Vec3i plane) {
 		// Fresnels on a 1-30 scale
 		// TODO account for http://hyperphysics.phy-astr.gsu.edu/hbase/Tables/indrf.html
 		// TODO make these variable, and not static
@@ -482,7 +480,6 @@ Playing sound!
 			final Vec3d newRayDir = pseudoReflect(lastRayDir, lastHitNormal);
 			rayHit = Patch.fixedRaycast(lastHitPos, lastHitPos.add(newRayDir.multiply(pC.maxTraceDist - totalDistance)), mc.world, lastHitBlock, rayHit.chunk);
 
-			// TODO consider infinite void, for reverb
 			if (rayHit.isMissed()) {
 				if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, rayHit.getPos(), Formatting.DARK_RED.getColorValue());
 				// TODO airspace fresnel?
@@ -645,7 +642,7 @@ Playing sound!
 			Patch.lastUpd = timeT;
 		}
 
-		// TODO make irrelevant with infinite possibility logic
+		// TODO make irrelevant with splitting/power/max bounce limits
 		Patch.maxY = mc.world.getTopY();
 		Patch.minY = mc.world.getBottomY();
 		Patch.maxX = (int) (playerPos.getX() + (viewDist * 16));
