@@ -1,8 +1,7 @@
 package dev.thedocruby.resounding.raycast;
 
-import static dev.thedocruby.resounding.Engine.env;
-import static dev.thedocruby.resounding.Engine.pseudoReflect;
 import static dev.thedocruby.resounding.raycast.Cache.*;
+
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.util.Pair;
@@ -120,5 +119,37 @@ public class Cast {
 
     private static Vec3d normalize(Vec3d pos) {
         return new Vec3d(pos.getX() % 16, pos.getY() % 16, pos.getZ() % 16);
+    }
+
+    @Contract("_, _ -> new") // reflection
+    public static @NotNull Vec3d pseudoReflect(Vec3d ray, @NotNull Vec3i plane) {
+        return pseudoReflect(ray,plane,2);
+    }
+
+    // low-accuracy/performance mode
+    @Contract("_, _, _ -> new") // reflection
+    public static @NotNull Vec3d pseudoReflect(Vec3d ray, @NotNull Vec3i plane, double fresnel) {
+        // Fresnels on a 1-30 scale
+        // TODO account for http://hyperphysics.phy-astr.gsu.edu/hbase/Tables/indrf.html
+
+        final Vec3d planeD = new Vec3d(
+            (double) plane.getX(),
+            (double) plane.getY(),
+            (double) plane.getZ()
+        );
+        // ( ray - plane * (normal/air) * dot(ray,plane) ) / air * normal
+        // https://blog.demofox.org/2017/01/09/raytracing-reflection-refraction-fresnel-total-internal-reflection-and-beers-law/
+        // adjusted for refraction approximation
+        // and deliberately ignoring absorption (would decrease raytracing
+        // accuracy, ironically)
+        // for a visualization, see: https://www.math3d.org/UYUQRza8n
+        assert fresnel != 0;
+        return ray.subtract(
+                planeD.multiply
+                    ( fresnel / 5 // value arbitrarily set
+                    * ray.dotProduct(planeD)
+                    )
+                // TODO research, is this branchless?
+                ); // .normalize(); // retain velocity
     }
 }

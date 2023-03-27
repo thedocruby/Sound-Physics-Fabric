@@ -180,40 +180,9 @@ public class Engine {
 	// }
 	
 	public static void setRoot(Context context) {root=context;}
-
 	/* utility function */
 	public static <T> double logBase(T x, T b) {
 		return Math.log((Double) x) / Math.log((Double) b);
-	}
-
-	// low-accuracy/performance mode
-	@Contract("_, _ -> new") // reflection
-	public static @NotNull Vec3d pseudoReflect(Vec3d ray, @NotNull Vec3i plane) {
-		// Fresnels on a 1-30 scale
-		// TODO account for http://hyperphysics.phy-astr.gsu.edu/hbase/Tables/indrf.html
-		// TODO make these variable, and not static
-		final double normal = 30;
-		final double air = 30;
-		
-		final Vec3d planeD = new Vec3d(
-			(double) plane.getX(),
-			(double) plane.getY(),
-			(double) plane.getZ()
-		);
-		// ( ray - plane * (normal/air) * dot(ray,plane) ) / air * normal
-		// https://blog.demofox.org/2017/01/09/raytracing-reflection-refraction-fresnel-total-internal-reflection-and-beers-law/
-		// adjusted for refraction approximation
-		// and deliberately ignoring absorption (would decrease raytracing
-		// accuracy, ironically)
-		// for a visualization, see: https://www.math3d.org/UYUQRza8n
-		return ray.subtract(
-				planeD.multiply
-					( 2 // normal / 3d // localize scale properly
-					// / Math.min(.01d, air) // min of .01
-					* ray.dotProduct(planeD)
-					)
-				// TODO research, is this branchless?
-				); // .normalize(); // retain velocity
 	}
 
 	@Environment(EnvType.CLIENT)
@@ -465,7 +434,7 @@ Playing sound!
 		for (int i = 1; i < pC.nRayBounces; i++) {
 
 			// TODO handle velocity here, specifically
-			final Vec3d newRayDir = pseudoReflect(lastRayDir, lastHitNormal);
+			final Vec3d newRayDir = Cast.pseudoReflect(lastRayDir, lastHitNormal);
 			rayHit = Patch.fixedRaycast(lastHitPos, lastHitPos.add(newRayDir.multiply(pC.maxTraceDist - totalDistance)), mc.world, lastHitBlock, rayHit.chunk);
 
 			if (rayHit.isMissed()) {
