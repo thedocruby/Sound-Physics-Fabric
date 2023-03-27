@@ -8,11 +8,11 @@ public class ALset {
 		filters = new int[0];
 	}
 	// AL objects
-	public static long  old = -1; // context id
-	public static long  self    ; // context id
-	public static int   direct  ; // directFilter
-	public static int[] slots   ;
-	public static int[] effects ;
-	public static int[] filters ;
+	public long  old = -1; // context id
+	public long  self    ; // context id
+	public int   direct  ; // directFilter
+	public int[] slots   ;
+	public int[] effects ;
+	public int[] filters ;
 }
 

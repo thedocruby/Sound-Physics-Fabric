@@ -52,7 +52,7 @@ public class Branch {
     public @NotNull Branch get(BlockPos pos, int n) {
         // if branch isn't subdivided, return self
         if (!this.parent) return this;
-        // truncate position for node position
+        // round position for node
         BlockPos octo = shift(pos, n);
         @Nullable Branch leaf = leaves.get(octo);
         return leaf == null ? this : leaf.get(pos, n-1);

@@ -163,7 +163,7 @@ public class PrecomputedConfig {
     @Environment(EnvType.CLIENT)
     public boolean pLog;
     @Environment(EnvType.CLIENT)
-    public boolean dRays;
+    public boolean debug;
 
     private boolean active = true;
 
@@ -248,7 +248,7 @@ public class PrecomputedConfig {
             oLog = c.debug.occlusionLogging;
             eLog = c.debug.environmentLogging;
             pLog = c.debug.performanceLogging;
-            dRays = c.debug.raytraceParticles;
+            debug = c.debug.raytraceParticles;
         } else {
             soundSimulationDistance = c.server.soundSimulationDistance;
         }

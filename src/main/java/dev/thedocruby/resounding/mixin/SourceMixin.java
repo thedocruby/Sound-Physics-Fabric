@@ -38,7 +38,7 @@ public class SourceMixin implements SourceAccessor {
 
 	public void calculateReverb(SoundInstance sound, SoundListener listener) {
 		if (Engine.isOff) return;
-		Engine.updateYeetedSoundInfo(sound, listener);
+		Engine.recordLastSound(sound, listener);
 		// TODO make context dynamic
 		Engine.playSound(Engine.root, pos.x, pos.y, pos.z, pointer, false);
 	}

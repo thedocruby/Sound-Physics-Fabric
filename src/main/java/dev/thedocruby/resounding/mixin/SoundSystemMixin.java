@@ -33,7 +33,7 @@ public class SoundSystemMixin {
 	@Inject(method = "play(Lnet/minecraft/client/sound/SoundInstance;)V", at = @At(value = "FIELD", target = "net/minecraft/client/sound/SoundSystem.sounds : Lcom/google/common/collect/Multimap;"), locals = LocalCapture.CAPTURE_FAILHARD)
 	private void soundInfoYeeter(SoundInstance sound, CallbackInfo ci, WeightedSoundSet weightedSoundSet, Identifier identifier, Sound sound2, float f, float g, SoundCategory soundCategory){
 		if (Engine.isOff) return;
-		Engine.updateYeetedSoundInfo(sound, this.listener); // TODO: do this better maybe
+		Engine.recordLastSound(sound, this.listener); // TODO: do this better maybe
 	}
 
 //  @Inject(method = "tick()V", at = @At(value = "HEAD"))

@@ -38,14 +38,14 @@ public class Renderer {
 	}
 
 	public static void addSoundBounceRay(Vec3d start, Vec3d end, int color) {
-		if (!pC.dRays) {
+		if (!pC.debug) {
 			return;
 		}
 		addRay(start, end, color, false);
 	}
 
 	public static void addOcclusionRay(Vec3d start, Vec3d end, int color) {
-		if (!pC.dRays) {
+		if (!pC.debug) {
 			return;
 		}
 		addRay(start, end, color, true);

@@ -307,7 +307,7 @@ public class Patch {
 		long posl = pos.asLong();
 		Shapes shapes = shapeCache.get(posl);
 		if (shapes == null) {
-			if (pC.dRays) world.addParticle(ParticleTypes.END_ROD, false, pos.getX() + 0.5d, pos.getY() + 1d, pos.getZ() + 0.5d, 0, 0, 0);
+			if (pC.debug) world.addParticle(ParticleTypes.END_ROD, false, pos.getX() + 0.5d, pos.getY() + 1d, pos.getZ() + 0.5d, 0, 0, 0);
 			VoxelShape collisionShape = bs.getCollisionShape(world, pos);
 			shapes =  new Shapes(collisionShape == EMPTY ? null : collisionShape, null);
 			shapeCache.put(posl, shapes);

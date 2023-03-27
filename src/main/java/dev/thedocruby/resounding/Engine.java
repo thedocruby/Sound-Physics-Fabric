@@ -1,12 +1,9 @@
-//cd ../../../../../../ && ./gradlew remapjar #
 package dev.thedocruby.resounding;
 
 // imports {
 // internal {
 import dev.thedocruby.resounding.openal.Context;
-import dev.thedocruby.resounding.raycast.Patch;
-import dev.thedocruby.resounding.raycast.Renderer;
-import dev.thedocruby.resounding.raycast.Collision;
+import dev.thedocruby.resounding.raycast.*;
 import dev.thedocruby.resounding.toolbox.*;
 // }
 // fabric {
@@ -35,6 +32,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -163,7 +161,6 @@ public class Engine {
 	// init vars {
 	private static Set<Vec3d> rays;
 	private static int viewDist;
-	private static SoundInstance lastSoundInstance;
 	private static SoundCategory lastSoundCategory;
 	private static String lastSoundName;
 	private static SoundListener lastSoundListener;
@@ -184,7 +181,8 @@ public class Engine {
 	
 	public static void setRoot(Context context) {root=context;}
 
-	/* utility function */ public static <T> double logBase(T x, T b) {
+	/* utility function */
+	public static <T> double logBase(T x, T b) {
 		return Math.log((Double) x) / Math.log((Double) b);
 	}
 
@@ -225,19 +223,19 @@ public class Engine {
 
 		{ // calculate rays + mem.context
 			final int r = pC.nRays;
-			if      (r >= 600000) { epsilon = 214d;  }
-			else if (r >= 400000) { epsilon = 75d;   }
-			else if (r >= 11000)  { epsilon = 27d;   }
-			else if (r >= 890)    { epsilon = 10d;   }
-			else if (r >= 177)    { epsilon = 3.33d; }
-			else if (r >= 24)     { epsilon = 1.33d; }
-			else                  { epsilon = 0.33d; }
+			if      (r >= 600000) { epsilon = 214;  }
+			else if (r >= 400000) { epsilon = 75;   }
+			else if (r >= 11000)  { epsilon = 27;   }
+			else if (r >= 890)    { epsilon = 10;   }
+			else if (r >= 177)    { epsilon = 3.33; }
+			else if (r >= 24)     { epsilon = 1.33; }
+			else                  { epsilon = 0.33; }
 
 			// create queue and calculate vector // TODO verify functionality relative to comment
 			rays = IntStream.range(0, r).parallel().unordered().mapToObj(i -> {
 				// trig stuff
-				final double theta = 2d * Math.PI * i / gRatio;
-				final double phi = Math.acos(1d - 2d*(i + epsilon) / (r - 1d + 2d*epsilon));
+				final double theta = 2 * Math.PI * i / gRatio;
+				final double phi = Math.acos(1 - 2*(i + epsilon) / (r - 1 + 2*epsilon));
 
 				{ // calculate once + mem.context
 					final double sP = Math.sin(phi);
@@ -253,15 +251,14 @@ public class Engine {
 	}
 
 	@Environment(EnvType.CLIENT)
-	public static void updateYeetedSoundInfo(SoundInstance sound, SoundListener listener) {
-		lastSoundInstance = sound;
-		lastSoundCategory = lastSoundInstance.getCategory();
-		lastSoundName = lastSoundInstance.getId().getPath();
+	public static void recordLastSound(@NotNull SoundInstance sound, SoundListener listener) {
+		lastSoundCategory = sound.getCategory();
+		lastSoundName = sound.getId().getPath();
 		lastSoundListener = listener;
 	}
 
 	// wraps playSound() in order to process SVC audio chunks
-	@Contract("_ -> new")
+	@Contract("_, _, _, _, _, _ -> _")
 	@Environment(EnvType.CLIENT)
 	public static void svc_playSound(Context context, double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) {
 		lastSoundName = "voice-chat";
@@ -270,7 +267,7 @@ public class Engine {
 
 	@Environment(EnvType.CLIENT)
 	public static void playSound(Context context, double posX, double posY, double posZ, int sourceIDIn, boolean auxOnlyIn) { // The heart of the Resounding audio pipeline
-		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
+		assert !Engine.isOff;
 		long startTime = 0;
 		if (pC.pLog) startTime = System.nanoTime();
 		long endTime;
@@ -303,19 +300,18 @@ public class Engine {
 		viewDist = mc.options.getViewDistance();
 		double maxDist = Math.min(
 				Math.min(
-					Math.min(
-						mc.options.simulationDistance, viewDist),
-					pC.soundSimulationDistance) * 16,
-				pC.maxTraceDist / 2);
+					Math.min(mc.options.simulationDistance, viewDist),
+					pC.soundSimulationDistance
+				) * 16, // chunk
+				pC.maxTraceDist / 2); // diameter -> radius
 		soundChunk = mc.world.getChunk(((int)Math.floor(soundPos.x))>>4,((int)Math.floor(soundPos.z))>>4);
 		soundBlockPos = new BlockPos(soundPos.x, soundPos.y, soundPos.z);
 		timeT = mc.world.getTime();
 		boolean isGentle = gentlePattern.matcher(lastSoundName).matches();
 
 		String message = "";
-		// TODO use secondary tracer or branch to recognize void locations as air
-		// ^ algebra could also be used to skip those segments of the rays, and
-		// simply update the step count and continue from there
+		// TODO handle void as air, limit rays to 1 to player (if below void) and the rest upward
+		// ^ treat outward movement in void as a null chunk (miss)
 		if (
 				posY          <= bottom || posY          >= top ||
 				playerPos.y   <= bottom || playerPos.y   >= top ||
@@ -323,8 +319,6 @@ public class Engine {
 			) {
 			message = String.format("Skipped playing sound \"{}\": Cannot trace sounds outside the block grid.", lastSoundName);
 		} else
-		// TODO rename listenerPos to emissionPos
-		// TODO use a volume + distance w/ coefficient based system instead
 		// if it's too quiet then simply don't apply effects...
 		if (Math.max(playerPos.distanceTo(soundPos), listenerPos.distanceTo(soundPos)) > maxDist) {
 			message = String.format("Skipped environment sampling for sound \"{}\": Sound is outside the maximum traceable distance with the current settings.", lastSoundName);
@@ -335,7 +329,8 @@ public class Engine {
 		if (/*pC.skipRainOcclusionTracing && */isSpam) { // TODO: Occlusion
 			message = String.format("Skipped environment sampling for sound \"{}\": Rain sound", lastSoundName);
 		}
-		if (message != "") {
+
+		if (!message.equals("")) {
 			if (pC.dLog) {
 				LOGGER.info(message);
 			} /* else {
@@ -405,9 +400,8 @@ Playing sound!
 				soundChunk
 		);
 
-		if (pC.dRays) Renderer.addSoundBounceRay(soundPos, rayHit.getPos(), Formatting.GREEN.getColorValue());
+		if (pC.debug) Renderer.addSoundBounceRay(soundPos, rayHit.getPos(), Formatting.GREEN.getColorValue());
 
-		// TODO understand wtf this is - boolean(trap)
 		if (rayHit.isMissed()) {
 			return new ReflectedRayData(
 					0,
@@ -420,7 +414,7 @@ Playing sound!
 					new double[pC.nRayBounces],
 					new double[pC.nRayBounces],
 					new double[pC.nRayBounces]
-					);
+			);
 		}
 
 		BlockPos lastHitBlock = rayHit.getBlockPos();
@@ -436,8 +430,6 @@ Playing sound!
 		double missed = 0;
 		double totalDistance = soundPos.distanceTo(lastHitPos);
 		double totalReflectivity = lastBlockReflectivity;
-		// TODO possible minor optimization, use a duplicated value instead of
-		// many new ones, unsure of impact regarding java
 		// TODO create class and interface, instead of many indexed values?
 		double[] shared = new double[pC.nRayBounces];
 		double[] distToPlayer = new double[pC.nRayBounces];
@@ -446,7 +438,6 @@ Playing sound!
 		double[] bounceReflectivity = new double[pC.nRayBounces];
 		double[] totalBounceReflectivity = new double[pC.nRayBounces];
 
-		// TODO consider airspace fresnel (temperature, velocity, etc)
 		bounceReflectivity[0] = lastBlockReflectivity;
 		totalBounceReflectivity[0] = lastBlockReflectivity;
 
@@ -468,7 +459,7 @@ Playing sound!
 			color = Formatting.WHITE.getColorValue();
 			shared[0] = 1;
 		}
-		if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
+		if (pC.debug) Renderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
 
 		// Secondary ray bounces
 		for (int i = 1; i < pC.nRayBounces; i++) {
@@ -478,7 +469,8 @@ Playing sound!
 			rayHit = Patch.fixedRaycast(lastHitPos, lastHitPos.add(newRayDir.multiply(pC.maxTraceDist - totalDistance)), mc.world, lastHitBlock, rayHit.chunk);
 
 			if (rayHit.isMissed()) {
-				if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, rayHit.getPos(), Formatting.DARK_RED.getColorValue());
+				if (pC.debug)
+					Renderer.addSoundBounceRay(lastHitPos, rayHit.getPos(), Formatting.DARK_RED.getColorValue());
 				// TODO airspace fresnel?
 				missed = Math.pow(totalReflectivity, pC.globalReflRcp);
 				break;
@@ -491,7 +483,8 @@ Playing sound!
 			bounceDistance[i] = lastHitPos.distanceTo(newRayHitPos);
 			totalDistance += bounceDistance[i];
 			if (pC.maxTraceDist - totalDistance < newRayHitPos.distanceTo(listenerPos)) {
-				if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
+				if (pC.debug)
+					Renderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
 				missed = Math.pow(totalReflectivity, pC.globalReflRcp);
 				break;
 			}
@@ -499,13 +492,14 @@ Playing sound!
 			final double newBlockReflectivity = getBlockReflectivity(rayHit.getBlockState());
 			totalReflectivity *= newBlockReflectivity;
 			// TODO integrate with velocity and fresnels+refraction
-			if (totalReflectivity < minEnergy){
-				if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
+			if (totalReflectivity < minEnergy) {
+				if (pC.debug)
+					Renderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.DARK_PURPLE.getColorValue());
 				break;
 			}
 
 			// if surface hit, and velocity still high enough, trace bounce
-			if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.BLUE.getColorValue());
+			if (pC.debug) Renderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.BLUE.getColorValue());
 
 			lastBlockReflectivity = newBlockReflectivity;
 			lastHitPos = newRayHitPos;
@@ -532,7 +526,7 @@ Playing sound!
 				color = Formatting.WHITE.getColorValue();
 				shared[i] = 1;
 			}
-			if (pC.dRays) Renderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
+			if (pC.debug) Renderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
 		}
 		// TODO reorganize class structure for more logical order?
 		return new ReflectedRayData(
@@ -544,7 +538,7 @@ Playing sound!
 
 	@Environment(EnvType.CLIENT)
 	private static @NotNull Set<OccludedRayData> throwOcclRay(@NotNull Vec3d sourcePos, @NotNull Vec3d sinkPos) { //Direct sound occlusion
-		if (Engine.isOff) throw new IllegalStateException("ResoundingEngine must be started first! ");
+		assert !Engine.isOff;
 
 		// TODO: This still needs to be rewritten
 		// TODO: fix reflection/absorption calc with fresnels
@@ -579,7 +573,7 @@ Playing sound!
 				lastBlockPos = rayHit.getBlockPos();
 				//If we hit a block
 
-				if (pC.dRays) Renderer.addOcclusionRay(rayOrigin, rayHit.getPos(), Color.getHSBColor((float) (1F / 3F * (1F - Math.min(1F, occlusionAccumulation / 12F))), 1F, 1F).getRGB());
+				if (pC.debug) Renderer.addOcclusionRay(rayOrigin, rayHit.getPos(), Color.getHSBColor((float) (1F / 3F * (1F - Math.min(1F, occlusionAccumulation / 12F))), 1F, 1F).getRGB());
 				if (rayHit.isMissed()) {
 					if (pC.soundDirectionEvaluation) directions.add(Map.entry(rayOrigin.subtract(playerPos), // TODO: DirEval
 							(_9ray?9:1) * Math.pow(soundPos.distanceTo(playerPos), 2.0)* pC.rcpTotRays

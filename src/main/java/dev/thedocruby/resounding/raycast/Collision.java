@@ -29,6 +29,7 @@ public class Collision extends HitResult {
 		return new Collision(true, pos, side, blockPos, null, c);
 	}
 
+
 	public Collision(@NotNull BlockHitResult blockHitResult, BlockState bs, WorldChunk c) {
 		super(blockHitResult.getPos());
 		this.missed = false;//blockHitResult.getType() == Type.MISS;
