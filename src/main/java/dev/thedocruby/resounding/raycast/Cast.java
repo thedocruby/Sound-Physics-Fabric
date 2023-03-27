@@ -9,30 +9,34 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.WorldChunk;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.LinkedList;
 
 @Environment(EnvType.CLIENT)
 public class Cast {
 
-    public static World world = null;
+    public @Nullable Chunk chunk = null;
+    public @Nullable Branch tree = null;
 
-    private Cast() {
+    public Cast(@Nullable Branch tree, @Nullable Chunk chunk) {
+        this.tree = tree;
+        this.chunk = chunk;
     }
 
     private final static BlockPos single = new BlockPos(1,1,1);
 
-    private static Vec3d getStep(Vec3d base, Vec3d size, Vec3d position, Vec3d vector) {
+    private static Pair<Vec3d,Vec3i> getStep(Vec3d base, Vec3d size, Vec3d position, Vec3d vector) {
         /* return a new position, based on which bounding wall will be hit first
          * this is for path tracing using an octree
 
-         ** base     = block/chunk start position
-         ** size     = octree segment size
-         ** position = current ray position
-         ** vector   = trajectory
+         ** base     = diquad start position
+         ** size     = diquad size
+         ** position = ray position
+         ** vector   = ray trajectory
          */
 
         // normalize magnitude to closest wall
@@ -40,8 +44,20 @@ public class Cast {
         double ystep = boundAxis(base.getY(), position.getY(), size.getY(), vector.getY());
         double zstep = boundAxis(base.getZ(), position.getZ(), size.getZ(), vector.getZ());
 
+        Vec3i planarIndex = new Vec3i(1,0,0);
+        double coefficient = xstep;
+
+        // same as min(x,min(y,z)) + planar index
+        if (ystep < coefficient) {
+            coefficient = ystep;
+            planarIndex = new Vec3i(0,1,0);
+        }
+        if (zstep < coefficient) {
+            coefficient = zstep;
+            planarIndex = new Vec3i(0,0,1);
+        }
         // closest wall -> magnitude
-        return vector.multiply(Math.min(xstep, Math.min(ystep, zstep)));
+        return new Pair<>(vector.multiply(coefficient),planarIndex);
     }
 
     private static double boundAxis(double base, double pos, double size, double angle) {
@@ -54,62 +70,47 @@ public class Cast {
          */
     }
 
-    public static LinkedList<Collision> raycast(@Nullable WorldChunk chunk, @NotNull Vec3d position, @NotNull Vec3d trajectory) {
-        return raycast(chunk, position, trajectory, 128);
+    public Ray raycast(@NotNull Vec3d position, @NotNull Vec3d trajectory) {
+        // TODO: settings.rayStrength
+        return raycast(position, trajectory, 128);
     }
 
-    public static LinkedList<Collision> raycast(@Nullable WorldChunk chunk, @NotNull Vec3d position, @NotNull Vec3d trajectory, double power) {
-        // vibrations dissipate in the environment, power = limiter
-        Vec3d vector = trajectory;
-        Branch branch = getBlock(chunk, position);
-        LinkedList<Collision> collisions = new LinkedList<>();
-        while (power > 1) {
-            // miss when chunk not loaded
-            if (branch == null) break;
-            assert branch.state != null; // should never be null
-            Pair<Double,Double> attributes = blockMap.get(branch.state.getBlock());
-            /* use step algorithm
-             * (A) position of ray
-             * (B) start    of branch
-             * (C) size     of branch
-             * (D) direction (disregarding magnitude)
-             */
-            Vec3d step = getStep(position,blockToVec(branch.start), blockToVec(branch.size), vector);
-            double distance = step.length();
-            position = position.add(step);
-            branch = getBlock(chunk, position);
+    public Ray raycast(@NotNull Vec3d position, @NotNull Vec3d trajectory, double power) {
+        Branch branch = getBlock(position);
+        // miss when section not loaded
+        if (branch == null) return new Ray(0, position, null, 0.0, null, 0.0);
+        assert branch.state != null; // should never be null
+        Pair<Double,Double> attributes = blockMap.get(branch.state.getBlock());
+        /* use step algorithm
+         * (A) position of ray
+         * (B) start    of branch
+         * (C) size     of branch
+         * (D) direction (disregarding magnitude)
+         */
+        Pair<Vec3d,Vec3i> step = getStep(position,blockToVec(branch.start), blockToVec(branch.size), trajectory);
+        final double distance = step.getLeft().length();
+        position = position.add(step.getLeft());
 
-            double reflect = attributes.getRight();
-            double absorb = attributes.getLeft();
-            if (reflect > absorb) {
-                if (absorb < 0.5) {
-                    // TODO determine proper way to add extra detail here
-                    // THIS IS *NOT* the proper way to do this, but it might work for now
-                    LinkedList<Collision> newCollisions = raycast(chunk, position, vector, power / 2);
-                    collisions.addAll(newCollisions);
-                }
-                vector = pseudoReflect(vector, new Vec3i(1, 1, 1));
-            } else {
-                // absorption
-                power *= 1 - attributes.getRight() * distance;
-            }
-            power -= absorb - reflect;
-            // reflectivity
-            // power *= ?;
-        }
-        return collisions;
+        // coefficients for reflection and for permeability
+        final double reflect  = attributes.getRight()*Math.min(1,distance);
+        final double permeate = Math.min(1,1-attributes.getLeft())*distance;
+        // if reflection / permeation -> calculate -> bounce / refract
+        final @Nullable Vec3d reflected = reflect  <= 0 ? null : pseudoReflect(trajectory, step.getRight());
+        final @Nullable Vec3d permeated = permeate <= 0 ? null : pseudoReflect(trajectory, step.getRight(), permeate);
+        power--;
+
+        return new Ray(distance, position, permeated, permeate*power, reflected, reflect*power);
     }
 
-    public static Branch getBlock(@Nullable WorldChunk chunk, Vec3d pos) {
-        if (chunk == null) return null;
+    public Branch getBlock(Vec3d pos) {
+        if (this.chunk == null) return null;
         // round position
         BlockPos block = new BlockPos(pos);
-        // obtain tree for section within chunk
-        @NotNull Branch tree = overlay.get(chunk.getPos());
-        Branch branch = tree.get(block);
+        // obtain tree for section within section
+        @Nullable Branch branch = this.tree.get(block);
         // when branch is nonexistent, wrap underlying block
         if (branch.state == null) {
-            return new Branch(block, single, chunk.getBlockState(block));
+            return new Branch(block, single, this.chunk.getBlockState(block));
         } else return branch;
     }
 

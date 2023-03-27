@@ -22,6 +22,9 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkSection;
+import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.WorldChunk;
 // }
 // logger {
@@ -44,6 +47,7 @@ import java.util.stream.IntStream;
 // }
 // * static * {
 import static dev.thedocruby.resounding.config.PrecomputedConfig.*;
+import static dev.thedocruby.resounding.raycast.Cache.overlay;
 import static java.util.Map.entry;
 // }
 // }
@@ -407,6 +411,36 @@ Playing sound!
 		double[] bounceReflectivity = new double[pC.nRayBounces];
 		double[] totalBounceReflectivity = new double[pC.nRayBounces];
 
+		// dummy (incorrect default) <- gets overridden
+		Vec3i last = new Vec3i((int) soundPos.x+1, 0, 0); // section coords
+		Vec3d position = soundPos;
+		Vec3d angle = dir;
+		double power = 128; // TODO fine-tune
+		int bounces = 100;
+		Cast cast = new Cast(null, soundChunk);
+		// while power & bounces left
+		while (power > 0 && bounces-- > 0) {
+			// check if new chunk needed
+			int posX = (int) position.x >> 4;
+			int posY = (int) position.y >> 4;
+			int posZ = (int) position.z >> 4;
+			if (posX != last.getX() || posZ != last.getZ()) {
+				cast.chunk = mc.world.getChunk(posX, posZ, ChunkStatus.FULL, false);
+				cast.tree = overlay.get(new BlockPos(posX, posY, posZ));
+			// or if new overlay section reached
+			} else if (posY != last.getY()) {
+				cast.tree = overlay.get(new BlockPos(posX, posY, posZ));
+			}
+			// assert angle != null; // should never happen -> power <= 0 -> null, yet breaks above
+			Ray ray = cast.raycast(position,angle,power);
+			// TODO save values from hit result
+			// TODO handle bounces???
+			if (pC.debug) Renderer.addSoundBounceRay(position, ray.position, Formatting.GREEN.getColorValue());
+			position = ray.position;
+			angle = ray.permeated;
+			power = ray.permeation;
+		}
+		/* old code {
 		bounceReflectivity[0] = lastBlockReflectivity;
 		totalBounceReflectivity[0] = lastBlockReflectivity;
 
@@ -497,6 +531,8 @@ Playing sound!
 			}
 			if (pC.debug) Renderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
 		}
+		} */
+
 		// TODO reorganize class structure for more logical order?
 		return new ReflectedRayData(
 				++size, missed, totalDistance,
