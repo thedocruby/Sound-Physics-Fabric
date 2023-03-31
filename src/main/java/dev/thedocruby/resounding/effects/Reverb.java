@@ -51,8 +51,8 @@ public class Reverb extends Effect {
 		};
 		// iterate and apply them
 		for (SIF options : effects) {
-			EXTEfx.alEffectf(effect, options.s, options.t);
-			ALUtils.errorSet("effect", options.f, effect, options.t);
+			EXTEfx.alEffectf(effect, options.s(), options.t());
+			ALUtils.errorSet("effect", options.f(), effect, options.t());
 		}
 		//Attach updated effect object
 		EXTEfx.alAuxiliaryEffectSloti(slot, EXTEfx.AL_EFFECTSLOT_EFFECT, effect);

@@ -31,12 +31,10 @@ public static boolean[][] extendArray (final boolean[][] old, final int min) {
 // }
 
 	// specialized tuple type for effects using float
-	public static class SIF {
-		public static String f; // first
-		public static int    s; // second
-		public static float  t; // third
-
-		public SIF(String a, int b, float c) {f = a; s = b; t = c;}
-	}
+	public record SIF(
+		String f, // first
+		int    s, // second
+		float  t  // third
+	) {}
 
 }
