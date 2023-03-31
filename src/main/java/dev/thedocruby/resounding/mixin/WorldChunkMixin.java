@@ -1,10 +1,9 @@
 package dev.thedocruby.resounding.mixin;
 
-import dev.thedocruby.resounding.raycast.LiquidStorage;
-import dev.thedocruby.resounding.toolbox.WorldChunkAccess;
+import dev.thedocruby.resounding.raycast.Branch;
+import dev.thedocruby.resounding.toolbox.ChunkChain;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.world.ClientChunkManager;
 import net.minecraft.nbt.NbtCompound;
@@ -19,7 +18,6 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.*;
 import net.minecraft.world.gen.chunk.BlendingData;
 import net.minecraft.world.tick.ChunkTickScheduler;
-import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -29,28 +27,64 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 @Environment(EnvType.CLIENT)
 @Mixin(WorldChunk.class)
-public abstract class WorldChunkMixin extends Chunk implements WorldChunkAccess {
-	private LiquidStorage notAirLiquidStorage = null;
-	//private LiquidStorage waterLiquidStorage = null;//todo
-
-	public LiquidStorage getNotAirLiquidStorage() {return notAirLiquidStorage;}
-	//public LiquidStorage getWaterLiquidStorage() {return waterLiquidStorage;}
-
+public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 	@Shadow @Final World world;
+	@Shadow public ChunkStatus getStatus() {return null;}
+
+	// TODO maybe use a Ypos-map instead?
+	public Branch[] branches;
+	public int yOffset = 1; // 1.18 (0- -16(y) >> 4)
+	public ChunkChain[] xPlane = {null, this, null};
+	public ChunkChain[] zPlane = {null, this, null};
+	public ChunkChain[][] planes = {xPlane, zPlane};
+
+	public ChunkChain set(int plane, ChunkChain negative, ChunkChain positive) {
+		this.planes[plane][0] = negative;
+		this.planes[plane][2] = positive;
+		return this;
+	}
+
+	public ChunkChain set(int plane, int index, ChunkChain link) {
+		this.planes[plane][1+index] = link;
+		return this;
+	}
+
+	public ChunkChain get(int plane, int index) {
+		return this.planes[plane][1+index];
+	}
+
+	// one-dimensional traversal
+	public ChunkChain traverse(int d, int plane) {
+		int dx = (int) Math.signum(d);
+		@Nullable ChunkChain next = this.planes[plane][1+dx];
+		if (next == null) return null;
+		if (dx == 0) return this;
+		return next.traverse(d-dx, plane);
+	}
+
+	public ChunkChain access_(int tx, int tz) {
+		ChunkChain next = traverse(tx, 0);
+		if (next == null) return null;
+		return traverse(tz, 1);
+	}
+
+	public ChunkChain access(int x, int z) {
+		ChunkPos pos = this.getPos();
+		int px = pos.x;
+		int pz = pos.z;
+		return access_(x-px, z-pz);
+	}
 
 	// pass along to super {
 	public WorldChunkMixin(ChunkPos pos, UpgradeData upgradeData, HeightLimitView heightLimitView, Registry<Biome> biome, long inhabitedTime, @Nullable ChunkSection[] sectionArrayInitializer, @Nullable BlendingData blendingData) {
 		super(pos, upgradeData, heightLimitView, biome, inhabitedTime, sectionArrayInitializer, blendingData);
 	}
 	// }
-
-	// TODO: inspect
 	// upon receiving a packet, initialize storage {
 	@Inject(method = "loadFromPacket(Lnet/minecraft/network/PacketByteBuf;Lnet/minecraft/nbt/NbtCompound;Ljava/util/function/Consumer;)V", at = @At("RETURN"))
 	private void load(PacketByteBuf buf, NbtCompound nbt, Consumer<ChunkData.BlockEntityVisitor> consumer, CallbackInfo ci){initStorage();}
@@ -63,69 +97,50 @@ public abstract class WorldChunkMixin extends Chunk implements WorldChunkAccess 
 	}
 	// }
 
+	// for readability
+	private ChunkChain take(int x, int z) {
+		return (ChunkChain) world.getChunk(super.pos.x + x,super.pos.z + z,ChunkStatus.FULL,false);
+	}
 	private void initStorage() {
 		if (world == null || !world.isClient) return;
+
 		// 16³ blocks
 		ChunkSection[] chunkSections = getSectionArray();
-		// sections containing blocks
-		boolean[][] activeSections = new boolean[512][];
-		AtomicInteger bottomNotAir = new AtomicInteger(-600);
-		AtomicInteger topNotAir = new AtomicInteger(-600);
-		// sections regarded as solid
-		boolean[] solidSections = new boolean[512];
-
-		// thread chunking to keep loading quick
+		this.yOffset = -chunkSections[0].getYOffset() >> 4;
+		final ChunkPos pos = this.getPos();
+		final Branch[] branches = new Branch[chunkSections.length];
 		Stream.of(chunkSections).parallel().forEach((chunkSection) -> {
-			if (chunkSection.isEmpty()) return;
-			for (int y = chunkSection.getYOffset(), l = y+16; y<l; y++) {
-				// flat 16² block layer
-				boolean[] slice = LiquidStorage.empty();
-				int count = 0;
-				for (int x = 0; x < 16; x++) {
-					for (int z = 0; z < 16; z++) {
-						Block block = chunkSection.getBlockState(x, y & 15, z).getBlock();
-						if (!LiquidStorage.LIQUIDS.AIR.matches(block)) { slice[x+(z<<4)]=true; count++; }
-					}
-				}
-				if (count!=0){
-					synchronized (activeSections) {activeSections[y+64] = slice;}
-					int Y = y;
-					bottomNotAir.getAndUpdate((v) -> v == -600 ? Y : Math.min(v, Y));
-					topNotAir.getAndUpdate((v) -> v == -600 ? Y : Math.max(v, Y));
-					synchronized (solidSections) {solidSections[y+64] = (count == 16*16);}
-				}
+			int y = chunkSection.getYOffset();
+			Branch branch = new Branch(new BlockPos(pos.x,y,pos.z),16,null);
+			// TODO actually chunk into diquads
+			synchronized (branches) {
+				this.branches[y>>4] = branch;
 			}
 		});
+		this.branches = branches;
 
-		if (topNotAir.get() != -600)
-			notAirLiquidStorage = new LiquidStorage(
-				ArrayUtils.subarray(activeSections, bottomNotAir.get() +64, topNotAir.get() +64+1),
-				topNotAir.get(), bottomNotAir.get(),
-				ArrayUtils.subarray(solidSections, bottomNotAir.get() +64, topNotAir.get() +64+1),
-				(WorldChunk) (Object) this
-			);
-		else notAirLiquidStorage = new LiquidStorage((WorldChunk) (Object) this);
-		WorldChunkAccess[] adj = new WorldChunkAccess[4];
-		adj[0] = (WorldChunkAccess) world.getChunk(super.pos.x - 1, super.pos.z + 0, ChunkStatus.FULL, false);
-		adj[1] = (WorldChunkAccess) world.getChunk(super.pos.x + 1, super.pos.z + 0, ChunkStatus.FULL, false);
-		adj[2] = (WorldChunkAccess) world.getChunk(super.pos.x + 0, super.pos.z - 1, ChunkStatus.FULL, false);
-		adj[3] = (WorldChunkAccess) world.getChunk(super.pos.x + 0, super.pos.z + 1, ChunkStatus.FULL, false);
-		if (adj[0] != null) {adj[0].getNotAirLiquidStorage().xm = (WorldChunk) (Object) this; notAirLiquidStorage.xp = (WorldChunk) adj[0];}
-		if (adj[1] != null) {adj[1].getNotAirLiquidStorage().xp = (WorldChunk) (Object) this; notAirLiquidStorage.xm = (WorldChunk) adj[1];}
-		if (adj[2] != null) {adj[2].getNotAirLiquidStorage().zm = (WorldChunk) (Object) this; notAirLiquidStorage.zp = (WorldChunk) adj[2];}
-		if (adj[3] != null) {adj[3].getNotAirLiquidStorage().zp = (WorldChunk) (Object) this; notAirLiquidStorage.zm = (WorldChunk) adj[3];}
+		ChunkChain[] adj = new ChunkChain[4];
+		// retrieve & save locally
+		this.set(0,-1,adj[0] = take(-1, +0));
+		this.set(0,+1,adj[1] = take(+1, +0));
+		this.set(1,-1,adj[2] = take(+0, -1));
+		this.set(1,+1,adj[3] = take(+0, +1));
+
+		// update self-references using reversed direction
+		if (adj[0] != null) adj[0].set(0,+1,this);
+		if (adj[1] != null) adj[1].set(0,-1,this);
+		if (adj[2] != null) adj[2].set(1,+1,this);
+		if (adj[3] != null) adj[3].set(1,-1,this);
+
 	}
 
-	@Shadow public ChunkStatus getStatus() {return null;}
 
 	// upon setting block in client, update our copy {
 	@Inject(method = "setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Z)Lnet/minecraft/block/BlockState;", at = @At("HEAD"))
 	private void setBlock(BlockPos pos, BlockState state, boolean moved, CallbackInfoReturnable<BlockState> cir){
 		if (!world.isClient) return;
-		Block block = state.getBlock();
-		// TODO: make LiquidStorage obsolete
-		notAirLiquidStorage.setBlock(pos.getX() & 15, pos.getY(), pos.getZ() & 15, !LiquidStorage.LIQUIDS.AIR.matches(block));
-		// tree.update(block);
+		this.branches[pos.getY()<<4].setBlock(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15, state, moved);
+		this.shapes.clear();
 	}
 	// }
 
@@ -135,17 +150,23 @@ public abstract class WorldChunkMixin extends Chunk implements WorldChunkAccess 
 		public WorldChunk getChunk(int x, int z, ChunkStatus chunkStatus, boolean bl){
 			return null;
 		}
+		// for readability
+		private ChunkChain take(int x, int z) {
+			return (ChunkChain) getChunk(x,z,ChunkStatus.FULL,false);
+		}
 		@Inject(method = "unload(II)V", at = @At("HEAD"))
 		public void unload(int x, int z, CallbackInfo ci) {
-			WorldChunkAccess[] adj = new WorldChunkAccess[4];
-			adj[0] = (WorldChunkAccess) getChunk(x - 1, z + 0, ChunkStatus.FULL, false);
-			adj[1] = (WorldChunkAccess) getChunk(x + 1, z + 0, ChunkStatus.FULL, false);
-			adj[2] = (WorldChunkAccess) getChunk(x + 0, z - 1, ChunkStatus.FULL, false);
-			adj[3] = (WorldChunkAccess) getChunk(x + 0, z + 1, ChunkStatus.FULL, false);
-			if (adj[0] != null) adj[0].getNotAirLiquidStorage().xm = null;
-			if (adj[1] != null) adj[1].getNotAirLiquidStorage().xp = null;
-			if (adj[2] != null) adj[2].getNotAirLiquidStorage().zm = null;
-			if (adj[3] != null) adj[3].getNotAirLiquidStorage().zp = null;
+			ChunkChain[] adj = new ChunkChain[4];
+			adj[0] = take(x - 1, z + 0);
+			adj[1] = take(x + 1, z + 0);
+			adj[2] = take(x + 0, z - 1);
+			adj[3] = take(x + 0, z + 1);
+
+			// delete self-references & using reversed direction
+			if (adj[0] != null) adj[0].set(0,+1,null);
+			if (adj[1] != null) adj[1].set(0,-1,null);
+			if (adj[2] != null) adj[2].set(1,+1,null);
+			if (adj[3] != null) adj[3].set(1,-1,null);
 		}
 	}
 }

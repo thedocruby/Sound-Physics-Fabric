@@ -17,12 +17,6 @@ import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundListener;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3i;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.WorldChunk;
 import net.minecraft.util.math.*;
 // }
 // logger {
@@ -34,9 +28,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -68,11 +60,9 @@ public class Engine {
 	private static SoundListener lastSoundListener;
 	private static Vec3d playerPos;
 	private static Vec3d listenerPos;
-	private static WorldChunk soundChunk;
+	private static ChunkChain soundChunk;
 	private static Vec3d soundPos;
-	private static BlockPos soundBlockPos;
 	private static boolean auxOnly;
-	private static boolean isSpam;
 	private static int sourceID;
 	//private static boolean doDirEval; // TODO: DirEval
 	// }
@@ -168,8 +158,7 @@ public class Engine {
 					pC.soundSimulationDistance
 				) * 16, // chunk
 				pC.maxTraceDist / 2); // diameter -> radius
-		soundChunk = mc.world.getChunk(((int)Math.floor(soundPos.x))>>4,((int)Math.floor(soundPos.z))>>4);
-		soundBlockPos = new BlockPos(soundPos.x, soundPos.y, soundPos.z);
+		soundChunk = (ChunkChain) mc.world.getChunk(((int)Math.floor(soundPos.x))>>4,((int)Math.floor(soundPos.z))>>4);
 		boolean isGentle = Cache.gentlePattern.matcher(lastSoundName).matches();
 
 		String message = "";
@@ -225,7 +214,7 @@ public class Engine {
 	private static double getBlockOcclusionD(final BlockState blockState) {
 		BlockSoundGroup soundType = blockState.getSoundGroup();
 		String blockName = blockState.getBlock().getTranslationKey();
-		if (pC.blockWhiteSet.contains(blockName)) return pC.blockWhiteMap.get(blockName).absorption;
+		if (pC.blockWhiteSet.contains(blockName)) return pC.blockWhiteMap.get(blockName).permeability();
 
 		double r = pC.absorptionMap.getOrDefault(soundType, Double.NaN);
 		return Double.isNaN(r) ? pC.defaultAbsorption : r;
@@ -233,45 +222,11 @@ public class Engine {
 	*/
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull ReflectedRayData throwReflRay(@NotNull Vec3d dir) {
-		Collision rayHit = Patch.fixedRaycast(
-				soundPos,
-				soundPos.add(dir.multiply(pC.maxTraceDist)),
-				mc.world,
-				soundBlockPos,
-				soundChunk
-		);
-
-		if (pC.debug) Renderer.addSoundBounceRay(soundPos, rayHit.getPos(), Formatting.GREEN.getColorValue());
-
-		if (rayHit.isMissed()) {
-			return new ReflectedRayData(
-					0,
-					1,
-					0,
-					1,
-					new double[pC.nRayBounces],
-					new double[pC.nRayBounces],
-					new double[pC.nRayBounces],
-					new double[pC.nRayBounces],
-					new double[pC.nRayBounces],
-					new double[pC.nRayBounces]
-			);
-		}
-
-		BlockPos lastHitBlock = rayHit.getBlockPos();
-		Vec3d lastHitPos = rayHit.getPos();
-		Vec3i lastHitNormal = rayHit.getSide().getVector();
-		Vec3d lastRayDir = dir;
-		// TODO integrate with fresnel values, and handle refraction (things
-		// like wool)
-		double lastBlockReflectivity = getBlockReflectivity(rayHit.getBlockState());
-
+	private static @NotNull CastResults throwReflRay(@NotNull Vec3d dir) {
 		// TODO integrate with velocity logic, this' no simple task
 		int size = 0;
 		double missed = 0;
-		double totalDistance = soundPos.distanceTo(lastHitPos);
-		double totalReflectivity = lastBlockReflectivity;
+		double totalDistance = 0;
 		// TODO create class and interface, instead of many indexed values?
 		double[] shared                  = new double[pC.nRayBounces];
 		double[] distToPlayer            = new double[pC.nRayBounces];
@@ -284,69 +239,50 @@ public class Engine {
 		Vec3d position = soundPos;
 		Vec3d angle = dir;
 		double power = 128; // TODO fine-tune
-		int bounces = 100;
-		Cast cast = new Cast(null, soundChunk);
-		// while power & bounces left
-		while (power > 0 && bounces-- > 0) {
-			// check if new chunk needed
-			int posX = (int) position.x >> 4;
-			int posY = (int) position.y >> 4;
-			int posZ = (int) position.z >> 4;
-			if (posX != last.getX() || posZ != last.getZ()) {
-				cast.chunk = mc.world.getChunk(posX, posZ, ChunkStatus.FULL, false);
-				cast.tree = overlay.get(new BlockPos(posX, posY, posZ));
-			// or if new overlay section reached
-			} else if (posY != last.getY()) {
-				cast.tree = overlay.get(new BlockPos(posX, posY, posZ));
+		// int bounces = 100; // -> incompatible with present algorithms
+		// assert mc.world != null; // should never happen (never should be called uninitialized)
+		Cast cast = new Cast(mc.world, null, (ChunkChain) soundChunk);
+		assert cast.chunk != null;
+		int bounce = 0;
+		// while power & iterate bounces
+		// TODO determine - use minEnergy or simply positive power?
+		while (bounce < pC.nRayBounces && power > 1) {
+			{ // get new chunk (if needed)
+			ChunkChain next = cast.chunk.access((int) position.x >> 4, (int) position.z >> 4);
+			if (next == null) break;
+			cast.chunk = next;
 			}
+			// calculate section {
+			// TODO: is a branch better here?
+			cast.tree = ArrayUtils.get(cast.chunk.branches, (int) position.y >> 4 + cast.chunk.yOffset, null);
+			// lastY = posY;
+			// }
+			// cast ray {
 			// assert angle != null; // should never happen -> power <= 0 -> null, yet breaks above
 			Ray ray = cast.raycast(position,angle,power);
-			// TODO save values from hit result
-			// TODO handle bounces???
-			if (pC.debug) Renderer.addSoundBounceRay(position, ray.position, Formatting.GREEN.getColorValue());
-			position = ray.position;
-			angle = ray.permeated;
-			power = ray.permeation;
-		}
 			if (pC.dRays) Renderer.addSoundBounceRay(position, ray.position(), Formatting.GREEN.getColorValue());
+			// TODO handle splits & replace:
+			//  reflect instead of permeate, when logical
+			if (ray.reflection() > ray.permeation()) {
+				bounceReflectivity[bounce] = ray.reflection();
+				totalBounceReflectivity[bounce] = ray.reflection();
+				totalBounceDistance[bounce] = ray.distance();
+				distToPlayer[bounce] = ray.position().distanceTo(listenerPos);
+
+				bounce++;
+				angle = ray.reflected();
+				power = ray.reflection();
+			} else {
+				angle = ray.permeated();
+				power = ray.permeation();
 			}
-
-			// if surface hit, and velocity still high enough, trace bounce
-			if (pC.debug) Renderer.addSoundBounceRay(lastHitPos, newRayHitPos, Formatting.BLUE.getColorValue());
-
-			lastBlockReflectivity = newBlockReflectivity;
-			lastHitPos = newRayHitPos;
-			lastHitNormal = rayHit.getSide().getVector();
-			lastRayDir = newRayDir;
-			lastHitBlock = rayHit.getBlockPos();
-
-			// TODO see comment above `size` initialization
-			size = i;
-			totalBounceDistance[i] = totalDistance;
-			distToPlayer[i] = lastHitPos.distanceTo(listenerPos);
-			bounceReflectivity[i] = lastBlockReflectivity;
-			totalBounceReflectivity[i] = totalReflectivity;
-
-			// TODO duplicated code??
-			// Cast (one) final ray towards the player. If it's
-			// unobstructed, then the sound source and the player
-			// share airspace.
-
-			finalRayHit = Patch.fixedRaycast(lastHitPos, listenerPos, mc.world, lastHitBlock, rayHit.chunk);
-
-			color = Formatting.GRAY.getColorValue();
-			if (finalRayHit.isMissed()) {
-				color = Formatting.WHITE.getColorValue();
-				shared[i] = 1;
-			}
-			if (pC.debug) Renderer.addSoundBounceRay(lastHitPos, finalRayHit.getPos(), color);
+			position = ray.position();
+			// }
 		}
-		} */
 
 		// TODO reorganize class structure for more logical order?
-		return new ReflectedRayData(
-				++size, missed, totalDistance,
-				totalReflectivity, shared,
+		return new CastResults(
+				++size, missed, totalDistance, shared,
 				distToPlayer, bounceDistance, totalBounceDistance,
 				bounceReflectivity, totalBounceReflectivity);
 	}
@@ -356,7 +292,7 @@ public class Engine {
 		assert !Engine.isOff;
 
 		// TODO: This still needs to be rewritten
-		// TODO: fix reflection/absorption calc with fresnels
+		// TODO: fix reflection/permeability calc with fresnels
 		// TODO: Allow data theft from other reflection data, and cast occlusion
 		// based on conditions then (e.g. rays with the highest distance w/out
 		// bouncing)
@@ -436,26 +372,6 @@ public class Engine {
 
 	@Environment(EnvType.CLIENT)
 	private static @NotNull EnvData evalEnv() {
-		// Clear the block shape cache every tick, just in case the local block grid has changed
-		// TODO: Do this more efficiently.
-		//  In 1.18 there should be something I can mix into to clear only in ticks when the block grid changes
-		//  I think i remember a technical change relating to this;
-		//  It may be faster to skim through the snapshot changelog instead of digging through the code.
-		//  TODO split cache into chunks, refresh only relevant chunks,
-		//  implement forgetting-system
-		if (Patch.lastUpd != timeT) {
-			Patch.shapeCache.clear();
-			Patch.lastUpd = timeT;
-		}
-
-		// TODO make irrelevant with splitting/power/max bounce limits
-		Patch.maxY = mc.world.getTopY();
-		Patch.minY = mc.world.getBottomY();
-		Patch.maxX = (int) (playerPos.getX() + (viewDist * 16));
-		Patch.minX = (int) (playerPos.getX() - (viewDist * 16));
-		Patch.maxZ = (int) (playerPos.getZ() + (viewDist * 16));
-		Patch.minZ = (int) (playerPos.getZ() - (viewDist * 16));
-
 		// Throw rays around
 		// TODO implement tagging system here
 		// TODO? implement lambda function referencing to remove branches

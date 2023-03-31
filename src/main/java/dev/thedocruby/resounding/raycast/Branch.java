@@ -2,35 +2,30 @@ package dev.thedocruby.resounding.raycast;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
-import static dev.thedocruby.resounding.raycast.Cache.blockMap;
+import static dev.thedocruby.resounding.Cache.blockMap;
 
 @Environment(EnvType.CLIENT)
 public class Branch {
     BlockPos start;
-    BlockPos size;
+    int size;
     @Nullable BlockState state;
 
-    HashMap<BlockPos, Branch> leaves = new HashMap<>(8);
+    HashMap<Long, Branch> leaves = new HashMap<>(8);
 
-    public boolean parent = false;
-
-    public Branch(BlockPos start, BlockPos size, @Nullable BlockState state) {
+    public Branch(BlockPos start, int size, @Nullable BlockState state) {
         this.start = start;
         this.size = size;
         this.state = state;
+        if (this.size == 2) leaves = null;
     }
 
     public Branch set(@Nullable BlockState state) {
@@ -38,24 +33,22 @@ public class Branch {
         return this;
     }
 
-    public Branch set(@Nullable BlockPos size) {
+    public Branch set(int size) {
         this.size = size;
         return this;
     }
 
-    public @NotNull Branch get(BlockPos pos) {
-        return this.get(pos, 3);
-    }
+    public @NotNull Branch get(BlockPos pos) { return this.get(pos, 3); }
 
     // recursively search tree for corresponding branch
     // positions are normalized by section (16³)
-    public @NotNull Branch get(BlockPos pos, int n) {
+    public @NotNull Branch get(BlockPos pos, int layer) {
         // if branch isn't subdivided, return self
-        if (!this.parent) return this;
-        // round position for node
-        BlockPos octo = shift(pos, n);
-        @Nullable Branch leaf = leaves.get(octo);
-        return leaf == null ? this : leaf.get(pos, n-1);
+        if (leaves.isEmpty()) return this;
+        @Nullable Branch leaf = leaves.get(
+                // round position for node
+                shift(pos, layer).asLong());
+        return leaf == null ? this : leaf.get(pos, layer-1);
     }
 
     private static BlockPos shift(BlockPos pos, int n) {
@@ -70,18 +63,26 @@ public class Branch {
 //        return pos.subtract(octo.multiply(n));
 //    }
 
-    public Branch put(BlockPos pos, Branch branch) {
-        this.parent = true;
+    // this should only be used
+    @Deprecated // NOT REALLY, but @Unsafe isn't available... :/
+    public Branch put(Long pos, Branch branch) {
         return leaves.put(pos, branch);
     }
 
-    public Branch remove(BlockPos pos) {
-        this.parent = !leaves.isEmpty();
-        return leaves.remove(pos);
+    public Branch empty() {
+        leaves = new HashMap<>(8);
+        return this;
+    }
+
+    public Branch replace(Long pos, Branch branch) {
+        return leaves.replace(pos, branch);
     }
 
     public static Pair<Double,Double> blockAttributes(BlockState state) {
         @Nullable Pair<Double,Double> attributes = blockMap.get(state.getBlock());
         return attributes == null ? new Pair<>(0.0,0.0) : attributes;
+    }
+
+    public void setBlock(int x, int y, int z, BlockState state, boolean moved) {
     }
 }
