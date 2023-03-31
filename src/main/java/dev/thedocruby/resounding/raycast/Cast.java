@@ -1,16 +1,20 @@
 package dev.thedocruby.resounding.raycast;
 
-import static dev.thedocruby.resounding.raycast.Cache.*;
+import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
+import static dev.thedocruby.resounding.Cache.*;
 
+import dev.thedocruby.resounding.Cache;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.block.BlockState;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.util.Pair;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.WorldChunk;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -71,7 +75,7 @@ public class Cast {
     }
 
     public Ray raycast(@NotNull Vec3d position, @NotNull Vec3d trajectory) {
-        // TODO: settings.rayStrength
+        // TODO: settings.rayStrength & volume -> amplitude
         return raycast(position, trajectory, 128);
     }
 
@@ -150,7 +154,7 @@ public class Cast {
                     ( fresnel / 5 // value arbitrarily set
                     * ray.dotProduct(planeD)
                     )
-                // TODO research, is this branchless?
-                ); // .normalize(); // retain velocity
+                );
     }
+
 }

@@ -1,7 +1,7 @@
 package dev.thedocruby.resounding.config.presets;
 
+import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.config.BlueTapePack.ConfigManager;
-import dev.thedocruby.resounding.config.PrecomputedConfig;
 import dev.thedocruby.resounding.config.ResoundingConfig;
 import org.jetbrains.annotations.Nullable;
 
@@ -157,7 +157,7 @@ public enum ConfigPresets {
 
             null, null, null, null, null, null,
 
-            PrecomputedConfig.materialDefaults,
+            Cache.materialDefaults,
 
             null, null, null, null,null, null
     ));//</editor-fold>

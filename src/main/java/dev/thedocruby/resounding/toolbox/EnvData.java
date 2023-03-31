@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.Set;
 
 public record EnvData(
-		Set<ReflectedRayData> reflRays,
+		Set<CastResults> reflRays,
 		Set<OccludedRayData> occlRays
 ) {
 	@Override
@@ -23,7 +23,7 @@ public record EnvData(
 	@Override
 	public @NotNull String toString() {
 		return "EnvData {\n" +
-				String.join("\n", reflRays.stream().sequential().map(ReflectedRayData::toString).toList()) + "\n" +
+				String.join("\n", reflRays.stream().sequential().map(CastResults::toString).toList()) + "\n" +
 				String.join("\n", occlRays.stream().sequential().map( OccludedRayData::toString).toList()) + "\n}";
 	}
 }

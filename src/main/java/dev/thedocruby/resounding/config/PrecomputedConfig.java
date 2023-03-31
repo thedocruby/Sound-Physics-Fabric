@@ -11,8 +11,7 @@ import net.minecraft.util.math.MathHelper;
 
 import java.util.*;
 
-import static dev.thedocruby.resounding.Engine.nameToGroup;
-import static java.util.Map.entry;
+import static dev.thedocruby.resounding.Cache.nameToGroup;
 
 /*
     Values, which remain constant after the config has changed
@@ -24,57 +23,6 @@ public class PrecomputedConfig {
     @Environment(EnvType.CLIENT)
     public static final double speedOfSound = 343.3;
     public static final double minEnergy = Math.exp(-9.21);
-    @Environment(EnvType.CLIENT) // TODO: Make sure this is used everywhere, add example text
-    public static final Map<String, MaterialData> materialDefaults = //<editor-fold desc="Map.ofEntries();">
-            Map.<String, MaterialData>ofEntries(
-                    entry("Coral",              new MaterialData(null, 0.350, 0.250)),  // Coral              (coral_block)
-                    entry("Gravel, Dirt",       new MaterialData(null, 0.500, 0.650)),  // Gravel, Dirt       (gravel, rooted_dirt)
-                    entry("Amethyst",           new MaterialData(null, 0.850, 0.400)),  // Amethyst           (amethyst_block, small_amethyst_bud, medium_amethyst_bud, large_amethyst_bud, amethyst_cluster)
-                    entry("Sand",               new MaterialData(null, 0.400, 0.600)),  // Sand               (sand)
-                    entry("Candle Wax",         new MaterialData(null, 0.350, 0.400)),  // Candle Wax         (candle)
-                    entry("Weeping Vines",      new MaterialData(null, 0.300, 0.300)),  // Weeping Vines      (weeping_vines, weeping_vines_low_pitch)
-                    entry("Soul Sand",          new MaterialData(null, 0.050, 0.850)),  // Soul Sand          (soul_sand)
-                    entry("Soul Soil",          new MaterialData(null, 0.100, 0.900)),  // Soul Soil          (soul_soil)
-                    entry("Basalt",             new MaterialData(null, 0.800, 0.375)),  // Basalt             (basalt)
-                    entry("Netherrack",         new MaterialData(null, 0.750, 0.450)),  // Netherrack         (netherrack, nether_ore, nether_gold_ore)
-                    entry("Nether Brick",       new MaterialData(null, 0.880, 0.400)),  // Nether Brick       (nether_bricks)
-                    entry("Honey",              new MaterialData(null, 0.120, 0.350)),  // Honey              (honey_block)
-                    entry("Bone",               new MaterialData(null, 0.900, 0.300)),  // Bone               (bone_block)
-                    entry("Nether Wart",        new MaterialData(null, 0.200, 0.800)),  // Nether Wart        (nether_wart, wart_block)
-                    entry("Grass, Foliage",     new MaterialData(null, 0.240, 0.240)),  // Grass, Foliage     (grass, crop, bamboo_sapling, sweet_berry_bush)
-                    entry("Metal",              new MaterialData(null, 0.950, 0.400)),  // Metal              (metal, copper, anvil)
-                    entry("Aquatic Foliage",    new MaterialData(null, 0.550, 0.650)),  // Aquatic Foliage    (wet_grass, lily_pad)
-                    entry("Glass, Ice",         new MaterialData(null, 0.900, 0.320)),  // Glass, Ice         (glass)
-                    entry("Nether Foliage",     new MaterialData(null, 0.150, 0.500)),  // Nether Foliage     (roots, nether_sprouts)
-                    entry("Shroomlight",        new MaterialData(null, 0.850, 0.300)),  // Shroomlight        (shroomlight)
-                    entry("Chain",              new MaterialData(null, 0.800, 0.550)),  // Chain              (chain)
-                    entry("Deepslate",          new MaterialData(null, 0.940, 0.600)),  // Deepslate          (deepslate)
-                    entry("Wood",               new MaterialData(null, 0.675, 0.400)),  // Wood               (wood, ladder)
-                    entry("Deepslate Tiles",    new MaterialData(null, 0.975, 0.525)),  // Deepslate Tiles    (deepslate_tiles)
-                    entry("Stone, Blackstone",  new MaterialData(null, 0.900, 0.500)),  // Stone, Blackstone  (stone, calcite, gilded_blackstone)
-                    entry("Slime",              new MaterialData(null, 0.880, 0.620)),  // Slime              (slime_block)
-                    entry("Polished Deepslate", new MaterialData(null, 0.975, 0.600)),  // Polished Deepslate (polished_deepslate, deepslate_bricks)
-                    entry("Snow",               new MaterialData(null, 0.250, 0.420)),  // Snow               (snow)
-                    entry("Azalea Leaves",      new MaterialData(null, 0.300, 0.350)),  // Azalea Leaves      (azalea_leaves)
-                    entry("Bamboo",             new MaterialData(null, 0.600, 0.300)),  // Bamboo             (bamboo, scaffolding)
-                    entry("Mushroom Stems",     new MaterialData(null, 0.600, 0.650)),  // Mushroom Stems     (stem)
-                    entry("Wool",               new MaterialData(null, 0.025, 0.950)),  // Wool               (wool)
-                    entry("Dry Foliage",        new MaterialData(null, 0.250, 0.150)),  // Dry Foliage        (vine, hanging_roots, glow_lichen)
-                    entry("Azalea Bush",        new MaterialData(null, 0.300, 0.450)),  // Azalea Bush        (azalea)
-                    entry("Lush Cave Foliage",  new MaterialData(null, 0.350, 0.250)),  // Lush Foliage       (cave_vines, spore_blossom, small_dripleaf, big_dripleaf)
-                    entry("Netherite",          new MaterialData(null, 0.995, 0.300)),  // Netherite          (netherite_block, lodestone)
-                    entry("Ancient Debris",     new MaterialData(null, 0.450, 0.800)),  // Ancient Debris     (ancient_debris)
-                    entry("Nether Fungus Stem", new MaterialData(null, 0.300, 0.650)),  // Nether Fungus Stem (nether_stem)
-                    entry("Powder Snow",        new MaterialData(null, 0.180, 0.100)),  // Powder Snow        (powder_snow)
-                    entry("Tuff",               new MaterialData(null, 0.750, 0.400)),  // Tuff               (tuff)
-                    entry("Moss",               new MaterialData(null, 0.200, 0.400)),  // Moss               (moss, moss_carpet)
-                    entry("Nylium",             new MaterialData(null, 0.400, 0.500)),  // Nylium             (nylium)
-                    entry("Nether Mushroom",    new MaterialData(null, 0.250, 0.750)),  // Nether Mushroom    (fungus)
-                    entry("Lanterns",           new MaterialData(null, 0.750, 0.350)),  // Lanterns           (lantern)
-                    entry("Dripstone",          new MaterialData(null, 0.850, 0.320)),  // Dripstone          (dripstone_block, pointed_dripstone)
-                    entry("Sculk Sensor",       new MaterialData(null, 0.150, 0.850)),  // Sculk Sensor       (sculk_sensor)
-                    entry("DEFAULT",            new MaterialData(null, 0.500, 0.500))   // Default Material   ()
-            );//</editor-fold>
     @Environment(EnvType.CLIENT)
     public double maxDecayTime = 4.142; // TODO: add config setting for this
     public static PrecomputedConfig pC = null;
@@ -163,7 +111,11 @@ public class PrecomputedConfig {
     @Environment(EnvType.CLIENT)
     public boolean pLog;
     @Environment(EnvType.CLIENT)
-    public boolean debug;
+    public boolean dRays;
+    @Environment(EnvType.CLIENT)
+    public boolean debug; // for each log/debug
+    @Environment(EnvType.CLIENT)
+    public boolean log; // for each log
 
     private boolean active = true;
 
@@ -198,16 +150,16 @@ public class PrecomputedConfig {
             fastShared = c.quality.sharedAirspaceMode == SharedAirspaceMode.FAST;
             fastPick = true; // TODO: Make config setting for this
 
-            defaultRefl = c.materials.materialProperties.get("DEFAULT").reflectivity;
-            defaultAbs = c.materials.materialProperties.get("DEFAULT").absorption;
+            defaultRefl = c.materials.materialProperties.get("DEFAULT").reflectivity();
+            defaultAbs = c.materials.materialProperties.get("DEFAULT").permeability();
             blockWhiteSet = new HashSet<>(c.materials.blockWhiteList);
             Map<String, MaterialData> matProp = new HashMap<>(c.materials.materialProperties);
             c.materials.blockWhiteList.stream()
                     .map(a -> new Pair<>(a, matProp.get(a)))
                     .forEach(e -> {
-                        if (e.getRight() != null && Double.isFinite(e.getRight().reflectivity) && Double.isFinite(e.getRight().absorption)) {
-                            if (e.getRight().example == null || e.getRight().example.isBlank()) {
-                                matProp.put(e.getLeft(), new MaterialData(e.getLeft(), e.getRight().reflectivity, e.getRight().absorption));
+                        if (e.getRight() != null && Double.isFinite(e.getRight().reflectivity()) && Double.isFinite(e.getRight().permeability())) {
+                            if (e.getRight().example() == null || e.getRight().example().isBlank()) {
+                                matProp.put(e.getLeft(), new MaterialData(e.getLeft(), e.getRight().reflectivity(), e.getRight().permeability()));
                             }
                             return;
                         }
@@ -222,10 +174,10 @@ public class PrecomputedConfig {
             final List<String> toRemove = new java.util.ArrayList<>();
             matProp.forEach((k, v) -> { //TODO Materials need to be reworked.
                 if (nameToGroup.containsKey(k) || blockWhiteSet.contains(k)) {
-                    reflMap.put(k, Math.pow(v.reflectivity, globalReflRcp));
-                    absMap.put(k, v.absorption);
+                    reflMap.put(k, Math.pow(v.reflectivity(), globalReflRcp));
+                    absMap.put(k, v.permeability());
                 } else if (!k.equals("DEFAULT")) {
-                    wrong.add(k + " (" + v.example + ")");
+                    wrong.add(k + " (" + v.example() + ")");
                     toRemove.add(k);
                 }
             });
@@ -248,7 +200,9 @@ public class PrecomputedConfig {
             oLog = c.debug.occlusionLogging;
             eLog = c.debug.environmentLogging;
             pLog = c.debug.performanceLogging;
-            debug = c.debug.raytraceParticles;
+            dRays = c.debug.raytraceParticles;
+            log = dLog || oLog || eLog || pLog;
+            debug = log || dRays;
         } else {
             soundSimulationDistance = c.server.soundSimulationDistance;
         }

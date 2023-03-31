@@ -15,6 +15,7 @@ import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 
 import javax.annotation.Nullable;
 
+import java.util.Objects;
 import java.util.function.IntPredicate;
 import java.util.function.Consumer;
 
@@ -100,13 +101,11 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 		active = true;
 		return true;
 	}
-	public  boolean clean(@Nullable final boolean force) {
+	public  boolean clean(final boolean force) {
 		if (garbage) return true;
 		Engine.LOGGER.info("{}: cleaning children[{}]", id, children.length);
 		boolean success = cleanObjects();
 		activate();
-		//for (Context child : children) success = child.clean(force) ? success : false;
-		// deactivate();
 		garbage = force || success;
 		active = false;
 		if (pC.dLog) {
@@ -119,10 +118,10 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 	public  boolean cleanObjects() {
 		boolean success = true;
 		for (ALset context : contexts) {
-			success = cleanSlots  (context) ? success : false;
-			success = cleanEffects(context) ? success : false;
-			success = cleanFilters(context) ? success : false;
-			success = cleanDirect (context) ? success : false;
+			success = cleanSlots  (context) && success;
+			success = cleanEffects(context) && success;
+			success = cleanFilters(context) && success;
+			success = cleanDirect (context) && success;
 		}
 		return success;
 	}
@@ -186,7 +185,7 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 		return -1;
 	}
 
-	public  boolean getID(@Nullable String guess) {return guess == id;}
+	public  boolean getID(@Nullable String guess) {return Objects.equals(guess, id);}
 	public  String  getID()                       {return id;}
 	public  boolean isGarbage()                   {return garbage;}
 

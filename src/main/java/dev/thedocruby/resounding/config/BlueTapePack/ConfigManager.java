@@ -1,5 +1,6 @@
 package dev.thedocruby.resounding.config.BlueTapePack;
 
+import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
 import dev.thedocruby.resounding.config.ResoundingConfig;
@@ -30,7 +31,7 @@ public class ConfigManager {
 
     @Environment(EnvType.CLIENT)
     public static final ResoundingConfig DEFAULT = Engine.env == EnvType.CLIENT ? new ResoundingConfig(){{
-        Map<String, MaterialData> map = Engine.nameToGroup.keySet().stream()
+        Map<String, MaterialData> map = Cache.nameToGroup.keySet().stream()
                 .collect(Collectors.toMap(e -> e, e -> new MaterialData(e, 0.5, 0.5)));
         map.putIfAbsent("DEFAULT", new MaterialData("DEFAULT", 0.5, 0.5));
         materials.materialProperties = map;
@@ -67,7 +68,7 @@ public class ConfigManager {
     @Environment(EnvType.CLIENT)
     public static void handleBrokenMaterials(@NotNull ResoundingConfig c ){
         Engine.LOGGER.error("Critical materialProperties error. Resetting materialProperties");
-        c.materials.materialProperties = PrecomputedConfig.materialDefaults;
+        c.materials.materialProperties = Cache.materialDefaults;
         c.materials.blockWhiteList = Collections.emptyList();
     }
 

@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import static dev.thedocruby.resounding.Engine.LOGGER;
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 
 @Environment(EnvType.CLIENT)
@@ -19,21 +20,21 @@ import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 public class SoundEngineMixin {
 	@Inject(method = "init", at = @At(value = "INVOKE_ASSIGN", target = "Lnet/minecraft/client/sound/AlUtil;checkErrors(Ljava/lang/String;)Z", ordinal = 0))
 	private void resoundingStartInjector(CallbackInfo ci){
-		if (!Engine.isOff) throw new IllegalStateException("ResoundingEngine has already been started! You may need to reload the sound system using SoundManager.reloadSounds()");
-		if (!pC.enabled){
-			Engine.LOGGER.info("Skipped starting Resounding engine: disabled in config.");
+		assert Engine.isOff;
+		if (!pC.enabled) {
+			LOGGER.info("Resounding disabled.");
 			Engine.isOff = true;
 			return;
 		}
-		Engine.LOGGER.info("Starting Resounding engine...");
+		LOGGER.info("Starting Resounding engine...");
 		Engine.setRoot(new Context());
 		if (!Engine.root.setup("Base Game")) {
-			Engine.LOGGER.info("Failed to prime OpenAL EFX for Resounding effects. ResoundingEngine will not be active.");
+			LOGGER.info("Failed to prime OpenAL EFX for Resounding effects. Resounding disabled.");
 			Engine.isOff = true;
 			return;
 		}
-		Engine.LOGGER.info("OpenAL EFX successfully primed for Resounding effects");
-		if (ConfigManager.resetOnReload){
+		LOGGER.info("OpenAL EFX successfully primed for Resounding effects");
+		if (ConfigManager.resetOnReload) {
 			ConfigManager.resetToDefault();
 			ConfigManager.resetOnReload = false;
 		}
@@ -45,8 +46,8 @@ public class SoundEngineMixin {
 	@Inject(method = "close", at = @At(value = "INVOKE", target = "Lorg/lwjgl/openal/ALC10;alcDestroyContext(J)V", ordinal = 0))
 	private void resoundingStopInjector(CallbackInfo ci){
 		if (Engine.isOff) return;
-		Engine.LOGGER.info("Stopping Resounding engine...");
-		Engine.root.clean(false);
+		LOGGER.info("Stopping Resounding engine...");
+		if (!Engine.root.clean(false)) LOGGER.info("Failed to (fully) clean OpenAL Context(s).");
 		Engine.mc = null;
 		Engine.isOff = true;
 	}

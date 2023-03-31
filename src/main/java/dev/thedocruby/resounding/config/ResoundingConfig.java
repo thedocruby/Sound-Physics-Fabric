@@ -1,5 +1,6 @@
 package dev.thedocruby.resounding.config;
 
+import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.config.presets.ConfigPresets;
 import dev.thedocruby.resounding.toolbox.MaterialData;
 import dev.thedocruby.resounding.toolbox.OcclusionMode;
@@ -70,7 +71,7 @@ public class ResoundingConfig implements ConfigData {
         @Comment("The brightness of reverberation.\n§7[•]§r Range: > 0 \n§7[•]§r Higher values result in more high frequencies in reverberation.\n§7[•]§r Lower values give a more muffled sound to the reverb.\n§7[•]§r 1.0 is neutral.\n§a[+]§r Performance Impact: Low")
         public double globalReverbBrightness = 0.75;
 
-        @Comment("The brightness of absorption.\n§7[•]§r Range: > 0 \n§7[•]§r Higher values result in more high frequencies in faded or occluded audio.\n§7[•]§r Lower values give a more muffled sound to faded or occluded audio.\n§7[•]§r 1.0 is neutral.\n§a[+]§r Performance Impact: Low")
+        @Comment("The brightness of permeability.\n§7[•]§r Range: > 0 \n§7[•]§r Higher values result in more high frequencies in faded or occluded audio.\n§7[•]§r Lower values give a more muffled sound to faded or occluded audio.\n§7[•]§r 1.0 is neutral.\n§a[+]§r Performance Impact: Low")
         public double globalAbsorptionBrightness = 0.75;
 
             @ConfigEntry.Gui.Excluded // TODO: Occlusion. Remove?
@@ -155,7 +156,7 @@ public class ResoundingConfig implements ConfigData {
     public static class Materials {
             @ConfigEntry.Gui.Excluded // TODO: Materials
             //@Comment("Material properties for blocks.\n§7[•]§r Range: 0.0 - 1.0\n§a[+]§r Performance Impact: Low\n§c[ ! ]§r NOTE: Material occlusion is not implemented in the current version.")
-            public Map<String, MaterialData> materialProperties = PrecomputedConfig.materialDefaults;
+            public Map<String, MaterialData> materialProperties = Cache.materialDefaults;
 
             @ConfigEntry.Gui.Excluded // TODO: Materials
             //@Comment("Material properties for specific blocks. (e.g. block.minecraft.stone)\n§7[•]§r Overrides the \"By category\" setting.\n§a[+]§r Performance Impact: Low")
