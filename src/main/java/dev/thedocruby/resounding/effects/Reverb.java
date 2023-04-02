@@ -16,9 +16,6 @@ import org.lwjgl.openal.EXTEfx;
 public class Reverb extends Effect {
 
 	public String id = "reverb";
-//	public Reverb() {}
-
-//	private ALset context;
 
 	public void apply(
 			int id,
@@ -34,8 +31,6 @@ public class Reverb extends Effect {
 			float lateReverbDelay
 			// }
 	)  {
-		int slot   = context.slots  [id];
-		int effect = context.effects[id];
 		// define effects to be applied
 		SIF[] effects = {
 		new SIF("density"            , EXTEfx.AL_EAXREVERB_DENSITY              , density         ),
@@ -49,11 +44,13 @@ public class Reverb extends Effect {
 		new SIF("decay_time"         , EXTEfx.AL_EAXREVERB_DECAY_TIME           , decayTime       ),
 		new SIF("HF_gain"            , EXTEfx.AL_EAXREVERB_GAINHF               , gainHF          )
 		};
+		final int effect = context.effects[id];
 		// iterate and apply them
 		for (SIF options : effects) {
 			EXTEfx.alEffectf(effect, options.s(), options.t());
 			ALUtils.errorSet("effect", options.f(), effect, options.t());
 		}
+		final int slot   = context.slots  [id];
 		//Attach updated effect object
 		EXTEfx.alAuxiliaryEffectSloti(slot, EXTEfx.AL_EFFECTSLOT_EFFECT, effect);
 		if (pC.dLog && !ALUtils.errorApply("effect", effect, "slot", slot)) {
@@ -63,10 +60,10 @@ public class Reverb extends Effect {
 
 	public void lowpass(int   filter, float gain, float cutoff) {  // Set reverb send filter values and set source to send to all reverb fx slots
 		if (Float.isNaN(gain  )) gain   = 1.0f;
-		if (Float.isNaN(cutoff)) cutoff = 1.0f;
 		EXTEfx.alFilterf(filter, EXTEfx.AL_LOWPASS_GAIN, gain);
 		ALUtils.errorProperty("filter", filter, "gain", gain);
 
+		if (Float.isNaN(cutoff)) cutoff = 1.0f;
 		EXTEfx.alFilterf(filter, EXTEfx.AL_LOWPASS_GAINHF, cutoff);
 		ALUtils.errorProperty("filter", filter, "cutoff", cutoff);
 	}
@@ -101,28 +98,23 @@ public class Reverb extends Effect {
 
 @Override
 	public boolean init() {
-		boolean success = true;
 		for(int i = 1; i <= pC.resolution; i++){
 			double t = (double) i / pC.resolution;
 			apply(i - 1,
-					(float) Math.max(t * pC.maxDecayTime, 0.1),          // decayTime
-					(float) (t * 0.5 + 0.5),                             // density
-					(float) MathHelper.lerp(pC.rvrbDiff, 1-t, 1),        // diffusion
-					(float) (0.95 - (0.75 * t)),                         // gainHF
-					(float) Math.max(0.95 - (0.3 * t), 0.1),             // decayHFRatio
-					(float) Math.max(Math.pow(1 - t, 0.5) + 0.618, 0.1), // reflectionsGain
-					(float) (t * 0.01),                                  // reflectionsDelay
-					(float) (Math.pow(t, 0.5) + 0.618),                  // lateReverbGain
-					(float) (t * 0.01)                                   // lateReverbDelay
+					(float) Math.max(t * pC.maxDecayTime, 0.1),             // decayTime
+					(float) (t * 0.5 + 0.5),                                // density
+					(float) MathHelper.lerp(pC.rvrbDiff, 1-t, 1), // diffusion
+					(float) (0.95 - (0.75 * t)),                            // gainHF
+					(float) Math.max(0.95 - (0.3 * t), 0.1),                // decayHFRatio
+					(float) Math.max(Math.pow(1 - t, 0.5) + 0.618, 0.1),    // reflectionsGain
+					(float) (t * 0.01),                                     // reflectionsDelay
+					(float) (Math.pow(t, 0.5) + 0.618),                     // lateReverbGain
+					(float) (t * 0.01)                                      // lateReverbDelay
 			);
 		}
 		EXTEfx.alFilteri(context.direct, EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
-		success &= !ALUtils.checkErrors("Failed to initialize direct filter object!");
-		if (success) {
-			if (pC.dLog) LOGGER.info("Finished initializing OpenAL Auxiliary Effect slots!");
-			return success;
-		}
-		LOGGER.info("Failed to properly initialize OpenAL Auxiliary Effect slots. Aborting");
+		final boolean success = !ALUtils.checkErrors("Failed to properly initialize OpenAL Auxiliary Effect slots. Aborting");
+		if (success && pC.dLog) LOGGER.info("Finished initializing OpenAL Auxiliary Effect slots!");
 		// TODO ? what ?
 		// efxEnabled = false;
 		return success;
@@ -132,35 +124,25 @@ public class Reverb extends Effect {
 
 
 /**
+ * (from: Effects Guide (p. 66+) and other sources; altered)
  * Documentation:
- *
  * Reverb Modal Density controls the coloration of the late reverb.
  * Lowering the value adds more coloration to the late reverb.
- *
  * Modal density is defined as the expected number of modes per unit frequency, which is given by: n(ω)=∂N(ω)∂ω=∂∂ω(kL/π)=Lπcg
- *
  * In music, normal modes of vibrating instruments (strings, air pipes, drums, etc.) are called "harmonics" or "overtones".
- *
  * ∴ High-frequency "depth"?
  *<p>
  * Strutt|Building Acoustics|Room Modal Density allows the user to calculate the number of room modes present in a room up to a given frequency cut-off (number of modes) as well as the modal density (the number of modes per frequency band) using the Bolt and Morse formula.
- *
  * The number of modes, N from 0 Hz up to f Hz is given by:
- *
  * N=4πf³V/3c³+πf²S/4c²+fP/8c
- *
  * where:
  * f is the frequency (Hz)
  * V is the room volume (m³)
  * S is the room surface area (m²)
  * P is the total room perimeter (m)
- *
  * The above terms describe the number of oblique (∝f³), lateral (∝f²) and normal (∝f) modes in the room. Especially for high frequencies, the number of oblique modes is generally dominant.
- *
  * The modal density is given by:
- *
  * ⇒⇒⇒ dN/df=4πf²/Vc³+πfS/2c²+P/8c
- *
  * Although derived for rectangular rooms, the above expressions give good estimates of the modal behaviour for rooms of arbitrary shape, provided that the aspect ratio of the room is not too extreme.
  * </p>
  * @param density				// min: 0.0f 	max: 1.0f   (?)                         default: 1.0f
@@ -172,9 +154,7 @@ public class Reverb extends Effect {
  * that is especially noticeable with percussive (a rhythmic patterning of noise, ex. clapping, stomping) sound sources.
  * If you set a diffusion value of 0.0, the later reverberation sounds like a succession of distinct echoes.
  * ∴ 1.0 ⇒ uniform noise
- *
  * #See other fields for more#
- *
  * A commonly overlooked parameter on reverb plugins is diffusion.
  * This helps to control the initial build up of echo density and effects how you hear the reverb reflections.
  * As a guide, for clearer more natural sounding mixes, vocals and instruments use low parameter settings.
@@ -218,11 +198,9 @@ public class Reverb extends Effect {
  * The Decay HF Ratio property adjusts the spectral quality of the Decay Time parameter.
  * It is the ratio of high-frequency decay time relative to the time set by Decay Time.
  * The Decay HF Ratio value  1.0  is  neutral:  the  decay  time  is  equal  for  all  frequencies.
- *
  * As  Decay  HF  Ratio  increases  above  1.0,  the  high-frequency  decay  time  increases,
  * so  it’s  longer  than  the  decay  time  at  mid-frequencies.
  * You hear a more brilliant reverberation with a longer decay at high frequencies.
- *
  * As the Decay HF Ratio value decreases below 1.0, the high-frequency decay time decreases,
  * so it’s shorter than the decay time of the mid-frequencies.
  * You hear a more natural reverberation.
@@ -233,11 +211,9 @@ public class Reverb extends Effect {
  * The Decay LF Ratio property adjusts the spectral quality of the Decay Time parameter.
  * It is the ratio  of  low-frequency  decay  time  relative  to  the  time  set  by  Decay  Time.
  * The  Decay  LF  Ratio  value  1.0  is  neutral:  the  decay  time  is  equal  for  all  frequencies.
- *
  * As  Decay  LF  Ratio  increases  above  1.0,  the  low-frequency  decay  time  increases,
  * so  it’s  longer  than  the  decay  time  at  mid-frequencies.
  * You hear a more booming reverberation with a longer decay at low frequencies.
- *
  * As the Decay LF Ratio value decreases below 1.0, the low-frequency decay time decreases,
  * so it’s shorter than the decay time of the mid-frequencies.
  * You hear a more tinny reverberation.
@@ -308,20 +284,16 @@ public class Reverb extends Effect {
  * @param lateReverbPan			// magnitude min: 0.0f    max: 1.0f   (Vector)           default: [0f, 0f, 0f]
  *
  * <p>
-* Echo Depth introduces a cyclic echo in the reverberation decay, which will be noticeable with transient or percussive sounds.
-		 * A larger value of Echo Depth will make this effect more prominent.
-		 *
-		 * Echo Time controls the rate at which the cyclic echo repeats itself along the reverberation decay.
-		 * For example, the default setting for Echo Time is 250 ms., causing the echo to occur 4 times per second.
-		 * Therefore, if you were to clap your hands in this type of environment, you will hear four repetitions of clap per second.
-		 * Together with Reverb Diffusion, Echo Depth will control how long the echo effect will persist along the reverberation decay.
-		 *
-		 * In a more diffuse environment, echoes will wash out more quickly after the direct sound.
-		 *
-		 * In an environment that is less diffuse, you will be able to hear a larger number of repetitions of the echo,
-		 * which will wash out later in the reverberation decay.
-		 *
-		 * If Diffusion is set to 0.0 and Echo Depth is set to 1.0, the echo will persist distinctly until the end of the reverberation decay.
+ * Echo Depth introduces a cyclic echo in the reverberation decay, which will be noticeable with transient or percussive sounds.
+ * A larger value of Echo Depth will make this effect more prominent.
+ * Echo Time controls the rate at which the cyclic echo repeats itself along the reverberation decay.
+ * For example, the default setting for Echo Time is 250 ms., causing the echo to occur 4 times per second.
+ * Therefore, if you were to clap your hands in this type of environment, you will hear four repetitions of clap per second.
+ * Together with Reverb Diffusion, Echo Depth will control how long the echo effect will persist along the reverberation decay.
+ * In a more diffuse environment, echoes will wash out more quickly after the direct sound.
+ * In an environment that is less diffuse, you will be able to hear a larger number of repetitions of the echo,
+ * which will wash out later in the reverberation decay.
+ * If Diffusion is set to 0.0 and Echo Depth is set to 1.0, the echo will persist distinctly until the end of the reverberation decay.
  * </p>
  * @param echoTime				// min: 0.075f  max: 0.25f  (Seconds)                   default: 0.25f
  *
@@ -393,27 +365,14 @@ public class Reverb extends Effect {
 
 
 record DOCS(
-		// from: Effects Guide (p. 66+) and other sources; altered
-		float density,
-		float diffusion,
-		float gain,
-		float gainHF,
-		float gainLF,
-		float decayTime,
-		float decayHFRatio,
-		float decayLFRatio,
-		float reflectionsGain,
-		float reflectionsDelay,
-		float[] reflectionsPan,
-		float lateReverbGain,
-		float lateReverbDelay,
-		float[] lateReverbPan,
-		float echoTime,
-		float echoDepth,
-		float modulationTime,
-		float modulationDepth,
-		float HFReference,
-		float LFReference,
+		float density, float diffusion,
+		float gain, float gainHF, float gainLF,
+		float decayTime, float decayHFRatio, float decayLFRatio,
+		float reflectionsGain, float reflectionsDelay, float[] reflectionsPan,
+		float lateReverbGain, float lateReverbDelay, float[] lateReverbPan,
+		float echoTime, float echoDepth,
+		float modulationTime, float modulationDepth,
+		float HFReference, float LFReference,
 		float roomRolloffFactor,
 		float airAbsorptionGainHF,
 		int decayHFLimit
