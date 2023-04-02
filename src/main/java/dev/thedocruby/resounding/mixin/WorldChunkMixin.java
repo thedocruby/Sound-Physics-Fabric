@@ -1,5 +1,6 @@
 package dev.thedocruby.resounding.mixin;
 
+import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.raycast.Branch;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
 import net.fabricmc.api.EnvType;
@@ -9,6 +10,7 @@ import net.minecraft.client.world.ClientChunkManager;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.s2c.play.ChunkData;
+import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.registry.Registry;
@@ -18,6 +20,7 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.*;
 import net.minecraft.world.gen.chunk.BlendingData;
 import net.minecraft.world.tick.ChunkTickScheduler;
+import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -54,9 +57,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		return this;
 	}
 
-	public ChunkChain get(int plane, int index) {
-		return this.planes[plane][1+index];
-	}
+	public ChunkChain get(int plane, int index) { return this.planes[plane][1+index]; }
 
 	// one-dimensional traversal
 	public ChunkChain traverse(int d, int plane) {
@@ -87,7 +88,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 	// }
 	// upon receiving a packet, initialize storage {
 	@Inject(method = "loadFromPacket(Lnet/minecraft/network/PacketByteBuf;Lnet/minecraft/nbt/NbtCompound;Ljava/util/function/Consumer;)V", at = @At("RETURN"))
-	private void load(PacketByteBuf buf, NbtCompound nbt, Consumer<ChunkData.BlockEntityVisitor> consumer, CallbackInfo ci){initStorage();}
+	private void load(PacketByteBuf buf, NbtCompound nbt, Consumer<ChunkData.BlockEntityVisitor> consumer, CallbackInfo ci){ initStorage(); }
 	// }
 
 	// upon creation of world, initialize storage {
@@ -101,6 +102,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 	private ChunkChain take(int x, int z) {
 		return (ChunkChain) world.getChunk(super.pos.x + x,super.pos.z + z,ChunkStatus.FULL,false);
 	}
+
 	private void initStorage() {
 		if (world == null || !world.isClient) return;
 
@@ -109,6 +111,8 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		this.yOffset = -chunkSections[0].getYOffset() >> 4;
 		final ChunkPos pos = this.getPos();
 		final Branch[] branches = new Branch[chunkSections.length];
+		
+		// chunk up a section into an octree
 		Stream.of(chunkSections).parallel().forEach((chunkSection) -> {
 			int y = chunkSection.getYOffset();
 			Branch branch = new Branch(new BlockPos(pos.x,y,pos.z),16,null);
@@ -139,7 +143,8 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 	@Inject(method = "setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Z)Lnet/minecraft/block/BlockState;", at = @At("HEAD"))
 	private void setBlock(BlockPos pos, BlockState state, boolean moved, CallbackInfoReturnable<BlockState> cir){
 		if (!world.isClient) return;
-		this.branches[pos.getY()<<4].setBlock(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15, state, moved);
+		// TODO
+		// this.branches[pos.getY()<<4].setBlock(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15, state, moved);
 		this.shapes.clear();
 	}
 	// }
@@ -168,6 +173,76 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 			if (adj[2] != null) adj[2].set(1,+1,null);
 			if (adj[3] != null) adj[3].set(1,-1,null);
 		}
+	}
+
+	private BlockPos base = new BlockPos(0, 0, 0);
+
+	private BlockPos[] sequence2 = {
+			new BlockPos(1, 0, 0),
+			new BlockPos(0, 1, 0),
+			new BlockPos(1, 1, 0),
+			new BlockPos(0, 0, 1),
+			new BlockPos(1, 0, 1),
+			new BlockPos(0, 1, 1),
+			new BlockPos(1, 1, 1)
+	};
+
+	private BlockPos[] sequence = ArrayUtils.addAll(new BlockPos[] {base}, sequence2);
+
+
+
+
+	// TODO integrate into initStorage() and onUpdate/setBlock
+	public Branch layer(Branch root) {
+		// determine scale to play with
+		final int scale = root.size >> 1;
+		final BlockPos start = root.start;
+		// get first state at root position
+		BlockState state = this.getBlockState(start);
+		final Pair<Double,Double> material = Cache.blockMap.get(state.getBlock());
+		boolean valid = true;
+		boolean any   = false;
+		if (scale != 1) {
+			for (BlockPos block : sequence) {
+				final BlockPos position = start.add(block.multiply(scale));
+				// use recursion here
+				Branch leaf = layer(new Branch(position,scale,null));
+				if (leaf.state != null) {
+					if (!leaf.isEmpty()) any = true;
+					Pair<Double,Double> next = Cache.blockMap.get(leaf.state.getBlock());
+					if (Math.abs(material.getLeft () - next.getLeft ()) > .1
+					&&  Math.abs(material.getRight() - next.getRight()) > .1) {
+						valid = false;
+						// don't break here, as understanding adjacent sections is important
+					}
+				}
+				root.put(start.asLong(),leaf);
+			}
+			if (!any) {
+				root.empty();
+			}
+		// for single-blocks
+		} else {
+			for (BlockPos block : sequence) {
+				final BlockPos position = start.add(block.multiply(scale));
+				state = this.getBlockState(position);
+				final Pair<Double,Double> next = Cache.blockMap.get(state.getBlock());
+				// break if next block isn't similar enough
+				if (Math.abs(material.getLeft () - next.getLeft ()) > .1
+				&&  Math.abs(material.getRight() - next.getRight()) > .1) {
+					valid = false;
+					break;
+				}
+			}
+			if (valid) {
+				root.set(state);
+			}
+			ChunkSection x = null;
+		}
+		if (valid) {
+			root.set(state);
+		}
+		return root;
 	}
 }
 

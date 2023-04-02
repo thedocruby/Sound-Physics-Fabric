@@ -15,9 +15,9 @@ import static dev.thedocruby.resounding.Cache.blockMap;
 
 @Environment(EnvType.CLIENT)
 public class Branch {
-    BlockPos start;
-    int size;
-    @Nullable BlockState state;
+    public BlockPos start;
+    public int size;
+    public @Nullable BlockState state;
 
     HashMap<Long, Branch> leaves = new HashMap<>(8);
 
@@ -65,24 +65,21 @@ public class Branch {
 
     // this should only be used
     @Deprecated // NOT REALLY, but @Unsafe isn't available... :/
-    public Branch put(Long pos, Branch branch) {
-        return leaves.put(pos, branch);
-    }
+    public Branch put(Long pos, Branch branch) { return leaves.put(pos, branch); }
 
     public Branch empty() {
         leaves = new HashMap<>(8);
         return this;
     }
 
-    public Branch replace(Long pos, Branch branch) {
-        return leaves.replace(pos, branch);
+    public boolean isEmpty() {
+        return leaves.isEmpty();
     }
+
+    public Branch replace(Long pos, Branch branch) { return leaves.replace(pos, branch); }
 
     public static Pair<Double,Double> blockAttributes(BlockState state) {
         @Nullable Pair<Double,Double> attributes = blockMap.get(state.getBlock());
         return attributes == null ? new Pair<>(0.0,0.0) : attributes;
-    }
-
-    public void setBlock(int x, int y, int z, BlockState state, boolean moved) {
     }
 }
