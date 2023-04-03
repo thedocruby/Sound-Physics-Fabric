@@ -116,9 +116,8 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		Stream.of(chunkSections).parallel().forEach((chunkSection) -> {
 			int y = chunkSection.getYOffset();
 			Branch branch = new Branch(new BlockPos(pos.x,y,pos.z),16,null);
-			// TODO actually chunk into diquads
 			synchronized (branches) {
-				this.branches[y>>4] = branch;
+				this.branches[y>>4] = layer(branch);
 			}
 		});
 		this.branches = branches;
