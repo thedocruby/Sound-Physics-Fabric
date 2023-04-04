@@ -170,8 +170,8 @@ public class PrecomputedConfig {
 
             reflMap = new HashMap<>();
             absMap = new HashMap<>();
-            final List<String> wrong = new java.util.ArrayList<>();
-            final List<String> toRemove = new java.util.ArrayList<>();
+            final List<String> wrong = new ArrayList<>();
+            final List<String> toRemove = new ArrayList<>();
             matProp.forEach((k, v) -> { //TODO Materials need to be reworked.
                 if (nameToGroup.containsKey(k) || blockWhiteSet.contains(k)) {
                     reflMap.put(k, Math.pow(v.reflectivity(), globalReflRcp));

@@ -2,29 +2,25 @@ package dev.thedocruby.resounding;
 
 // imports {
 // internal {
+
 import dev.thedocruby.resounding.openal.Context;
-import dev.thedocruby.resounding.raycast.*;
+import dev.thedocruby.resounding.raycast.Cast;
+import dev.thedocruby.resounding.raycast.Ray;
+import dev.thedocruby.resounding.raycast.Renderer;
 import dev.thedocruby.resounding.toolbox.*;
-// }
-// fabric {
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-// }
-// minecraft {
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundListener;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.math.*;
-// }
-// logger {
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-// }
-// utils {
-import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,8 +29,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-// }
-// * static * {
+
 import static dev.thedocruby.resounding.config.PrecomputedConfig.*;
 // }
 // }

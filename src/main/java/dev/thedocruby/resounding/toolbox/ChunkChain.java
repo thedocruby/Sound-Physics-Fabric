@@ -1,10 +1,8 @@
 package dev.thedocruby.resounding.toolbox;
 
-import dev.thedocruby.resounding.raycast.Branch;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.util.shape.VoxelShape;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

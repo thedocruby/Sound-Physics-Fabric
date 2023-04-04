@@ -4,8 +4,6 @@ import dev.thedocruby.resounding.openal.*;
 import dev.thedocruby.resounding.toolbox.*;
 import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.Utils;
-import dev.thedocruby.resounding.openal.ALset;
-
 import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.EXTEfx;
 

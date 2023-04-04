@@ -1,23 +1,23 @@
 package dev.thedocruby.resounding.openal;
 
-import dev.thedocruby.resounding.toolbox.*;
 import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.Utils;
-import dev.thedocruby.resounding.effects.*;
-
+import dev.thedocruby.resounding.effects.Effect;
+import dev.thedocruby.resounding.effects.Reverb;
+import dev.thedocruby.resounding.toolbox.SlotProfile;
+import dev.thedocruby.resounding.toolbox.SoundProfile;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import org.apache.commons.lang3.ArrayUtils;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.openal.EXTEfx;
 import org.lwjgl.openal.EXTThreadLocalContext;
 
-import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
-
-import javax.annotation.Nullable;
-
 import java.util.Objects;
-import java.util.function.IntPredicate;
 import java.util.function.Consumer;
+import java.util.function.IntPredicate;
+
+import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 
 
 @Environment(EnvType.CLIENT)
@@ -36,7 +36,8 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 	private boolean bound = false;
 
 	// optional values
-	@Nullable public String id = null;
+	@Nullable
+	public String id = null;
 	// main interface
 	// allow inheritance of settings via children contexts
 	public  Context[] children;
