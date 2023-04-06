@@ -61,11 +61,11 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 		// alphabetical
 		// TODO implement other effects
 		effects = new Effect[] {
-		/*new Atmosphere()
-		, new Doppler()
-		, new EarDamage()
-		, new Echo()
-		, new Occlusion() // bunched in with reverb, for now
+		/*new Atmosphere() // TODO implement air-density
+		, new Doppler()    // TODO add from OpenAL-MC mod
+		, new EarDamage()  // TODO locate resources for ringing
+		, new Echo()       // TODO - ray.long && power > distance * atmospheric density
+		, new Occlusion()  // bunched in with reverb, for now
 		, new Resonance()
 		*/new Reverb()
 		/*new Style()

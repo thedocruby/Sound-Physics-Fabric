@@ -48,6 +48,11 @@ public class SoundSystemMixin {
 		if (Engine.isOff) return;
 		if (mc.world != null && mc.world.getTime()%pC.srcRefrRate ==0){
 			f.run((s) -> ((SourceAccessor)s).calculateReverb(g, this.listener));
+			/*mc.world.getRegistryManager().get(Registry.BLOCK_KEY).streamTags().forEachOrdered(
+					(tagKey) -> {
+						Engine.LOGGER.info(tagKey.registry().getValue());
+					}
+			);*/
 		}
 			//((SourceAccessor)null)
 	}

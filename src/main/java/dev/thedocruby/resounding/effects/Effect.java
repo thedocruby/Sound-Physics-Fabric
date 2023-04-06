@@ -25,7 +25,7 @@ public class Effect extends Utils {
 	public  ALset   setup(final long id) {
 		// TODO check if this just returns "loading effect Effect"
 		if (pC.dLog) Engine.LOGGER.info("loading effect {}", name);
-		ALset context = new ALset();
+		context = new ALset();
 		context.self = id;
 
 		active = true;

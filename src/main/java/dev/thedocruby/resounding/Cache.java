@@ -7,11 +7,13 @@ import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.Pair;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -180,4 +182,18 @@ public class Cache {
     // TODO calculate wth atmospherics effect
     // determined by temperature & humidity (global transmission coefficient -> alters permeability)
     public static double transmission = 1;
+
+    public static boolean generate(Consumer<String> logger) {
+        // FabricTagProvider.BlockTagProvider x = null;
+        logger.accept(Registry.BLOCK.getKey(Blocks.AIR).toString());
+        // Registry.BLOCK.forEach(
+        Registry.REGISTRIES.streamTags().forEach(
+                (tagKey) -> {
+                    logger.accept(
+                        tagKey.registry().getValue().getPath()
+                    );
+                }
+        );
+        return false;
+    }
 }

@@ -18,7 +18,6 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
@@ -59,15 +58,15 @@ public class Engine {
 	private static Vec3d soundPos;
 	private static boolean auxOnly;
 	private static int sourceID;
+
+	private static boolean hasLoaded = false;
 	//private static boolean doDirEval; // TODO: DirEval
 	// }
 	// }
 	
 	public static void setRoot(Context context) {root=context;}
 	/* utility function */
-	public static <T> double logBase(T x, T b) {
-		return Math.log((Double) x) / Math.log((Double) b);
-	}
+	public static <T> double logBase(T x, T b) { return Math.log((Double) x) / Math.log((Double) b); }
 
 	@Environment(EnvType.CLIENT)
 	public static void updateRays() {
@@ -125,6 +124,13 @@ public class Engine {
 		if (pC.pLog) startTime = System.nanoTime();
 		auxOnly = auxOnlyIn;
 		sourceID = sourceIDIn;
+		//* TODO remove
+		if (!hasLoaded) {
+			Cache.generate(LOGGER::info);
+			hasLoaded = true;
+			return;
+		}
+		// */
 
 		// TODO integrate with audio tagging
 		if (mc.player == null || mc.world == null || Cache.uiPattern.matcher(lastSoundName).matches() || Cache.ignorePattern.matcher(lastSoundName).matches()) {
@@ -238,6 +244,13 @@ public class Engine {
 		// assert mc.world != null; // should never happen (never should be called uninitialized)
 		Cast cast = new Cast(mc.world, null, (ChunkChain) soundChunk);
 		assert cast.chunk != null;
+		/*
+		if (cast.chunk.branches.length == 0) {
+			cast.chunk.initStorage();
+		} //*/
+		// LOGGER.info(cast.chunk.yOffset);  // TODO remove
+		// LOGGER.info(cast.chunk);          // TODO remove
+		// LOGGER.info(cast.chunk.branches); // TODO remove
 		int bounce = 0;
 		// while power & iterate bounces
 		// TODO determine - use minEnergy or simply positive power?
@@ -249,7 +262,12 @@ public class Engine {
 			}
 			// calculate section {
 			// TODO: is a branch better here?
-			cast.tree = ArrayUtils.get(cast.chunk.branches, (int) position.y >> 4 + cast.chunk.yOffset, null);
+			cast.tree = cast.chunk.getBranch((int) position.y);
+			// if (cast.tree == null) LOGGER.info("null tree"); // TODO remove
+			// else LOGGER.info(cast.tree);                     // TODO remove
+			// LOGGER.info(cast.chunk.yOffset);  // TODO remove
+			// LOGGER.info(cast.chunk.branches); // TODO remove
+			// LOGGER.info(cast.chunk);          // TODO remove
 			// lastY = posY;
 			// }
 			// cast ray {

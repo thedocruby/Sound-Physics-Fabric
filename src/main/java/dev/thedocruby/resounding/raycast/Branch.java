@@ -25,7 +25,7 @@ public class Branch {
         this.start = start;
         this.size = size;
         this.state = state;
-        if (this.size == 2) leaves = null;
+        if (this.size == 2) leaves = new HashMap<>(0);
     }
 
     public Branch set(@Nullable BlockState state) {
@@ -68,7 +68,7 @@ public class Branch {
     public Branch put(Long pos, Branch branch) { return leaves.put(pos, branch); }
 
     public Branch empty() {
-        leaves = new HashMap<>(8);
+        leaves.clear();
         return this;
     }
 
