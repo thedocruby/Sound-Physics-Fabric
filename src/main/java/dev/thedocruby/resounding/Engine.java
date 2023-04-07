@@ -273,7 +273,13 @@ public class Engine {
 			// cast ray {
 			// assert angle != null; // should never happen -> power <= 0 -> null, yet breaks above
 			Ray ray = cast.raycast(position,angle,power);
-			if (pC.dRays) Renderer.addSoundBounceRay(position, ray.position(), Formatting.GREEN.getColorValue());
+			Integer[] colors = new Integer[]
+					{
+							Formatting.GREEN.getColorValue(),
+							Formatting.AQUA.getColorValue (), Formatting.LIGHT_PURPLE.getColorValue(), Formatting.DARK_PURPLE.getColorValue(),
+							Formatting.RED.getColorValue  (), Formatting.GOLD.getColorValue        (), Formatting.YELLOW.getColorValue     ()
+					};
+			if (pC.dRays) Renderer.addSoundBounceRay(position, ray.position(), colors[bounce % colors.length]);
 			// TODO handle splits & replace:
 			//  reflect instead of permeate, when logical
 			if (ray.reflection() > ray.permeation()) {
@@ -283,15 +289,19 @@ public class Engine {
 				distToPlayer[bounce] = ray.position().distanceTo(listenerPos);
 
 				bounce++;
+				LOGGER.info(position+"\n"+angle+"\t"+ray.reflected()+"\t"+bounce);
 				angle = ray.reflected();
 				power = ray.reflection();
 			} else {
+				LOGGER.info(position);
 				angle = ray.permeated();
 				power = ray.permeation();
 			}
 			position = ray.position();
 			// }
 		}
+
+		LOGGER.info("ray end");
 
 		// TODO reorganize class structure for more logical order?
 		return new CastResults(

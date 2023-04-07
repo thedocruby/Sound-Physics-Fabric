@@ -5,6 +5,7 @@ import dev.thedocruby.resounding.toolbox.ChunkChain;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.util.Pair;
 import net.minecraft.util.hit.BlockHitResult;
@@ -54,6 +55,7 @@ public class Cast {
 
         Vec3i planarIndex = new Vec3i(1,0,0);
 
+        // branch hint: 1/3 probability -> NO
         // same as min(x,min(y,z)) + planar index
         if (ystep < coefficient) {
             coefficient = ystep;
@@ -94,15 +96,22 @@ public class Cast {
         // assert branch.state != null; // is never null due to logic inside getBlock
         // TODO clean up
         @Nullable Pair<Double,Double> attributes;// = blockMap.get(branch.state.getBlock());
+        //*/
+        // TODO remove
+        if (branch.state.getBlock() == Blocks.STONE)
+            attributes = new Pair<>(1.0,0.0);
+        else
+            attributes = new Pair<>(0.0,0.98);
+        //*/
         /*
         final double reflec =   pC.reflMap.get(branch.state.getBlock().getTranslationKey());
         final double perm   = 1-pC.absMap.get(branch.state.getBlock().getTranslationKey());
         //*/
-        // TODO remove
-        final double reflec = Math.random();
-        final double perm = Math.random();
+        /* TODO remove
+        final double reflec = 0.8; // Math.random();
+        final double perm = 0.7; // Math.random();
         //*/
-        attributes = new Pair<>(reflec,perm);
+        // attributes = new Pair<>(reflec,perm);
         // in the event of a modded block
         /*if (attributes == null) {
             final BlockPos blockPos = new BlockPos(position);
@@ -138,7 +147,7 @@ public class Cast {
         }
 
         // coefficients for reflection and for permeability
-        final double reflect  = attributes.getLeft()*Math.min(1,distance);
+        final double reflect  = attributes.getLeft();//*Math.min(1,distance);
         // final double permeate = Math.min(1,1-attributes.getLeft())*distance;
         final double permeate = Math.min(1,Math.pow(attributes.getRight(),distance)) * Cache.transmission;
         // if reflection / permeation -> calculate -> bounce / refract
@@ -210,10 +219,9 @@ public class Cast {
 			shape = state.getCollisionShape(world, pos);
             if (shape == null) return null;
 			shapes.put(posl, shape);
-            shape = shape == EMPTY ? null : shape;
 		}
+        if (shape == CUBE || shape == EMPTY) return null;
 
-		if (shape == CUBE || shape == EMPTY) return null;
         BlockHitResult hit = shape.raycast(start, start.add(vector.multiply(2)), pos);
         return hit == null ? null : new Pair<>(hit.getPos(),hit.getSide().getVector());
 	}
