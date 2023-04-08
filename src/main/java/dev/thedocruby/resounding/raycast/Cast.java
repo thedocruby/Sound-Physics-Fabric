@@ -102,12 +102,13 @@ public class Cast {
 
         Branch branch = getBlock(position);
         // miss when section not loaded
-        if (branch == null) return new Ray(distance, position, null, 0.0, null, 0.0);
+        if (branch == null) return new Ray(distance, position, null, 0.0, null, 0.0, null);
         if (branch.size == 1) {
-            step = bounce(world,branch.state,new BlockPos(position),position,trajectory);
-            if (step != null) {
-                distance += step.step().length();
-                position = step.step();
+            Step next = bounce(world,branch.state,new BlockPos(position),position,trajectory);
+            if (next != null) {
+                distance += next.step().subtract(position).length();
+                position = next.step();
+                step = next;
             }
         }
 
@@ -149,7 +150,7 @@ public class Cast {
             permeated = pseudoReflect(trajectory, step.plane(), 1-attributes.getRight());
         }
 
-        return new Ray(distance, position, permeated, attributes.getRight() /* <- transmission */, reflected, reflect*power);
+        return new Ray(distance, position, permeated, attributes.getRight() /* <- transmission */, reflected, reflect*power, blockToVec(branch.start));
     }
 
     public Branch getBlock(Vec3d pos) {

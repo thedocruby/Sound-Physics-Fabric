@@ -10,7 +10,8 @@ public record Ray (
     @Nullable Vec3d permeated,
     double permeation,
     @Nullable Vec3d reflected,
-    double reflection
+    double reflection,
+    @Nullable Vec3d block
     ) {
     
 }

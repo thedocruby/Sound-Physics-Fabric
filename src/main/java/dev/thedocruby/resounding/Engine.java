@@ -16,6 +16,7 @@ import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundListener;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import org.apache.logging.log4j.LogManager;
@@ -249,11 +250,10 @@ public class Engine {
 		Vec3d position = soundPos;
 		Vec3d angle = dir;
 		double power = 128; // TODO fine-tune
-		double transmission = Cache.transmission;
-		double reflection = 0.0; // don't reflect on base-cast
+		double transmission = 0.98;// Cache.transmission;
 		double distance = 0.0;
-		Ray ray = new Ray(0.0,position,angle,power,null, 0);
-		Vec3d base = position;
+		Vec3d base = blockToVec(new BlockPos(position));
+		Ray ray = new Ray(0.0,position,angle,transmission,null, 0, base);
 		// int bounces = 100; // -> incompatible with present algorithms
 		// assert mc.world != null; // should never happen (never should be called uninitialized)
 		Cast cast = new Cast(mc.world, null, (ChunkChain) soundChunk);
@@ -279,8 +279,8 @@ public class Engine {
 			// TODO handle splits & replace:
 			//  reflect instead of permeate, when logical
 			if (ray.reflection() > transmission) {
-				bounceReflectivity[bounce] = reflection;
-				totalBounceReflectivity[bounce] = reflection;
+				bounceReflectivity[bounce] = ray.reflection();
+				totalBounceReflectivity[bounce] = ray.reflection();
 				totalBounceDistance[bounce] = distance;
 				distToPlayer[bounce] = ray.position().distanceTo(listenerPos);
 
@@ -296,9 +296,10 @@ public class Engine {
 				// power = ray.permeation();
 			}
 
-			if (cast.tree != null) {
-				base = blockToVec(cast.tree.start);
-			}
+			// if power = 0, this will occur
+			if (angle == null) break;
+
+			base = ray.block();
 			transmission = ray.permeation();
 
 			ray = cast.raycast(position,angle, base,transmission,size, power);
