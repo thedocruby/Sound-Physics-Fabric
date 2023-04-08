@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static dev.thedocruby.resounding.config.PrecomputedConfig.*;
+import static dev.thedocruby.resounding.raycast.Cast.blockToVec;
 // }
 // }
 
@@ -222,6 +223,14 @@ public class Engine {
 	}
 	*/
 
+
+	private static Integer[] colors = new Integer[]
+			{
+					Formatting.GREEN.getColorValue(),
+					Formatting.AQUA.getColorValue (), Formatting.LIGHT_PURPLE.getColorValue(), Formatting.DARK_PURPLE.getColorValue(),
+					Formatting.RED.getColorValue  (), Formatting.GOLD.getColorValue        (), Formatting.YELLOW.getColorValue     ()
+			};
+
 	@Environment(EnvType.CLIENT)
 	private static @NotNull CastResults throwReflRay(@NotNull Vec3d dir) {
 		// TODO integrate with velocity logic, this' no simple task
@@ -240,6 +249,11 @@ public class Engine {
 		Vec3d position = soundPos;
 		Vec3d angle = dir;
 		double power = 128; // TODO fine-tune
+		double transmission = Cache.transmission;
+		double reflection = 0.0; // don't reflect on base-cast
+		double distance = 0.0;
+		Ray ray = new Ray(0.0,position,angle,power,null, 0);
+		Vec3d base = position;
 		// int bounces = 100; // -> incompatible with present algorithms
 		// assert mc.world != null; // should never happen (never should be called uninitialized)
 		Cast cast = new Cast(mc.world, null, (ChunkChain) soundChunk);
@@ -260,45 +274,36 @@ public class Engine {
 			if (next == null) break;
 			cast.chunk = next;
 			}
-			// calculate section {
 			// TODO: is a branch better here?
 			cast.tree = cast.chunk.getBranch((int) position.y);
-			// if (cast.tree == null) LOGGER.info("null tree"); // TODO remove
-			// else LOGGER.info(cast.tree);                     // TODO remove
-			// LOGGER.info(cast.chunk.yOffset);  // TODO remove
-			// LOGGER.info(cast.chunk.branches); // TODO remove
-			// LOGGER.info(cast.chunk);          // TODO remove
-			// lastY = posY;
-			// }
-			// cast ray {
-			// assert angle != null; // should never happen -> power <= 0 -> null, yet breaks above
-			Ray ray = cast.raycast(position,angle,power);
-			Integer[] colors = new Integer[]
-					{
-							Formatting.GREEN.getColorValue(),
-							Formatting.AQUA.getColorValue (), Formatting.LIGHT_PURPLE.getColorValue(), Formatting.DARK_PURPLE.getColorValue(),
-							Formatting.RED.getColorValue  (), Formatting.GOLD.getColorValue        (), Formatting.YELLOW.getColorValue     ()
-					};
-			if (pC.dRays) Renderer.addSoundBounceRay(position, ray.position(), colors[bounce % colors.length]);
 			// TODO handle splits & replace:
 			//  reflect instead of permeate, when logical
-			if (ray.reflection() > ray.permeation()) {
-				bounceReflectivity[bounce] = ray.reflection();
-				totalBounceReflectivity[bounce] = ray.reflection();
-				totalBounceDistance[bounce] = ray.distance();
+			if (ray.reflection() > transmission) {
+				bounceReflectivity[bounce] = reflection;
+				totalBounceReflectivity[bounce] = reflection;
+				totalBounceDistance[bounce] = distance;
 				distToPlayer[bounce] = ray.position().distanceTo(listenerPos);
 
+				distance = 0;
 				bounce++;
-				LOGGER.info(position+"\n"+angle+"\t"+ray.reflected()+"\t"+bounce);
+				// LOGGER.info(position+"\n"+angle+"\t"+ray.reflected()+"\t"+bounce); // TODO remove
 				angle = ray.reflected();
 				power = ray.reflection();
 			} else {
-				LOGGER.info(position);
+				// LOGGER.info(position); // TODO remove
+				distance += ray.distance();
 				angle = ray.permeated();
-				power = ray.permeation();
+				// power = ray.permeation();
 			}
+
+			if (cast.tree != null) {
+				base = blockToVec(cast.tree.start);
+			}
+			transmission = ray.permeation();
+
+			ray = cast.raycast(position,angle, base,transmission,size, power);
+			if (pC.dRays) Renderer.addSoundBounceRay(position, ray.position(), colors[bounce % colors.length]);
 			position = ray.position();
-			// }
 		}
 
 		LOGGER.info("ray end");
