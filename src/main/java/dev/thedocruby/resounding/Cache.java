@@ -4,12 +4,14 @@ import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.Pair;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -195,5 +197,31 @@ public class Cache {
                 }
         );
         return false;
+    }
+
+    public static MaterialData getProperties(@Nullable BlockState state) {
+        @Nullable Pair<Double,Double> attributes;// = blockMap.get(branch.state.getBlock());
+        //*/
+        /*
+        final double reflec =   pC.reflMap.get(branch.state.getBlock().getTranslationKey());
+        final double perm   = 1-pC.absMap.get(branch.state.getBlock().getTranslationKey());
+        //*/
+        /* TODO remove
+        final double reflec = 0.8; // Math.random();
+        final double perm = 0.7; // Math.random();
+        //*/
+        // attributes = new Pair<>(reflec,perm);
+        // in the event of a modded block
+        /*if (attributes == null) {
+            final BlockPos blockPos = new BlockPos(position);
+            final double hardness = (double) Math.min(5,world.getBlockState(blockPos).getHardness(world, blockPos)) / 5 / 4;
+            attributes = new Pair<>(hardness * 3,1-hardness);
+        }*/
+        // state.getFluidState().getFluid(); // Fluids.WATER/EMPTY/etc
+        // TODO remove
+        if (state == null || state.getBlock() == Blocks.STONE)
+            return new MaterialData("stone",1.0,0.0);
+        else
+            return new MaterialData("air",  0.0,transmission);
     }
 }

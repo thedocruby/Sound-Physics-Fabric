@@ -5,7 +5,6 @@ package dev.thedocruby.resounding;
 
 import dev.thedocruby.resounding.openal.Context;
 import dev.thedocruby.resounding.raycast.Cast;
-import dev.thedocruby.resounding.raycast.Ray;
 import dev.thedocruby.resounding.raycast.Renderer;
 import dev.thedocruby.resounding.toolbox.*;
 import net.fabricmc.api.EnvType;
@@ -16,7 +15,6 @@ import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundListener;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import org.apache.logging.log4j.LogManager;
@@ -31,7 +29,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static dev.thedocruby.resounding.config.PrecomputedConfig.*;
-import static dev.thedocruby.resounding.raycast.Cast.blockToVec;
+import static dev.thedocruby.resounding.raycast.Cast.normalize;
 // }
 // }
 
@@ -246,68 +244,64 @@ public class Engine {
 		double[] bounceReflectivity      = new double[pC.nRayBounces];
 		double[] totalBounceReflectivity = new double[pC.nRayBounces];
 
-		// int lastY = Integer.MIN_VALUE; // section index (gets overridden)
 		Vec3d position = soundPos;
+		Vec3d target   = position;
 		Vec3d angle = dir;
 		double power = 128; // TODO fine-tune
-		double transmission = 0.98;// Cache.transmission;
 		double distance = 0.0;
-		Vec3d base = blockToVec(new BlockPos(position));
-		Ray ray = new Ray(0.0,position,angle,transmission,null, 0, base);
+		Vec3d normalized = normalize(position, angle);
 		// int bounces = 100; // -> incompatible with present algorithms
 		// assert mc.world != null; // should never happen (never should be called uninitialized)
-		Cast cast = new Cast(mc.world, null, (ChunkChain) soundChunk);
-		assert cast.chunk != null;
-		/*
-		if (cast.chunk.branches.length == 0) {
-			cast.chunk.initStorage();
-		} //*/
-		// LOGGER.info(cast.chunk.yOffset);  // TODO remove
-		// LOGGER.info(cast.chunk);          // TODO remove
-		// LOGGER.info(cast.chunk.branches); // TODO remove
+		Cast cast = new Cast(mc.world, null, soundChunk);
+		cast.tree = cast.chunk.getBranch((int) position.y);
+		// launch initial ray
+		cast.raycast(cast.getBlock(normalized), position, angle, power);
+		// assert cast.chunk != null;
 		int bounce = 0;
 		// while power & iterate bounces
 		// TODO determine - use minEnergy or simply positive power?
 		while (bounce < pC.nRayBounces && power > 1) {
-			{ // get new chunk (if needed)
-			ChunkChain next = cast.chunk.access((int) position.x >> 4, (int) position.z >> 4);
-			if (next == null) break;
-			cast.chunk = next;
-			}
-			// TODO: is a branch better here?
-			cast.tree = cast.chunk.getBranch((int) position.y);
+			//* handle properties {
 			// TODO handle splits & replace:
 			//  reflect instead of permeate, when logical
-			if (ray.reflection() > transmission) {
-				bounceReflectivity[bounce] = ray.reflection();
-				totalBounceReflectivity[bounce] = ray.reflection();
+			if (cast.reflected.power() > cast.permeated.power()) {
+				bounceReflectivity[bounce] = cast.reflected.power();
+				totalBounceReflectivity[bounce] = cast.reflected.power();
 				totalBounceDistance[bounce] = distance;
-				distToPlayer[bounce] = ray.position().distanceTo(listenerPos);
+				distToPlayer[bounce] = cast.reflected.position().distanceTo(listenerPos);
+
+				bounce++;
 
 				distance = 0;
-				bounce++;
-				// LOGGER.info(position+"\n"+angle+"\t"+ray.reflected()+"\t"+bounce); // TODO remove
-				angle = ray.reflected();
-				power = ray.reflection();
+				angle  = cast.reflected.angle();
+				power  = cast.reflected.power();
+				target = cast.reflected.position();
 			} else {
-				// LOGGER.info(position); // TODO remove
-				distance += ray.distance();
-				angle = ray.permeated();
-				// power = ray.permeation();
+				distance += cast.permeated.distance();
+				angle  = cast.permeated.angle();
+				power  = cast.permeated.power();
+				target = cast.permeated.position();
 			}
+			// } */
 
+			if (pC.dRays) Renderer.addSoundBounceRay(position, target, colors[bounce % colors.length]);
+			position = target;
 			// if power = 0, this will occur
 			if (angle == null) break;
 
-			base = ray.block();
-			transmission = ray.permeation();
+			//* move {
+			normalized = normalize(position,angle);
+			{ // get new chunk (if needed)
+				ChunkChain next = cast.chunk.access((int) normalized.x >> 4, (int) normalized.z >> 4);
+				if (next == null) break;
+				cast.chunk = next;
+			}
+			// TODO: is a branch better here?
+			cast.tree = cast.chunk.getBranch((int) normalized.y);
 
-			ray = cast.raycast(position,angle, base,transmission,size, power);
-			if (pC.dRays) Renderer.addSoundBounceRay(position, ray.position(), colors[bounce % colors.length]);
-			position = ray.position();
+			cast.raycast(cast.getBlock(normalized), position,angle,power);
+			// } */
 		}
-
-		LOGGER.info("ray end");
 
 		// TODO reorganize class structure for more logical order?
 		return new CastResults(

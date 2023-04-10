@@ -5,13 +5,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public record Ray (
-    double distance,
-    @NotNull Vec3d position,
-    @Nullable Vec3d permeated,
-    double permeation,
-    @Nullable Vec3d reflected,
-    double reflection,
-    @Nullable Vec3d block
-    ) {
+        double power,
+        @NotNull Vec3d position,
+        @Nullable Vec3d angle,
+        double distance
+) {
     
 }

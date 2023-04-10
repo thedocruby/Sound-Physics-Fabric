@@ -1,12 +1,12 @@
 package dev.thedocruby.resounding.raycast;
 
+import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
+import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.particle.ParticleTypes;
-import net.minecraft.util.Pair;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -22,6 +22,7 @@ import java.util.Map;
 
 import static dev.thedocruby.resounding.Cache.CUBE;
 import static dev.thedocruby.resounding.Cache.EMPTY;
+import static dev.thedocruby.resounding.Engine.LOGGER;
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 
 @Environment(EnvType.CLIENT)
@@ -31,6 +32,11 @@ public class Cast {
 
     public @Nullable ChunkChain chunk = null;
     public @Nullable Branch tree = null;
+
+    public @Nullable Ray reflected = null;
+    public @Nullable Ray permeated = null;
+
+    public static double epsilon = Double.MIN_VALUE;
 
     public Cast(@NotNull World world, @Nullable Branch tree, @Nullable ChunkChain chunk) {
         this.world = world;
@@ -65,6 +71,10 @@ public class Cast {
             coefficient = zstep;
             planarIndex = new Vec3i(0,0,1);
         }
+        if (coefficient == Double.POSITIVE_INFINITY) {
+            LOGGER.warn("invalid coefficient");
+            // coefficient = epsilon;
+        }
         // apply proper normal face
         planarIndex = planarIndex.multiply(-1 * (int) Math.signum(coefficient));
         // closest wall -> magnitude
@@ -72,9 +82,8 @@ public class Cast {
     }
 
     private static double boundAxis(double base, double pos, double size, double angle) {
-        final double isPos = angle > 0 ? 1 : 0;
         // normalize position, determine distance, apply direction
-        double value = (base - pos  +  size * isPos) / angle;
+        double value = (base - pos  +  (angle > 0 ? size : 0)) / angle;
         // zeroes break the min² in getStep, infinity is always more than non-infinity
         if (value <= 0 || Double.isNaN(value)) value = Double.POSITIVE_INFINITY;
         return value;
@@ -84,73 +93,71 @@ public class Cast {
          */
     }
 
-    public Ray raycast(@NotNull Vec3d position, @NotNull Vec3d trajectory, @NotNull Vec3d base, double transmission, int size) {
-        // TODO: settings.rayStrength & volume -> amplitude
-        return raycast(position, trajectory, base, transmission, size, 128);
+    private void blank(Vec3d position) {
+        this.reflected = new Ray(0, position, null, 0);
+        this.permeated = new Ray(0, position, null, 0);
     }
 
-    public Ray raycast(@NotNull Vec3d position, @NotNull Vec3d trajectory, @NotNull Vec3d base, double transmission, int size, double power) {
+    private void reflect(double power, Vec3d position, Vec3d angle, double distance) {
+        this.reflected = new Ray(power, position, angle, distance);
+    }
+
+    private void permeate(double power, Vec3d position, Vec3d angle, double distance) {
+        this.permeated = new Ray(power, position, angle, distance);
+    }
+
+    public void raycast(Branch branch, @NotNull Vec3d position, @NotNull Vec3d angle) {
+        // TODO: settings.rayStrength & volume -> amplitude
+        raycast(branch, position, angle, 128);
+    }
+
+    public void raycast(Branch branch, @NotNull Vec3d position, @NotNull Vec3d angle, double power) {
+        if (branch == null) {
+            this.blank(position);
+            return;
+        }
         /* use step algorithm
          * (A) start    of branch
          * (B) size     of branch
          * (C) position of ray
          * (D) direction (minus magnitude)
          */
-        Step step = getStep(base, size, position, trajectory);
+        Step step = getStep(blockToVec(branch.start), branch.size, position, angle);
         double distance = step.step().length();
+        Vec3d target = position;
+        double gap = distance;
         position = position.add(step.step());
-
-        Branch branch = getBlock(position);
         // miss when section not loaded
-        if (branch == null) return new Ray(distance, position, null, 0.0, null, 0.0, null);
         if (branch.size == 1) {
-            Step next = bounce(world,branch.state,new BlockPos(position),position,trajectory);
+            Step next = bounce(world,branch.state,new BlockPos(target),target,angle);
             if (next != null) {
-                distance += next.step().subtract(position).length();
-                position = next.step();
+                gap = next.step().subtract(target).length();
+                target = next.step();
                 step = next;
             }
         }
 
-        // TODO clean up
-        @Nullable Pair<Double,Double> attributes;// = blockMap.get(branch.state.getBlock());
-        //*/
-        /*
-        final double reflec =   pC.reflMap.get(branch.state.getBlock().getTranslationKey());
-        final double perm   = 1-pC.absMap.get(branch.state.getBlock().getTranslationKey());
-        //*/
-        /* TODO remove
-        final double reflec = 0.8; // Math.random();
-        final double perm = 0.7; // Math.random();
-        //*/
-        // attributes = new Pair<>(reflec,perm);
-        // in the event of a modded block
-        /*if (attributes == null) {
-            final BlockPos blockPos = new BlockPos(position);
-            final double hardness = (double) Math.min(5,world.getBlockState(blockPos).getHardness(world, blockPos)) / 5 / 4;
-            attributes = new Pair<>(hardness * 3,1-hardness);
-        }*/
-        // TODO remove
-        if (branch.state.getBlock() == Blocks.STONE)
-            attributes = new Pair<>(1.0,0.0);
-        else
-            attributes = new Pair<>(0.0,transmission);
 
-        // apply permeation
-        power *= Math.min(1,Math.pow(transmission,distance));
+        //* amplitude and angle {
+
+        // state is never null (logic in getBlock)
+        // assert branch.state != null;
+        @Nullable MaterialData material = Cache.getProperties(branch.state);
 
         // coefficients for reflection and for permeability
-        double reflect  = attributes.getLeft();//*Math.min(1,distance);
+        double reflect  = material.reflectivity();//*Math.min(1,distance);
+        double permeate = Math.min(1,Math.pow(material.permeability(),distance));
         @Nullable Vec3d reflected = null;
         @Nullable Vec3d permeated = null;
         if (power > 0) {
             // if reflection / permeation -> calculate -> bounce / refract
-            reflected = reflect <= 0 ? null : pseudoReflect(trajectory,step.plane());
+            reflected = reflect <= 0 ? null : pseudoReflect(angle,step.plane());
             // use single-surface refraction here, unpredictable effects with larger objects & permeation coefficients
-            permeated = pseudoReflect(trajectory, step.plane(), 1-attributes.getRight());
+            permeated = pseudoReflect(angle, step.plane(), 1-material.permeability());
         }
-
-        return new Ray(distance, position, permeated, attributes.getRight() /* <- transmission */, reflected, reflect*power, blockToVec(branch.start));
+        this.permeate(permeate*power, position, permeated, distance);
+        this.reflect (reflect *power, target  , reflected, gap     );
+        // } */
     }
 
     public Branch getBlock(Vec3d pos) {
@@ -168,6 +175,13 @@ public class Cast {
         if (branch.state == null) {
             return new Branch(block, 1, ((WorldChunk) this.chunk).getBlockState(block));
         } else return branch;
+    }
+
+    public static Vec3d normalize(Vec3d pos, Vec3d dir) {
+        return new Vec3d(
+                Math.ceil(pos.x) - (dir.x < 0 ? 1 : 0),
+                Math.ceil(pos.y) - (dir.y < 0 ? 1 : 0),
+                Math.ceil(pos.z) - (dir.z < 0 ? 1 : 0));
     }
 
     public static Vec3d blockToVec(BlockPos pos) { return new Vec3d(pos.getX(), pos.getY(), pos.getZ()); }
@@ -203,19 +217,19 @@ public class Cast {
     }
 
     private @Nullable Step bounce(World world, BlockState state, @NotNull BlockPos pos, Vec3d start, Vec3d vector) {
-		final long posl = pos.asLong();
+        final long posl = pos.asLong();
         Map<Long, VoxelShape> shapes = chunk.getShapes();
-		VoxelShape shape = shapes.get(posl);
+        VoxelShape shape = shapes.get(posl);
         // TODO evaluate actual benefit for shape cache
-		if (shape == null) {
-			if (pC.dRays) world.addParticle(ParticleTypes.END_ROD, false, pos.getX() + 0.5d, pos.getY() + 1d, pos.getZ() + 0.5d, 0, 0, 0);
-			shape = state.getCollisionShape(world, pos);
+        if (shape == null) {
+            if (pC.dRays) world.addParticle(ParticleTypes.END_ROD, false, pos.getX() + 0.5d, pos.getY() + 1d, pos.getZ() + 0.5d, 0, 0, 0);
+            shape = state.getCollisionShape(world, pos);
             if (shape == null) return null;
-			shapes.put(posl, shape);
-		}
+            shapes.put(posl, shape);
+        }
         if (shape == CUBE || shape == EMPTY) return null;
 
         BlockHitResult hit = shape.raycast(start, start.add(vector.multiply(2)), pos);
         return hit == null ? null : new Step(hit.getPos(),hit.getSide().getVector());
-	}
+    }
 }
