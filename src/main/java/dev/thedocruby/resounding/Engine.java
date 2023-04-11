@@ -63,8 +63,9 @@ public class Engine {
 	//private static boolean doDirEval; // TODO: DirEval
 	// }
 	// }
-	
+
 	public static void setRoot(Context context) {root=context;}
+
 	/* utility function */
 	public static <T> double logBase(T x, T b) { return Math.log((Double) x) / Math.log((Double) b); }
 
@@ -155,8 +156,8 @@ public class Engine {
 		int viewDist = mc.options.getViewDistance();
 		double maxDist = Math.min(
 				Math.min(
-					Math.min(mc.options.simulationDistance, viewDist),
-					pC.soundSimulationDistance
+						Math.min(mc.options.simulationDistance, viewDist),
+						pC.soundSimulationDistance
 				) * 16, // chunk
 				pC.maxTraceDist / 2); // diameter -> radius
 		soundChunk = (ChunkChain) mc.world.getChunk(((int)Math.floor(soundPos.x))>>4,((int)Math.floor(soundPos.z))>>4);
@@ -166,8 +167,8 @@ public class Engine {
 		final EnvData env;
 		// in theory, no debug explanation should be needed
 		if ( Math.max(playerPos.distanceTo(soundPos), listenerPos.distanceTo(soundPos)) > maxDist // too quiet
-		|| (/*pC.skipRainOcclusionTracing */ Cache.spamPattern.matcher(lastSoundName).matches()       ) // disabled sounds
-		|| (  pC.recordsDisable           && lastSoundCategory == SoundCategory.RECORDS         ) // disabled sounds
+				|| (/*pC.skipRainOcclusionTracing */ Cache.spamPattern.matcher(lastSoundName).matches()       ) // disabled sounds
+				|| (  pC.recordsDisable           && lastSoundCategory == SoundCategory.RECORDS         ) // disabled sounds
 		) {
 			if (pC.dLog) LOGGER.info("Environment not sampled for sound \"{}\"", lastSoundName);
 			env = new EnvData(Collections.emptySet(), Collections.emptySet());
@@ -175,19 +176,18 @@ public class Engine {
 			if (pC.dLog) {
 				LOGGER.info(
 						"Sound {"
-					+	"\n  Player:   " + playerPos
-					+	"\n  Listener: " + listenerPos
-					+	"\n  Source:   " + soundPos
-					+	"\n  ID:       " + sourceID
-					+	"\n  Name:     " + lastSoundCategory + "." + lastSoundName
-					+   "\n  }"
+								+ "\n  Player:   " + playerPos
+								+ "\n  Listener: " + listenerPos
+								+ "\n  Source:   " + soundPos
+								+ "\n  ID:       " + sourceID
+								+ "\n  Name:     " + lastSoundCategory + "." + lastSoundName
+								+   "\n  }"
 				);
 			}
 			env = evalEnv();
 		}
 		// CORE PIPELINE
-		try { setEnv(context, processEnv(env), isGentle); }
-		catch (Exception e) { e.printStackTrace(); }
+		try { setEnv(context, processEnv(env), isGentle); } catch (Exception e) { e.printStackTrace(); }
 
 		if (pC.pLog)
 			LOGGER.info("Total calculation time for sound {}: {} milliseconds",
@@ -201,16 +201,16 @@ public class Engine {
 		return pC.reflMap.getOrDefault(
 				blockState.getBlock().getTranslationKey(),
 				pC.reflMap.getOrDefault(
-					Cache.groupToName.getOrDefault(
-						Cache.redirectMap.getOrDefault(
-							blockState.getSoundGroup(),
-							blockState.getSoundGroup()),
-						"DEFAULT"),
-					pC.defaultRefl)
-				);
+						Cache.groupToName.getOrDefault(
+								Cache.redirectMap.getOrDefault(
+										blockState.getSoundGroup(),
+										blockState.getSoundGroup()),
+								"DEFAULT"),
+						pC.defaultRefl)
+		);
 	}
 
-	/* TODO: Occlusion
+    /* TODO: Occlusion
 	@Environment(EnvType.CLIENT)
 	private static double getBlockOcclusionD(final BlockState blockState) {
 		BlockSoundGroup soundType = blockState.getSoundGroup();
@@ -226,12 +226,12 @@ public class Engine {
 	private static Integer[] colors = new Integer[]
 			{
 					Formatting.GREEN.getColorValue(),
-					Formatting.AQUA.getColorValue (), Formatting.LIGHT_PURPLE.getColorValue(), Formatting.DARK_PURPLE.getColorValue(),
-					Formatting.RED.getColorValue  (), Formatting.GOLD.getColorValue        (), Formatting.YELLOW.getColorValue     ()
+					Formatting.AQUA .getColorValue(), Formatting.LIGHT_PURPLE.getColorValue(), Formatting.DARK_PURPLE.getColorValue(),
+					Formatting.RED  .getColorValue(), Formatting.GOLD        .getColorValue(), Formatting.YELLOW     .getColorValue()
 			};
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull CastResults throwReflRay(@NotNull Vec3d dir) {
+	private static @NotNull CastResults throwReflRay(@NotNull Vec3d vector) {
 		// TODO integrate with velocity logic, this' no simple task
 		int size = 0;
 		double missed = 0;
@@ -246,25 +246,50 @@ public class Engine {
 
 		Vec3d position = soundPos;
 		Vec3d target   = position;
-		Vec3d angle = dir;
 		double power = 128; // TODO fine-tune
 		double distance = 0.0;
-		Vec3d normalized = normalize(position, angle);
+		Vec3d normalized = normalize(position, vector);
 		// int bounces = 100; // -> incompatible with present algorithms
 		// assert mc.world != null; // should never happen (never should be called uninitialized)
 		Cast cast = new Cast(mc.world, null, soundChunk);
 		cast.tree = cast.chunk.getBranch((int) position.y);
 		// launch initial ray
-		cast.raycast(cast.getBlock(normalized), position, angle, power);
+		cast.raycast(cast.getBlock(normalized), position, vector, power);
+
+		// always permeate first
+		distance += cast.permeated.distance();
+		// vector = cast.permeated.angle();
+		// power  = cast.permeated.power();
+		target = cast.permeated.position();
 		// assert cast.chunk != null;
 		int bounce = 0;
 		// while power & iterate bounces
 		// TODO determine - use minEnergy or simply positive power?
 		while (bounce < pC.nRayBounces && power > 1) {
+			if (pC.dRays) Renderer.addSoundBounceRay(position, target, colors[bounce % colors.length]);
+			position = target;
+			// if power = 0, this will occur
+			if (vector == null) break;
+
+			//* move {
+			normalized = normalize(position,vector);
+			{ // get new chunk (if needed)
+				ChunkChain next = cast.chunk.access((int) normalized.x >> 4, (int) normalized.z >> 4);
+				if (next == null) break;
+				cast.chunk = next;
+			}
+			cast.tree = cast.chunk.getBranch((int) normalized.y);
+
+			// cast ray
+			cast.raycast(cast.getBlock(normalized), position,vector,power);
+			// } */
+
 			//* handle properties {
 			// TODO handle splits & replace:
 			//  reflect instead of permeate, when logical
-			if (cast.reflected.power() > cast.permeated.power()) {
+			if (cast.reflected.power() > cast.permeated.power()
+					// TODO use better method for permeation preference near start
+					* (2 - (pC.nRayBounces - bounce) / (double) pC.nRayBounces)) {
 				bounceReflectivity[bounce] = cast.reflected.power();
 				totalBounceReflectivity[bounce] = cast.reflected.power();
 				totalBounceDistance[bounce] = distance;
@@ -273,33 +298,15 @@ public class Engine {
 				bounce++;
 
 				distance = 0;
-				angle  = cast.reflected.angle();
+				vector  = cast.reflected.angle();
 				power  = cast.reflected.power();
 				target = cast.reflected.position();
 			} else {
 				distance += cast.permeated.distance();
-				angle  = cast.permeated.angle();
+				vector  = cast.permeated.angle();
 				power  = cast.permeated.power();
 				target = cast.permeated.position();
 			}
-			// } */
-
-			if (pC.dRays) Renderer.addSoundBounceRay(position, target, colors[bounce % colors.length]);
-			position = target;
-			// if power = 0, this will occur
-			if (angle == null) break;
-
-			//* move {
-			normalized = normalize(position,angle);
-			{ // get new chunk (if needed)
-				ChunkChain next = cast.chunk.access((int) normalized.x >> 4, (int) normalized.z >> 4);
-				if (next == null) break;
-				cast.chunk = next;
-			}
-			// TODO: is a branch better here?
-			cast.tree = cast.chunk.getBranch((int) normalized.y);
-
-			cast.raycast(cast.getBlock(normalized), position,angle,power);
 			// } */
 		}
 
@@ -320,7 +327,7 @@ public class Engine {
 		// based on conditions then (e.g. rays with the highest distance w/out
 		// bouncing)
 
-		/* Old code
+        /* Old code
 		Vec3d normalToPlayer = playerPos.subtract(soundPos).normalize(); TODO: change to `listenerPos`
 		double occlusionAccumulation = 0;
 		//Cast a ray from the source towards the player
@@ -427,7 +434,7 @@ public class Engine {
 		// Take weighted (on squared distance) average of the directions sound reflection came from
 		//doDirEval = pC.soundDirectionEvaluation && (occlusionAccumulation > 0 || pC.notOccludedRedirect); // TODO: DirEval
 		// dirEval:  TODO: this block can be converted to another multithreaded iterator
-		/* {
+        /* {
 			if (directions.isEmpty()) break dirEval;
 
 			if (pC.pLog) log("Evaluating direction from " + sendSharedSum + " entries...");
@@ -508,13 +515,13 @@ public class Engine {
 
 				// TODO integrate with fresnels
 				final double playerEnergy = MathHelper.clamp(
-								reflRay.totalBounceEnergy()[i] * (pC.fastShared ? 1 : smoothSharedEnergy[i])
+						reflRay.totalBounceEnergy()[i] * (pC.fastShared ? 1 : smoothSharedEnergy[i])
 								* Math.pow(airAbsorptionHF, reflRay.totalBounceDistance()[i] + (pC.fastShared ? reflRay.distToPlayer()[i] : smoothSharedDistance[i]))
 								/ Math.pow(reflRay.totalBounceDistance()[i] + (pC.fastShared ? reflRay.distToPlayer()[i] : smoothSharedDistance[i]), 2.0D * missedSum),
 						0, 1);
 
 				final double bounceEnergy = MathHelper.clamp(
-								reflRay.totalBounceEnergy()[i]
+						reflRay.totalBounceEnergy()[i]
 								* Math.pow(airAbsorptionHF, reflRay.totalBounceDistance()[i])
 								/ Math.pow(reflRay.totalBounceDistance()[i], 2.0D * missedSum),
 						Double.MIN_VALUE, 1);
@@ -579,7 +586,7 @@ public class Engine {
 			final int iavg = slot;
 			// Different fast selection method, can't decide which one is better.
 			// TODO: Do something with this.
-			/* if (false) {
+            /* if (false) {
 				double sum = 0;
 				double weightedSum = 0;
 				for (int i = 1; i <= pC.resolution; i++) {
@@ -592,7 +599,7 @@ public class Engine {
 			return iavg > 0 ? new SlotProfile(iavg, sendGain[iavg], sendCutoff[iavg]) : new SlotProfile(0, sendGain[0], sendCutoff[0]);
 		}
 		// TODO: Slot selection logic will go here. See https://www.desmos.com/calculator/v5bt1gdgki
-		/*
+        /*
 		final double mk = m-k;
 		double selected = factorial(m)/(factorial(k)-factorial(mk))*Math.pow(1-x,mk)*Math.min(1,Math.max(0,Math.pow(x,k)));
 		 */

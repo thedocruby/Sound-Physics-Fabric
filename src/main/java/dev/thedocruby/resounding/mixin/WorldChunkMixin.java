@@ -92,7 +92,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		ChunkPos pos = this.getPos();
 		int px = pos.x;
 		int pz = pos.z;
-		return access_(px-x, pz-z); // TODO - validate
+		return access_(x-px, z-pz); // TODO - validate
 	}
 
 	// pass along to super {

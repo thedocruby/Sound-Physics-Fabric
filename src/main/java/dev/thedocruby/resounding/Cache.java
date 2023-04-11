@@ -27,7 +27,7 @@ public class Cache {
     public final static VoxelShape CUBE = VoxelShapes.fullCube();
 
     public final static Map<Block, Pair<Double,Double>> blockMap = new HashMap<>() {{
-        put(null        , pair(1.00, 0.00));
+        put(null        , pair(0.00, 0.98));
         put(Blocks.STONE, pair(0.90, 0.40));
         put(Blocks.AIR  , pair(0.00, 0.98));
     }};
@@ -207,8 +207,9 @@ public class Cache {
         final double perm   = 1-pC.absMap.get(branch.state.getBlock().getTranslationKey());
         //*/
         /* TODO remove
-        final double reflec = 0.8; // Math.random();
-        final double perm = 0.7; // Math.random();
+        final double reflec = Math.random();
+        final double perm = Math.random();
+        return new MaterialData("random", reflec, perm);
         //*/
         // attributes = new Pair<>(reflec,perm);
         // in the event of a modded block
@@ -218,10 +219,11 @@ public class Cache {
             attributes = new Pair<>(hardness * 3,1-hardness);
         }*/
         // state.getFluidState().getFluid(); // Fluids.WATER/EMPTY/etc
-        // TODO remove
+        //* TODO remove
         if (state == null || state.getBlock() == Blocks.STONE)
             return new MaterialData("stone",1.0,0.0);
         else
             return new MaterialData("air",  0.0,transmission);
+        //*/
     }
 }
