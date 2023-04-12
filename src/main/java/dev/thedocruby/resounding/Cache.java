@@ -7,10 +7,14 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Pair;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -19,6 +23,7 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 import static java.util.Map.entry;
 
 public class Cache {
@@ -177,6 +182,12 @@ public class Cache {
     // TODO Occlusion
     //ublic static final Pattern blockPattern = Pattern.compile(".*block..*");
     public static final Pattern uiPattern     = Pattern.compile("ui\\..*");
+    static Integer[] colors = new Integer[]
+            {
+                    Formatting.GREEN.getColorValue(),
+                    Formatting.AQUA .getColorValue(), Formatting.LIGHT_PURPLE.getColorValue(), Formatting.DARK_PURPLE.getColorValue(),
+                    Formatting.RED  .getColorValue(), Formatting.GOLD        .getColorValue(), Formatting.YELLOW     .getColorValue()
+            };
 
     // coefficient for reflection & coefficient for block permeability (inverse of absorption)
     private static Pair<Double,Double> pair(Double ref, Double perm) { return new Pair<>(ref, perm); }
@@ -225,5 +236,32 @@ public class Cache {
         else
             return new MaterialData("air",  0.0,transmission);
         //*/
+    }
+
+    // TODO integrate tagging system here
+    public static Vec3d adjustSource(SoundCategory category, String tag, Vec3d soundPos) {
+        Vec3d offset = new Vec3d(0,0,0);
+        if (category == SoundCategory.RECORDS)  offset = offset.add(0.5,0.5,0.5);
+        else
+        if (stepPattern.matcher(tag).matches()) offset = offset.add(0.0,0.2,0.0);
+        // doNineRay = pC.nineRay && (lastSoundCategory == SoundCategory.BLOCKS || isBlock); // TODO: Occlusion
+        return uiPattern    .matcher(tag).matches()
+            || ignorePattern.matcher(tag).matches()
+            || spamPattern  .matcher(tag).matches()
+            ? null : soundPos.add(offset);
+    }
+
+    @Environment(EnvType.CLIENT)
+    private static double getBlockReflectivity(final @NotNull BlockState blockState) {
+        return pC.reflMap.getOrDefault(
+                blockState.getBlock().getTranslationKey(),
+                pC.reflMap.getOrDefault(
+                        groupToName.getOrDefault(
+                                redirectMap.getOrDefault(
+                                        blockState.getSoundGroup(),
+                                        blockState.getSoundGroup()),
+                                "DEFAULT"),
+                        pC.defaultRefl)
+        );
     }
 }

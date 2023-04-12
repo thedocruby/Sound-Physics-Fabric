@@ -83,7 +83,7 @@ public class Cast {
             }
         }
         // } */
-        //* amplitude and angle {
+        //* amplitude and vector {
         // material properties
         @Nullable MaterialData material = Cache.getProperties(branch.state);
         double reflectivity = material.reflectivity();
@@ -166,9 +166,9 @@ public class Cast {
         // zeroes break the min² in getStep, infinity is always more than non-infinity
         if (value <= 0 || Double.isNaN(value)) value = Double.POSITIVE_INFINITY;
         return value;
-        /*     (dist + (   size   )) / angle = magnitude
-         *     (   1 + (16  * 0   )) / -2    = -1/2
-         *     (   7 + (16  * 1   )) /  2    = 14/2
+        /*     (dist + (   size   )) / vector = magnitude
+         *     (   1 + (16  * 0   )) / -2     = -1/2
+         *     (   7 + (16  * 1   )) /  2     = 14/2
          */
     }
     @Contract("_, _ -> new")

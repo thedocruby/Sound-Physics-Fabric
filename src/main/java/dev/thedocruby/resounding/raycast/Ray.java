@@ -8,8 +8,8 @@ public record Ray (
         //MaterialData material,
         double power,
         @NotNull Vec3d position,
-        @Nullable Vec3d angle,
-        double distance
+        @Nullable Vec3d vector,
+        double length
 ) {
     
 }

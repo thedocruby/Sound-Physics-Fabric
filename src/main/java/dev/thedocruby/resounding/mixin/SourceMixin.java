@@ -24,22 +24,22 @@ public class SourceMixin implements SourceAccessor {
 	@Final
 	private int pointer;
 
-	private Vec3d pos;
+	private Vec3d soundPos;
 
 	@Inject(method = "setPosition", at = @At("HEAD"))
-	private void soundPosStealer(Vec3d poss, CallbackInfo ci) { if (Engine.isOff) return; this.pos = poss; }
+	private void savePosition(Vec3d pos, CallbackInfo ci) { if (Engine.isOff) return; this.soundPos = pos; }
 
 	@Inject(method = "play", at = @At("HEAD"))
-	private void onPlaySoundInjector(CallbackInfo ci) {
+	private void onPlay(CallbackInfo ci) {
 		if (Engine.isOff) return;
 		// TODO make context dynamic
-		Engine.playSound(Engine.root, pos.x, pos.y, pos.z, pointer, false);
+		Engine.playSound(Engine.root, soundPos, pointer, false);
 	}
 
 	public void calculateReverb(SoundInstance sound, SoundListener listener) {
 		if (Engine.isOff) return;
 		Engine.recordLastSound(sound, listener);
 		// TODO make context dynamic
-		Engine.playSound(Engine.root, pos.x, pos.y, pos.z, pointer, false);
+		Engine.playSound(Engine.root, soundPos, pointer, false);
 	}
 }
