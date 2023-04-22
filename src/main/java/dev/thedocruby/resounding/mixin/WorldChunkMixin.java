@@ -1,10 +1,13 @@
 package dev.thedocruby.resounding.mixin;
 
+import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.raycast.Branch;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
+import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.world.ClientChunkManager;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
@@ -31,6 +34,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -41,6 +45,7 @@ import java.util.stream.Stream;
 public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 	@Shadow @Final
 	World world;
+
 	@Shadow
 	public abstract ChunkStatus getStatus();
 
@@ -52,10 +57,14 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 	public int yOffset = 1; // 1.18 (0- -16(y) >> 4)
 
 	public Map<Long, VoxelShape> shapes = new ConcurrentHashMap<>(48);
+
 	public @NotNull Map<Long, VoxelShape> getShapes() { return shapes; }
+
 	public @NotNull Branch[] branches = new Branch[0];
+
 	@Override
 	public Branch getBranch(int y) { return ArrayUtils.get(branches,(y>>4)+this.yOffset, null); }
+
 	public ChunkChain[] xPlane = {null, this, null};
 	public ChunkChain[] zPlane = {null, this, null};
 	public ChunkChain[][] planes = {xPlane, zPlane};
@@ -101,6 +110,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		// LOGGER.info("I like 'em chunky");  // TODO remove
 		// if (sectionArrayInitializer != null) this.initStorage(); // TODO ^
 	}
+
 	// }
 	// upon receiving a packet, initialize storage {
 	@Inject(method = "loadFromPacket(Lnet/minecraft/network/PacketByteBuf;Lnet/minecraft/nbt/NbtCompound;Ljava/util/function/Consumer;)V", at = @At("RETURN"))
@@ -128,11 +138,14 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		this.yOffset = -chunkSections[0].getYOffset() >> 4;
 		final ChunkPos pos = this.getPos();
 		final Branch[] branches = new Branch[chunkSections.length];
-		
+
 		// chunk up a section into an octree
 		Stream.of(chunkSections).parallel().forEach((chunkSection) -> {
 			int y = chunkSection.getYOffset();
-			Branch branch = layer(new Branch(new BlockPos(pos.x,y,pos.z),16,null));
+			Branch base = new Branch(new BlockPos(pos.x,y,pos.z),16,Blocks.AIR.getDefaultState());
+			// only calculate if necessary
+			Branch branch = chunkSection.isEmpty() ? base : layer(base);
+			if (chunkSection.isEmpty()) LOGGER.info("empty section optimized");
 			synchronized (branches) {
 				branches[(y>>4)+this.yOffset] = branch;
 			}
@@ -140,14 +153,18 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 
 		this.branches = branches;
 
-		/* TODO remove entire block: /*
+        //* TODO remove entire block:
 		String[] states = new String[branches.length];
+		boolean any = false;
 		for (int i = 0; i < branches.length; i++) {
 			final String state = branches[i].state == null ? "null" : branches[i].state.toString();
 			states[i] = state + "\t" + branches[i].start.getY();
+			any = any || state != "null";
 		}
-		LOGGER.info(Arrays.toString(states));
-		LOGGER.info(Arrays.toString(branches));
+		if (any) {
+			LOGGER.info(Arrays.toString(states));
+			LOGGER.info(Arrays.toString(branches));
+		}
 		// TODO remove */
 
 		ChunkChain[] adj = new ChunkChain[4];
@@ -182,10 +199,12 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		public WorldChunk getChunk(int x, int z, ChunkStatus chunkStatus, boolean bl){
 			return null;
 		}
+
 		// for readability
 		private ChunkChain take(int x, int z) {
 			return (ChunkChain) getChunk(x,z,ChunkStatus.FULL,false);
 		}
+
 		@Inject(method = "unload(II)V", at = @At("HEAD"))
 		public void unload(int x, int z, CallbackInfo ci) {
 			ChunkChain[] adj = new ChunkChain[4];
@@ -202,9 +221,9 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		}
 	}
 
-	private BlockPos base = new BlockPos(0, 0, 0);
+	private static final BlockPos base = new BlockPos(0, 0, 0);
 
-	private BlockPos[] sequence2 = {
+	private static final BlockPos[] sequence2 = {
 			new BlockPos(1, 0, 0),
 			new BlockPos(0, 1, 0),
 			new BlockPos(1, 1, 0),
@@ -214,73 +233,68 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 			new BlockPos(1, 1, 1)
 	};
 
-	private BlockPos[] sequence = ArrayUtils.addAll(new BlockPos[] {base}, sequence2);
-
-
+	private static final BlockPos[] sequence = ArrayUtils.addFirst(sequence2, base);
 
 
 	// TODO integrate into initStorage() and onUpdate/setBlock
 	public Branch layer(Branch root) {
-		return root; // TODO remove / fix
-		/*
+		//return root; // TODO remove / fix
+		//*
 		// determine scale to play with
 		final int scale = root.size >> 1;
 		final BlockPos start = root.start;
 		// get first state at root position
 		BlockState state = this.getBlockState(start);
-		Pair<Double,Double> material = Cache.blockMap.get(state.getBlock());
-		if (material == null) material = new Pair<>(0.1,0.7);
+		@NotNull MaterialData material = Cache.getProperties(state);
 		boolean valid = true;
-		boolean any   = false;
-		if (scale != 1) {
+		if (scale > 1) {
+			boolean any = false;
 			for (BlockPos block : sequence) {
 				final BlockPos position = start.add(block.multiply(scale));
 				// use recursion here
 				Branch leaf = layer(new Branch(position,scale,null));
-				if (leaf.state != null) {
-					if (!leaf.isEmpty()) any = true;
-					// TODO clean up
-					Pair<Double,Double> next;// = Cache.blockMap.get(leaf.state.getBlock());
-					final double reflect =   pC.reflMap.get(state.getBlock().getTranslationKey());
-					final double perm    = 1-pC.absMap.get(state.getBlock().getTranslationKey());
-					next = new Pair<>(reflect,perm);
-					//if (next == null) next = new Pair<>(0.1,0.7); // TODO replace default
-					if (Math.abs(material.getLeft () - next.getLeft ()) > .1
-					&&  Math.abs(material.getRight() - next.getRight()) > .1) {
+				if (leaf.state == null) any = any || !leaf.isEmpty();
+				else {
+					any = true;
+					@NotNull MaterialData next = Cache.getProperties(leaf.state);
+					if (!material.equals(next)) {
+						state = leaf.state;
 						valid = false;
-						// don't break here, as understanding adjacent sections is important
+						// any = true;
 					}
 				}
+				// don't break here, as understanding adjacent sections is important
 				root.put(start.asLong(),leaf);
 			}
-			if (!any) {
-				root.empty();
-			}
-		// for single-blocks
+			if (any) valid = false;
+			else root.empty();
+//			if (!any) {
+//				root.empty();
+//			} else {
+//				valid = false;
+//			}
+			// for single-blocks
 		} else {
-			for (BlockPos block : sequence) {
-				final BlockPos position = start.add(block.multiply(scale));
-				state = this.getBlockState(position);
-				// TODO clean up
-				Pair<Double,Double> next;// = Cache.blockMap.get(state.getBlock());
-				final double reflect =   pC.reflMap.get(state.getBlock().getTranslationKey());
-				final double perm    = 1-pC.absMap.get(state.getBlock().getTranslationKey());
-				next = new Pair<>(reflect,perm);
-				//if (next == null) next = new Pair<>(0.1,0.7); // TODO replace default
+			for (BlockPos block : sequence2) {
+				final BlockPos position = start.add(block);
+				BlockState nextState = this.getBlockState(position);
+				@NotNull MaterialData next = Cache.getProperties(nextState);
 				// break if next block isn't similar enough
-				if (Math.abs(material.getLeft () - next.getLeft ()) > .1
-				&&  Math.abs(material.getRight() - next.getRight()) > .1) {
+				if (!material.equals(next)) {
+					state = nextState;
 					valid = false;
 					break;
 				}
+				/*
+				else {
+					LOGGER.info("valid: " + material.example() + " == " + next.example());
+				} // */
 			}
 		}
-		if (valid) {
-			root.set(state);
-		}
+		root.set(valid ? state : null);
 		return root;
 
-	//*/
+		//*/
 	}
 }
 
