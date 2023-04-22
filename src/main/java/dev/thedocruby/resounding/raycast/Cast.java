@@ -44,15 +44,25 @@ public class Cast {
         this.chunk = chunk;
     }
     //* raycast {
-    public void raycast(Branch branch, @NotNull Vec3d position, @NotNull Vec3d angle) {
+    public void raycast(@NotNull Vec3d position, @NotNull Vec3d angle) {
         // TODO: settings.rayStrength & volume -> amplitude
-        raycast(branch, position, angle, 128);
+        raycast(position, angle, 128);
     }
-    public void raycast(Branch branch, @NotNull Vec3d position, @NotNull Vec3d angle, double power) {
+    public void raycast(@NotNull Vec3d position, @NotNull Vec3d vector, double power) {
+        //* access branch {
+        // assert ray.vector() != null; // the power check above will catch this
+        final Vec3d normalized = normalize(position,vector);
+        chunk = chunk.access((int) normalized.x >> 4, (int) normalized.z >> 4);
+        if (chunk != null) tree = chunk.getBranch((int) normalized.y);
+        /*if (chunk != null && tree != null && tree.state == null) {
+            chunk.layer(tree);
+        }*/
+        Branch branch = getBlock(normalized);
         if (branch == null) {
             this.blank(position);
             return;
         }
+        // } */
         // prepare variables
         Step step, rstep;
         Vec3d  pposition, rposition;
@@ -65,7 +75,7 @@ public class Cast {
          * (C) position of ray
          * (D) direction (minus magnitude)
          */
-        step = getStep(blockToVec(branch.start), branch.size, position, angle);
+        step = getStep(blockToVec(branch.start), branch.size, position, vector);
         pdistance = step.step().length();
         pposition = position.add(step.step());
         // } */
@@ -75,7 +85,7 @@ public class Cast {
         rposition = position;
         //* reflection w/ sub-voxel geometry (irony) {
         if (branch.size == 1) {
-            Step next = bounce(branch,position,angle);
+            Step next = bounce(branch,position,vector);
             if (next != null) {
                 rstep = next;
                 rdistance = rstep.step().subtract(position).length();
@@ -90,9 +100,9 @@ public class Cast {
         double permeability = Math.pow(material.permeability(),pdistance);
 
         // if reflection / permeation -> calculate -> bounce / refract
-        @Nullable Vec3d reflected = reflectivity <= 0 ? null : pseudoReflect(angle,rstep.plane());
+        @Nullable Vec3d reflected = reflectivity <= 0 ? null : pseudoReflect(vector,rstep.plane());
         // use single-surface refraction here, unpredictable effects with larger objects & permeation coefficients
-        @Nullable Vec3d permeated = pseudoReflect(angle, step.plane(), (1-material.permeability()) / 5 /* TODO: make non-arbitrary */);
+        @Nullable Vec3d permeated = pseudoReflect(vector, step.plane(), (1-material.permeability()) / 5 /* TODO: make non-arbitrary */);
         // } */
         // apply movement
         this.reflect (reflectivity*power, rposition, reflected, rdistance);
@@ -101,11 +111,11 @@ public class Cast {
     // } */
 
     //* fetch {
-    public static Vec3d normalize(Vec3d pos, Vec3d dir) {
+    public static Vec3d normalize(Vec3d pos, Vec3d vector) {
         return new Vec3d(
-                dir.x < 0 ? Math.ceil(pos.x) - 1 : pos.x,
-                dir.y < 0 ? Math.ceil(pos.y) - 1 : pos.y,
-                dir.z < 0 ? Math.ceil(pos.z) - 1 : pos.z);
+                vector.x < 0 ? Math.ceil(pos.x) - 1 : pos.x,
+                vector.y < 0 ? Math.ceil(pos.y) - 1 : pos.y,
+                vector.z < 0 ? Math.ceil(pos.z) - 1 : pos.z);
     }
     public Branch getBlock(Vec3d pos) {
         if (this.chunk == null || this.tree == null) return null;

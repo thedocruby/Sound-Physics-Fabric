@@ -1,5 +1,6 @@
 package dev.thedocruby.resounding.raycast;
 
+import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
@@ -18,14 +19,15 @@ public class Branch {
     public BlockPos start;
     public int size;
     public @Nullable BlockState state;
+    public @Nullable MaterialData material;
 
-    HashMap<Long, Branch> leaves = new HashMap<>(8);
+    public @NotNull HashMap<Long, Branch> leaves;
 
     public Branch(BlockPos start, int size, @Nullable BlockState state) {
         this.start = start;
         this.size = size;
         this.state = state;
-        if (this.size == 2) leaves = new HashMap<>(0);
+        this.leaves = new HashMap<>(this.size < 4 ? 0 : 8, 2 /* should never be reached */);
     }
 
     public Branch set(@Nullable BlockState state) {

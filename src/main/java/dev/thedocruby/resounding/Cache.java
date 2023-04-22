@@ -210,7 +210,8 @@ public class Cache {
         return false;
     }
 
-    public static MaterialData getProperties(@Nullable BlockState state) {
+    public static @NotNull MaterialData getProperties(@Nullable BlockState state) {
+        MaterialData material;
         @Nullable Pair<Double,Double> attributes;// = blockMap.get(branch.state.getBlock());
         //*/
         /*
@@ -232,10 +233,12 @@ public class Cache {
         // state.getFluidState().getFluid(); // Fluids.WATER/EMPTY/etc
         //* TODO remove
         if (state == null || state.getBlock() == Blocks.STONE)
-            return new MaterialData("stone",1.0,0.0);
+            material = new MaterialData("stone",1.0,0.0);
         else
-            return new MaterialData("air",  0.0,transmission);
+            material = new MaterialData("air",  0.0,transmission);
         //*/
+        // for hashmap usage
+        return material != null ? material : new MaterialData("stone", 1.0, 0.0);
     }
 
     // TODO integrate tagging system here

@@ -29,4 +29,6 @@ public interface ChunkChain {
 	public ChunkChain access(int x, int z);
 
     void initStorage();
+
+	public Branch layer(Branch root);
 }

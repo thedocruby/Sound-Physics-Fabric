@@ -117,6 +117,9 @@ public class PrecomputedConfig {
     @Environment(EnvType.CLIENT)
     public boolean log; // for each log
 
+    @Environment(EnvType.CLIENT)
+    public double threshold = 0.1; // distance value for material properties to be considered equal
+
     private boolean active = true;
 
     public PrecomputedConfig(ResoundingConfig c) throws CloneNotSupportedException { // TODO: Rework this

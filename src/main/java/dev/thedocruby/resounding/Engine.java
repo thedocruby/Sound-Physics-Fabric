@@ -29,7 +29,6 @@ import java.util.stream.IntStream;
 
 import static dev.thedocruby.resounding.Cache.adjustSource;
 import static dev.thedocruby.resounding.config.PrecomputedConfig.*;
-import static dev.thedocruby.resounding.raycast.Cast.normalize;
 // }
 // }
 
@@ -71,38 +70,30 @@ public class Engine {
 
 	@Environment(EnvType.CLIENT)
 	public static void updateRays() {
-		final double gRatio = 1.618033988;
-		final double epsilon;
+		final double rate = 2 * Math.PI / 1.618033988 /* phi */;
+		final double epsilon =
+			pC.nRays >= 600000 ? 214  :
+			pC.nRays >= 400000 ? 75   :
+			pC.nRays >= 11000  ? 27   :
+			pC.nRays >= 890    ? 10   :
+			pC.nRays >= 177    ? 3.33 :
+			pC.nRays >= 24     ? 1.33 :
+								 0.33 ;
+		final double phiHelper = pC.nRays - 1 + 2*epsilon;
 
-		{ // calculate rays + mem.context
-			final int r = pC.nRays;
+		// calculate starting vectors
+		rays = IntStream.range(0, pC.nRays).parallel().unordered().mapToObj(i -> {
+			// trig stuff
+			final double theta = rate * i;
+			final double phi = Math.acos(1 - 2*(i + epsilon) / phiHelper);
+			final double sP = Math.sin(phi);
 
-			epsilon =
-			r >= 600000 ? 214  :
-			r >= 400000 ? 75   :
-			r >= 11000  ? 27   :
-			r >= 890    ? 10   :
-			r >= 177    ? 3.33 :
-			r >= 24     ? 1.33 :
-			                0.33 ;
-
-			// create queue and calculate vector // TODO verify functionality relative to comment
-			rays = IntStream.range(0, r).parallel().unordered().mapToObj(i -> {
-				// trig stuff
-				final double theta = 2 * Math.PI * i / gRatio;
-				final double phi = Math.acos(1 - 2*(i + epsilon) / (r - 1 + 2*epsilon));
-
-				{ // calculate once + mem.context
-					final double sP = Math.sin(phi);
-
-					return new Vec3d(
-							Math.cos(theta) * sP,
-							Math.sin(theta) * sP,
-							Math.cos(phi)
-					);
-				}
-			}).collect(Collectors.toSet());
-		}
+			return new Vec3d(
+					Math.cos(theta) * sP,
+					Math.sin(theta) * sP,
+					Math.cos(phi)
+			);
+		}).collect(Collectors.toSet());
 	}
 
 	@Environment(EnvType.CLIENT)
@@ -175,7 +166,8 @@ public class Engine {
 		env = evalEnv();
 
 		// CORE PIPELINE
-		try { setEnv(context, processEnv(env), isGentle); } catch (Exception e) { e.printStackTrace(); }
+		try { setEnv(context, processEnv(env), isGentle); }
+		catch (Exception e) { e.printStackTrace(); }
 
 		if (pC.pLog) LOGGER.info("Total calculation time for sound {}: {} milliseconds",
 				tag, (System.nanoTime() - startTime) / 10e5D);
@@ -194,16 +186,14 @@ public class Engine {
 	*/
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull CastResults raycast(@NotNull Vec3d vectoro) {
-		double amplitude = 128; // TODO fine-tune & pull from sound volume
-		CastResults results = new CastResults(0,0,0);
-		Vec3d normalized = normalize(soundPos, vectoro);
+	private static @NotNull CastResults raycast(@NotNull Vec3d vector) {
 		// int bounces = 100; // -> incompatible with present algorithms
 		// assert mc.world != null; // should never happen (never should be called uninitialized)
+		double amplitude = 128; // TODO fine-tune & pull from sound volume
+		CastResults results = new CastResults(0,0,0);
 		Cast cast = new Cast(mc.world, null, soundChunk);
-		cast.tree = soundChunk.getBranch((int) soundPos.y);
 		// launch initial ray & always permeate first
-		cast.raycast(cast.getBlock(normalized), soundPos, vectoro, amplitude);
+		cast.raycast(soundPos, vector, amplitude);
 		Ray ray = new Ray(amplitude,cast.permeated.position(),cast.permeated.vector(), cast.permeated.length());
 
 		double length = cast.permeated.length();
@@ -213,20 +203,9 @@ public class Engine {
 			// debugging output
 			if (pC.dRays) Renderer.addSoundBounceRay(prior, ray.position(), Cache.colors[results.bounces % Cache.colors.length]);
 			prior = ray.position();
-			// if power = 0, this will occur
-			if (ray.vector() == null) break;
-
-			//* move {
-			normalized = normalize(ray.position(),ray.vector());
-			{ // get new chunk (if needed)
-				ChunkChain next = cast.chunk.access((int) normalized.x >> 4, (int) normalized.z >> 4);
-				if (next == null) break;
-				cast.chunk = next;
-			}
-			cast.tree = cast.chunk.getBranch((int) normalized.y);
 
 			// cast ray
-			cast.raycast(cast.getBlock(normalized), ray.position(),ray.vector(),ray.power());
+			cast.raycast(ray.position(),ray.vector(),ray.power());
 			// } */
 
 			//* handle properties {
