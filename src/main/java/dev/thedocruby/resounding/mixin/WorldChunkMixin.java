@@ -1,9 +1,7 @@
 package dev.thedocruby.resounding.mixin;
 
-import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.raycast.Branch;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
-import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
@@ -65,8 +63,8 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 	@Override
 	public Branch getBranch(int y) { return ArrayUtils.get(branches,(y>>4)+this.yOffset, null); }
 
-	public ChunkChain[] xPlane = {null, this, null};
-	public ChunkChain[] zPlane = {null, this, null};
+	public ChunkChain[]   xPlane = {null, this, null};
+	public ChunkChain[]   zPlane = {null, this, null};
 	public ChunkChain[][] planes = {xPlane, zPlane};
 
 	public ChunkChain set(int plane, ChunkChain negative, ChunkChain positive) {
@@ -99,9 +97,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 
 	public ChunkChain access(int x, int z) {
 		ChunkPos pos = this.getPos();
-		int px = pos.x;
-		int pz = pos.z;
-		return access_(x-px, z-pz); // TODO - validate
+		return access_(x-pos.x, z-pos.z); // TODO - validate
 	}
 
 	// pass along to super {
@@ -238,8 +234,8 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 
 	// TODO integrate into initStorage() and onUpdate/setBlock
 	public Branch layer(Branch root) {
-		//return root; // TODO remove / fix
-		//*
+		root.state = null; // TODO remove / fix
+		/*
 		// determine scale to play with
 		final int scale = root.size >> 1;
 		final BlockPos start = root.start;
@@ -285,16 +281,14 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 					valid = false;
 					break;
 				}
-				/*
 				else {
 					LOGGER.info("valid: " + material.example() + " == " + next.example());
-				} // */
+				}
 			}
 		}
 		root.set(valid ? state : null);
-		return root;
-
 		//*/
+		return root;
 	}
 }
 
