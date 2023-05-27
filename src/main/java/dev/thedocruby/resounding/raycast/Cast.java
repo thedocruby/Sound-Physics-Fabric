@@ -36,6 +36,8 @@ public class Cast {
     public @Nullable Ray reflected = null;
     public @Nullable Ray permeated = null;
 
+    public @Nullable Step stood = null;
+
     public static MaterialData air = Cache.getProperties(Blocks.AIR.getDefaultState());
 
     public Cast(@NotNull World world, @Nullable Branch tree, @Nullable ChunkChain chunk) {
@@ -59,7 +61,7 @@ public class Cast {
         }*/
         Branch branch = getBlock(normalized);
         if (branch == null) {
-            this.blank(position);
+            blank(position);
             return;
         }
         // } */
@@ -76,11 +78,17 @@ public class Cast {
          * (D) direction (minus magnitude)
          */
         step = getStep(blockToVec(branch.start), branch.size, position, vector);
+        // upon invalid step (0 / already @ target)
+        if (step == null) {
+            LOGGER.info("nulled at " + position + " along " + vector);
+            blank(position);
+            return;
+        }
         pdistance = step.step().length();
         pposition = position.add(step.step());
         // } */
         // defaults
-        rstep = step;
+        rstep = stood != null ? stood : step;
         rdistance = 0;
         rposition = position;
         //* reflection w/ sub-voxel geometry (irony) {
@@ -100,22 +108,25 @@ public class Cast {
         double permeability = Math.pow(material.permeability(),pdistance);
 
         // if reflection / permeation -> calculate -> bounce / refract
-        @Nullable Vec3d reflected = reflectivity <= 0 ? null : pseudoReflect(vector,rstep.plane());
+        @Nullable Vec3d reflected = reflectivity > 0 ? pseudoReflect(vector,rstep.plane()) : null;
         // use single-surface refraction here, unpredictable effects with larger objects & permeation coefficients
         @Nullable Vec3d permeated = pseudoReflect(vector, step.plane(), (1-material.permeability()) / 5 /* TODO: make non-arbitrary */);
         // } */
         // apply movement
-        this.reflect (reflectivity*power, rposition, reflected, rdistance);
-        this.permeate(permeability*power, pposition, permeated, pdistance);
+        reflect (reflectivity*power, rposition, reflected, rdistance);
+        permeate(permeability*power, pposition, permeated, pdistance);
+        stood = step; // TODO ?
     }
     // } */
 
     //* fetch {
     public static Vec3d normalize(Vec3d pos, Vec3d vector) {
+        //return pos;
         return new Vec3d(
                 vector.x < 0 ? Math.ceil(pos.x) - 1 : pos.x,
                 vector.y < 0 ? Math.ceil(pos.y) - 1 : pos.y,
                 vector.z < 0 ? Math.ceil(pos.z) - 1 : pos.z);
+        // */
     }
     public Branch getBlock(Vec3d pos) {
         if (this.chunk == null || this.tree == null) return null;
@@ -168,13 +179,13 @@ public class Cast {
             // coefficient = epsilon;
         }
         // closest wall -> magnitude
-        return new Step(vector.multiply(coefficient),planarIndex);
+        return coefficient > 0 ? new Step(vector.multiply(coefficient),planarIndex) : null;
     }
     private static double boundAxis(double base, double pos, double size, double dir) {
         // normalize position, determine distance, apply direction
         double value = (base - pos  +  (dir > 0 ? size : 0)) / dir;
         // zeroes break the min² in getStep, infinity is always more than non-infinity
-        if (value <= 0 || Double.isNaN(value)) value = Double.POSITIVE_INFINITY;
+        if (value < 0 || Double.isNaN(value)) value = Double.POSITIVE_INFINITY;
         return value;
         /*     (dist + (   size   )) / vector = magnitude
          *     (   1 + (16  * 0   )) / -2     = -1/2
@@ -224,7 +235,7 @@ public class Cast {
     }
     // } */
     //* mutate {
-    private void blank(Vec3d position) {
+    public void blank(Vec3d position) {
         this.reflected = new Ray(0, position, null, 0);
         this.permeated = new Ray(0, position, null, 0);
     }
