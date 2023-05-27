@@ -1,7 +1,9 @@
 package dev.thedocruby.resounding.mixin;
 
+import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.raycast.Branch;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
+import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
@@ -32,7 +34,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -234,8 +235,8 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 
 	// TODO integrate into initStorage() and onUpdate/setBlock
 	public Branch layer(Branch root) {
-		root.state = null; // TODO remove / fix
-		/*
+		// root.state = null; // TODO remove / fix
+		//*
 		// determine scale to play with
 		final int scale = root.size >> 1;
 		final BlockPos start = root.start;
