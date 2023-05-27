@@ -198,6 +198,7 @@ public class Engine {
 
 		double length = cast.permeated.length();
 		Vec3d prior = soundPos; // used solely for debugging
+		byte reflected = 0; // used to stop rays that are trapped between two walls
 		// while power & iterate bounces
 		while (results.bounces < pC.nRayBounces && ray.power() > 1) {
 			// debugging output
@@ -214,6 +215,9 @@ public class Engine {
 			if (cast.reflected.power() > cast.permeated.power()
 					// TODO use better method for permeation preference near start
 					* (2 - (pC.nRayBounces - results.bounces) / (double) pC.nRayBounces)) {
+				// stop rays stuck between two walls (not moving)
+				// num, not bool -> (3D) edges & corners
+				if (reflected++ > 2) break;
 				// record bounce results
 				results.add
 						/*shared   */( 0 // TODO figure out & populate
@@ -228,6 +232,7 @@ public class Engine {
 			} else {
 				ray = cast.permeated;
 				length += ray.length();
+				reflected = 0;
 			}
 			// } */
 		}
