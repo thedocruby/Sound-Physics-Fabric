@@ -141,7 +141,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 			Branch base = new Branch(new BlockPos(pos.x,y,pos.z),16,Blocks.AIR.getDefaultState());
 			// only calculate if necessary
 			Branch branch = chunkSection.isEmpty() ? base : layer(base);
-			if (chunkSection.isEmpty()) LOGGER.info("empty section optimized");
+			// if (chunkSection.isEmpty()) LOGGER.info("empty section optimized");
 			synchronized (branches) {
 				branches[(y>>4)+this.yOffset] = branch;
 			}
@@ -158,8 +158,8 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 			any = any || state != "null";
 		}
 		if (any) {
-			LOGGER.info(Arrays.toString(states));
-			LOGGER.info(Arrays.toString(branches));
+			// LOGGER.info(Arrays.toString(states));
+			// LOGGER.info(Arrays.toString(branches));
 		}
 		// TODO remove */
 
@@ -281,9 +281,9 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 					valid = false;
 					break;
 				}
-				else {
-					LOGGER.info("valid: " + material.example() + " == " + next.example());
-				}
+//				else {
+//					LOGGER.info("valid: " + material.example() + " == " + next.example());
+//				}
 			}
 		}
 		root.set(valid ? state : null);
