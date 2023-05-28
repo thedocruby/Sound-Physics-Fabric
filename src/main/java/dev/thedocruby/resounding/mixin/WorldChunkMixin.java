@@ -1,9 +1,7 @@
 package dev.thedocruby.resounding.mixin;
 
-import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.raycast.Branch;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
-import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
@@ -62,7 +60,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 	public @NotNull Branch[] branches = new Branch[0];
 
 	@Override
-	public Branch getBranch(int y) { return ArrayUtils.get(branches,(y>>4)+this.yOffset, null); }
+	public Branch getBranch(int y) { return ArrayUtils.get(branches,y+this.yOffset, null); }
 
 	public ChunkChain[]   xPlane = {null, this, null};
 	public ChunkChain[]   zPlane = {null, this, null};
@@ -134,12 +132,14 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		// LOGGER.info(String.valueOf(chunkSections.length) /* +"\t"+Arrays.toString(chunkSections)*/); // TODO remove
 		this.yOffset = -chunkSections[0].getYOffset() >> 4;
 		final ChunkPos pos = this.getPos();
+		final double x     = pos.x << 4; // * 16
+		final double z     = pos.z << 4; // * 16
 		final Branch[] branches = new Branch[chunkSections.length];
 
 		// chunk up a section into an octree
 		Stream.of(chunkSections).parallel().forEach((chunkSection) -> {
 			int y = chunkSection.getYOffset();
-			Branch base = new Branch(new BlockPos(pos.x,y,pos.z),16,Blocks.AIR.getDefaultState());
+			Branch base = new Branch(new BlockPos(x,y,z),16,Blocks.AIR.getDefaultState());
 			// only calculate if necessary
 			Branch branch = chunkSection.isEmpty() ? base : layer(base);
 			// if (chunkSection.isEmpty()) LOGGER.info("empty section optimized");

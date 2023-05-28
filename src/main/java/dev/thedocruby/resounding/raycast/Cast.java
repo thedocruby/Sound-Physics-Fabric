@@ -55,7 +55,7 @@ public class Cast {
         // assert ray.vector() != null; // the power check above will catch this
         final Vec3d normalized = normalize(position,vector);
         chunk = chunk.access((int) normalized.x >> 4, (int) normalized.z >> 4);
-        if (chunk != null) tree = chunk.getBranch((int) normalized.y);
+        if (chunk != null) tree = chunk.getBranch((int) normalized.y >> 4);
         /*if (chunk != null && tree != null && tree.state == null) {
             chunk.layer(tree);
         }*/
