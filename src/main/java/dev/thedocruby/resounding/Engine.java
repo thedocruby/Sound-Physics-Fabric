@@ -14,6 +14,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundListener;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.util.Pair;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import org.apache.logging.log4j.LogManager;
@@ -47,7 +48,7 @@ public class Engine {
 
 
 	// init vars {
-	private static Set<Vec3d> rays;
+	private static Set<Pair<Vec3d,Integer>> rays;
 	private static SoundCategory category;
 	private static String tag;
 	private static SoundListener lastSoundListener;
@@ -88,11 +89,11 @@ public class Engine {
 			final double phi = Math.acos(1 - 2*(i + epsilon) / phiHelper);
 			final double sP = Math.sin(phi);
 
-			return new Vec3d(
+			return new Pair<>(new Vec3d(
 					Math.cos(theta) * sP,
 					Math.sin(theta) * sP,
 					Math.cos(phi)
-			);
+			),(Integer) i);
 		}).collect(Collectors.toSet());
 	}
 
@@ -186,7 +187,9 @@ public class Engine {
 	*/
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull CastResults raycast(@NotNull Vec3d vector) {
+	private static @NotNull CastResults raycast(@NotNull Pair<Vec3d,Integer> input) {
+		int id = input.getRight();
+		Vec3d vector = input.getLeft();
 		// int bounces = 100; // -> incompatible with present algorithms
 		// assert mc.world != null; // should never happen (never should be called uninitialized)
 		double amplitude = 128; // TODO fine-tune & pull from sound volume
