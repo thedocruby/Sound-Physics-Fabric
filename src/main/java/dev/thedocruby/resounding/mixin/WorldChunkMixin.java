@@ -235,8 +235,8 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 
 	// TODO integrate into initStorage() and onUpdate/setBlock
 	public Branch layer(Branch root) {
-		// root.state = null; // TODO remove / fix
-		//*
+		root.state = null; // TODO remove / fix
+		/*
 		// determine scale to play with
 		final int scale = root.size >> 1;
 		final BlockPos start = root.start;
