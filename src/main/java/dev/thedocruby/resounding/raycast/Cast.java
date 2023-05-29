@@ -78,14 +78,15 @@ public class Cast {
          * (D) direction (minus magnitude)
          */
         step = getStep(blockToVec(branch.start), branch.size, position, vector);
-        // upon invalid step (0 / already @ target)
-        if (step == null) {
-            LOGGER.info("nulled at " + position + " along " + vector);
-            blank(position);
-            return;
-        }
         pdistance = step.step().length();
         pposition = position.add(step.step());
+
+        // truncate to 8 decimals -> to prevent floating-point rounding errors
+        // wish this didn't have to be done. Yet, the errors arising from this are crucially bad
+        pposition = new Vec3d(
+                ((long) (pposition.x * 1e5)) / 1e5,
+                ((long) (pposition.y * 1e5)) / 1e5,
+                ((long) (pposition.z * 1e5)) / 1e5);
         // } */
         // defaults
         rstep = stood != null ? stood : step;
@@ -162,24 +163,24 @@ public class Cast {
         double ystep       = boundAxis(base.y, position.y, size, vector.y);
         double zstep       = boundAxis(base.z, position.z, size, vector.z);
 
-        Vec3i planarIndex = new Vec3i(Math.signum(vector.x),0,0);
+        Vec3i planarIndex = new Vec3i(-Math.signum(vector.x),0,0);
 
         // branch hint: 1/3 probability -> NO
         // same as min(x,min(y,z)) + planar index
         if (ystep < coefficient) {
             coefficient = ystep;
-            planarIndex = new Vec3i(0,Math.signum(vector.y),0);
+            planarIndex = new Vec3i(0,-Math.signum(vector.y),0);
         }
         if (zstep < coefficient) {
             coefficient = zstep;
-            planarIndex = new Vec3i(0,0,Math.signum(vector.z));
+            planarIndex = new Vec3i(0,0,-Math.signum(vector.z));
         }
         if (coefficient == Double.POSITIVE_INFINITY) {
             LOGGER.warn("invalid coefficient");
             // coefficient = epsilon;
         }
         // closest wall -> magnitude
-        return coefficient > 0 ? new Step(vector.multiply(coefficient),planarIndex) : null;
+        return new Step(vector.multiply(coefficient),planarIndex);
     }
     private static double boundAxis(double base, double pos, double size, double dir) {
         // normalize position, determine distance, apply direction
