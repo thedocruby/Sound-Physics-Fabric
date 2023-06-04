@@ -35,7 +35,7 @@
 
   "text.autoconfig.resounding.option.MaterialData": "Materialdaten Eintrag",
   "text.autoconfig.resounding.option.MaterialData.example": "Material",
-  "text.autoconfig.resounding.option.MaterialData.reflectivity": "Reflexionsvermö",
+  "text.autoconfig.resounding.option.MaterialData.reflectivity": "Reflexionsvermögen",
   "text.autoconfig.resounding.option.MaterialData.absorption": "Okklusionsdichte",
 
   "text.autoconfig.resounding.option.misc.recordsDisable": "Überspringen von Jukebox/Note Block Okklusion",
