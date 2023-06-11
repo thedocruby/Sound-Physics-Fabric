@@ -124,9 +124,9 @@ public class Cast {
     public static Vec3d normalize(Vec3d pos, Vec3d vector) {
         //return pos;
         return new Vec3d(
-                vector.x < 0 ? Math.ceil(pos.x) - 1 : pos.x,
-                vector.y < 0 ? Math.ceil(pos.y) - 1 : pos.y,
-                vector.z < 0 ? Math.ceil(pos.z) - 1 : pos.z);
+                vector.x < 0 ? Math.ceil(pos.x) - 1 : Math.floor(pos.x),
+                vector.y < 0 ? Math.ceil(pos.y) - 1 : Math.floor(pos.y),
+                vector.z < 0 ? Math.ceil(pos.z) - 1 : Math.floor(pos.z));
         // */
     }
     public Branch getBlock(Vec3d pos) {
