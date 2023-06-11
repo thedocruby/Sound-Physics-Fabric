@@ -81,8 +81,8 @@ public class Cast {
         pdistance = step.step().length();
         pposition = position.add(step.step());
 
-        // truncate to 8 decimals -> to prevent floating-point rounding errors
-        // wish this didn't have to be done. Yet, the errors arising from this are crucially bad
+        // truncate to 5 decimals -> to prevent floating-point rounding errors
+        // wish this didn't have to be done. Yet, this solves critical errors
         pposition = new Vec3d(
                 ((long) (pposition.x * 1e5)) / 1e5,
                 ((long) (pposition.y * 1e5)) / 1e5,
@@ -185,8 +185,9 @@ public class Cast {
     private static double boundAxis(double base, double pos, double size, double dir) {
         // normalize position, determine distance, apply direction
         double value = (base - pos  +  (dir > 0 ? size : 0)) / dir;
-        // zeroes break the min² in getStep, infinity is always more than non-infinity
-        if (value < 0 || Double.isNaN(value)) value = Double.POSITIVE_INFINITY;
+        // theoretically zeroes/negatives shouldn't ever happen, but they did extensively during debugging
+        // (and were promptly fixed!) But you can't ever be too sure.
+        if (value <= 0 || Double.isNaN(value)) value = Double.POSITIVE_INFINITY; // endless loops -> always bigger
         return value;
         /*     (dist + (   size   )) / vector = magnitude
          *     (   1 + (16  * 0   )) / -2     = -1/2

@@ -202,10 +202,11 @@ public class Engine {
 		double length = cast.permeated.length();
 		Vec3d prior = soundPos; // used solely for debugging
 		byte reflected = 0; // used to stop rays that are trapped between two walls
+		int casts = 0;
 		// while power & iterate bounces
 		while (results.bounces < pC.nRayBounces && ray.power() > 1) {
 			// debugging output
-			if (pC.dRays) Renderer.addSoundBounceRay(prior, ray.position(), Cache.colors[results.bounces % Cache.colors.length]);
+			if (pC.dRays) Renderer.addSoundBounceRay(prior, ray.position(), Cache.colors[(casts++ + id + results.bounces) % Cache.colors.length]);
 			prior = ray.position();
 
 			// cast ray
