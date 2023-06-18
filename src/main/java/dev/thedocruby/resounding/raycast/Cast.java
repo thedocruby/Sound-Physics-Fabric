@@ -5,8 +5,8 @@ import dev.thedocruby.resounding.toolbox.ChunkChain;
 import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.particle.ParticleTypes;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -20,10 +20,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-import static dev.thedocruby.resounding.Cache.CUBE;
-import static dev.thedocruby.resounding.Cache.EMPTY;
+import static dev.thedocruby.resounding.Cache.*;
 import static dev.thedocruby.resounding.Engine.LOGGER;
-import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 
 @Environment(EnvType.CLIENT)
 public class Cast {
@@ -104,14 +102,13 @@ public class Cast {
         // } */
         //* amplitude and vector {
         // material properties
-        @Nullable MaterialData material = Cache.getProperties(branch.state);
-        double reflectivity = material.reflectivity();
-        double permeability = Math.pow(material.permeability(),pdistance);
+        double reflectivity = branch.material.reflectivity();
+        double permeability = Math.pow(branch.material.permeability(),pdistance);
 
         // if reflection / permeation -> calculate -> bounce / refract
         @Nullable Vec3d reflected = reflectivity > 0 ? pseudoReflect(vector,rstep.plane()) : null;
         // use single-surface refraction here, unpredictable effects with larger objects & permeation coefficients
-        @Nullable Vec3d permeated = pseudoReflect(vector, step.plane(), (1-material.permeability()) / 5 /* TODO: make non-arbitrary */);
+        @Nullable Vec3d permeated = pseudoReflect(vector, step.plane(), (1-branch.material.permeability()) / 5 /* TODO: make non-arbitrary */);
         // } */
         // apply movement
         reflect (reflectivity*power, rposition, reflected, rdistance);
@@ -141,8 +138,9 @@ public class Cast {
         // therefore, tree.get will always return the smallest branch at a given location
         final Branch branch = this.tree.get(block);
         // when null, simply fall through and get the underlying block
-        if (branch.state == null) {
-            return new Branch(block, 1, ((WorldChunk) this.chunk).getBlockState(block));
+        if (branch.material == null) {
+            BlockState state = ((WorldChunk) this.chunk).getBlockState(block);
+            return new Branch(block, 1, state.getCollisionShape(world, block), getProperties(state));
         } else return branch;
     }
     public static Vec3d blockToVec(BlockPos pos) { return new Vec3d(pos.getX(), pos.getY(), pos.getZ()); }
@@ -225,8 +223,8 @@ public class Cast {
         VoxelShape shape = shapes.get(posl);
         // TODO evaluate actual benefit for shape cache
         if (shape == null) {
-            if (pC.dRays) world.addParticle(ParticleTypes.END_ROD, false, branch.start.getX() + 0.5d, branch.start.getY() + 1d, branch.start.getZ() + 0.5d, 0, 0, 0);
-            shape = branch.state.getCollisionShape(world, branch.start);
+            // if (pC.dRays) world.addParticle(ParticleTypes.END_ROD, false, branch.start.getX() + 0.5d, branch.start.getY() + 1d, branch.start.getZ() + 0.5d, vector.x, vector.y, vector.z);
+            shape = branch.shape;
             if (shape == null) return null;
             shapes.put(posl, shape);
         }

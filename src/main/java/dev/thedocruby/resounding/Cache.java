@@ -1,5 +1,7 @@
 package dev.thedocruby.resounding;
 
+import dev.thedocruby.resounding.raycast.Branch;
+import dev.thedocruby.resounding.toolbox.ChunkChain;
 import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -10,15 +12,20 @@ import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Pair;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.world.chunk.WorldChunk;
+import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -30,6 +37,85 @@ public class Cache {
     // do these really belong here?
     public final static VoxelShape EMPTY = VoxelShapes.empty();
     public final static VoxelShape CUBE = VoxelShapes.fullCube();
+
+    public final static ExecutorService octreePool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+    public static final BlockPos[] branchSequence = {
+            new BlockPos(1, 0, 0),
+            new BlockPos(0, 1, 0),
+            new BlockPos(1, 1, 0),
+            new BlockPos(0, 0, 1),
+            new BlockPos(1, 0, 1),
+            new BlockPos(0, 1, 1),
+            new BlockPos(1, 1, 1)
+    };
+    public static final BlockPos[] blockSequence = ArrayUtils.addFirst(branchSequence, new BlockPos(0, 0, 0));
+
+    // code for queue
+    public static void plantOctree(ChunkChain chunk, int index, Branch root) {
+        if (chunk == null) return; // handle unloaded chunks
+
+        growOctree((WorldChunk) chunk, root); // mutates root
+        chunk.set(index, root); // "plant" the "grown" octree
+        // LOGGER.info("[" + --counter + "] Planted octree at " + ((WorldChunk) chunk).getPos() + "." + index);
+    }
+
+    public static Branch growOctree(WorldChunk chunk, Branch root) {
+        /*
+        if (root.start.getX() > 0 || root.start.getZ() > 0) {
+            root.material = null;
+            return root;
+        }
+        //*/
+        //root.material = null; /*/
+        // determine scale to play with
+        final int scale = root.size >> 1;
+        final BlockPos start = root.start;
+        // get first state at root position
+        BlockState state = chunk.getBlockState(start);
+        root.material = getProperties(state);
+        boolean valid = true;
+
+        if (scale > 1) {
+            boolean any = false;
+            for (BlockPos block : blockSequence) {
+                final BlockPos position = start.add(block.multiply(scale));
+                // use recursion here
+                Branch leaf = growOctree(chunk, new Branch(position,scale, (MaterialData) null));
+                // if (leaf.material != null) {
+                if (leaf.material == null) any = any || !leaf.isEmpty();
+                else {
+                    // any = true;
+                    if (!root.material.equals(leaf.material)) {
+                        // root.material = null;
+                        any = true;
+                        valid = false;
+                        // any = true;
+                    }
+                }
+                // don't break here, as understanding adjacent sections is important
+                root.put(position.asLong(),leaf);
+            }
+            if (!any) root.empty();
+            // for single-blocks
+        } else {
+            for (BlockPos block : branchSequence) {
+                final BlockPos position = start.add(block);
+                @NotNull MaterialData next = getProperties(chunk.getBlockState(position));
+                // break if next block isn't similar enough
+                if (!root.material.equals(next)) {
+                    // root.material = null;
+                    valid = false;
+                    break;
+                }
+            }
+        }
+        root.set(valid ? root.material : (MaterialData) null);
+        //*/
+        return root;
+    }
+
+    public static long counter = 0;
 
     public final static Map<Block, Pair<Double,Double>> blockMap = new HashMap<>() {{
         put(null        , pair(0.00, 0.98));
