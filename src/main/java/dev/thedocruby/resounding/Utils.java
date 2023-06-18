@@ -29,10 +29,10 @@ public static boolean[][] extendArray (final boolean[][] old, final int min) {
 // }
 
 	// specialized tuple type for effects using float
-	public record SIF(
-		String f, // first
-		int    s, // second
-		float  t  // third
+	public record SIF
+		( String f // first
+		, int    s // second
+		, float  t  // third
 	) {}
 
 }
