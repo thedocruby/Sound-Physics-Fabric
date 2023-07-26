@@ -7,7 +7,9 @@ import org.lwjgl.openal.ALC10;
 
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 import static dev.thedocruby.resounding.Engine.LOGGER;
+import java.util.StringJoiner;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.apache.commons.lang3.ArrayUtils;
 
@@ -80,7 +82,7 @@ public class ALUtils {
 
 	// wrapped error functions {
 	public static boolean errorApply(String   in, int   inID, String out, int outID) {
-		return ALUtils.checkErrors(() -> "Error while applying "+in+"."+iniD+" to "+out+"."+outID);
+		return ALUtils.checkErrors(() -> "Error while applying "+in+"."+inID+" to "+out+"."+outID);
 	}
 	public static boolean errorApply(String[] in, int[] inIDs, String out, int outID) {
 		if (in.length != inIDs.length) throw new IllegalStateException("differing input lengths");
