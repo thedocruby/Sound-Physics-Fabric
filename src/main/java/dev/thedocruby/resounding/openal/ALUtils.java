@@ -44,8 +44,12 @@ public class ALUtils {
 		
 	}
 
+	public static boolean checkErrors(Supplier<String> messageSupplier) {
+		return checkErrors(s -> LOGGER.info(() -> s+messageSupplier.get()));
+	}
+
 	public static boolean checkErrors(String message) {
-		return checkErrors(s -> LOGGER.info(s+message));
+		return checkErrors(() -> message);
 	}
 
 	@Contract(pure = true)
@@ -76,21 +80,23 @@ public class ALUtils {
 
 	// wrapped error functions {
 	public static boolean errorApply(String   in, int   inID, String out, int outID) {
-		return errorApply(new String[]{in}, new int[]{inID}, out, outID);
+		return ALUtils.checkErrors(() -> "Error while applying "+in+"."+iniD+" to "+out+"."+outID);
 	}
 	public static boolean errorApply(String[] in, int[] inIDs, String out, int outID) {
 		if (in.length != inIDs.length) throw new IllegalStateException("differing input lengths");
-		String[] message = {};
-		for (int i = 0; i<in.length; i++) {
-			message = ArrayUtils.add(message, in[i]+"."+inIDs[i]);
-		}
-		return ALUtils.checkErrors("Error while applying "+String.join(" & ", message)+" to "+out+"."+outID);
+		return ALUtils.checkErrors(() -> {
+			StringJoiner messageJoiner = new StringJoiner(" & ", "Error while applying ", " to "+out+"."+outID);
+			for (int i = 0; i<in.length; i++) {
+				messageJoiner.add(in[i]+"."+inIDs[i]);
+			}
+			return messageJoiner.toString();
+		});
 	}
 	public static boolean errorProperty(String type, int id, String property, float value) {
-		return ALUtils.checkErrors("Error while setting "+type+"."+id+"."+property+" to "+value);
+		return ALUtils.checkErrors(() -> "Error while setting "+type+"."+id+"."+property+" to "+value);
 	}
 	public static boolean errorSet(String type, String subset, int id, float value) {
-		return ALUtils.checkErrors("Error while setting "+type+"."+subset+"."+id+" to "+value);
+		return ALUtils.checkErrors(() -> "Error while setting "+type+"."+subset+"."+id+" to "+value);
 	}
 	// }
 
