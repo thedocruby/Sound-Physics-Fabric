@@ -1,6 +1,5 @@
 package dev.thedocruby.resounding.openal;
 
-import org.apache.logging.log4j.Level;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.openal.AL10;
@@ -97,12 +96,8 @@ public class ALUtils {
 	}
 	// }
 
-	public static boolean logErrors(Level level, Supplier<String> messageSupplier) {
-		return checkErrors(s -> LOGGER.log(level, () -> s+messageSupplier.get()));
-	}
-
 	public static boolean logErrors(Supplier<String> messageSupplier) {
-		return logErrors(Level.INFO, messageSupplier);
+		return checkErrors(s -> LOGGER.info(() -> s+messageSupplier.get()));
 	}
 
 }
