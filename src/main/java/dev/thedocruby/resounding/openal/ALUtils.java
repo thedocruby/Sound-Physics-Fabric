@@ -1,5 +1,6 @@
 package dev.thedocruby.resounding.openal;
 
+import org.apache.logging.log4j.Level;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.openal.AL10;
@@ -7,9 +8,9 @@ import org.lwjgl.openal.ALC10;
 
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 import static dev.thedocruby.resounding.Engine.LOGGER;
+import java.util.StringJoiner;
 import java.util.function.Consumer;
-
-import org.apache.commons.lang3.ArrayUtils;
+import java.util.function.Supplier;
 
 public class ALUtils {
 
@@ -76,22 +77,32 @@ public class ALUtils {
 
 	// wrapped error functions {
 	public static boolean errorApply(String   in, int   inID, String out, int outID) {
-		return errorApply(new String[]{in}, new int[]{inID}, out, outID);
+		return ALUtils.logErrors(() -> "Error while applying "+in+"."+inID+" to "+out+"."+outID);
 	}
 	public static boolean errorApply(String[] in, int[] inIDs, String out, int outID) {
 		if (in.length != inIDs.length) throw new IllegalStateException("differing input lengths");
-		String[] message = {};
-		for (int i = 0; i<in.length; i++) {
-			message = ArrayUtils.add(message, in[i]+"."+inIDs[i]);
-		}
-		return ALUtils.checkErrors("Error while applying "+String.join(" & ", message)+" to "+out+"."+outID);
+		return ALUtils.logErrors(() -> {
+			StringJoiner messageJoiner = new StringJoiner(" & ", "Error while applying ", " to "+out+"."+outID);
+			for (int i = 0; i<in.length; i++) {
+				messageJoiner.add(in[i]+"."+inIDs[i]);
+			}
+			return messageJoiner.toString();
+		});
 	}
 	public static boolean errorProperty(String type, int id, String property, float value) {
-		return ALUtils.checkErrors("Error while setting "+type+"."+id+"."+property+" to "+value);
+		return ALUtils.logErrors(() -> "Error while setting "+type+"."+id+"."+property+" to "+value);
 	}
 	public static boolean errorSet(String type, String subset, int id, float value) {
-		return ALUtils.checkErrors("Error while setting "+type+"."+subset+"."+id+" to "+value);
+		return ALUtils.logErrors(() -> "Error while setting "+type+"."+subset+"."+id+" to "+value);
 	}
 	// }
+
+	public static boolean logErrors(Level level, Supplier<String> messageSupplier) {
+		return checkErrors(s -> LOGGER.log(level, () -> s+messageSupplier.get()));
+	}
+
+	public static boolean logErrors(Supplier<String> messageSupplier) {
+		return logErrors(Level.INFO, messageSupplier);
+	}
 
 }
