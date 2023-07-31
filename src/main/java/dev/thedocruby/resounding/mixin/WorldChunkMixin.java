@@ -129,7 +129,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 
 		// 16³ blocks
 		ChunkSection[] chunkSections = getSectionArray();
-		// LOGGER.info(String.valueOf(chunkSections.length) /* +"\t"+Arrays.toString(chunkSections)*/); // TODO remove
+		// LOGGER.info(() -> chunkSections.length /* +"\t"+Arrays.toString(chunkSections)*/); // TODO remove
 		this.yOffset = -chunkSections[0].getYOffset() >> 4;
 		final ChunkPos pos = this.getPos();
 		final double x     = pos.x << 4; // * 16
@@ -159,8 +159,8 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 			any = any || state != "null";
 		}
 		if (any) {
-			// LOGGER.info(Arrays.toString(states));
-			// LOGGER.info(Arrays.toString(branches));
+			// LOGGER.info(() -> Arrays.toString(states));
+			// LOGGER.info(() -> Arrays.toString(branches));
 		}
 		// TODO remove */
 
@@ -283,7 +283,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 					break;
 				}
 //				else {
-//					LOGGER.info("valid: " + material.example() + " == " + next.example());
+//					LOGGER.info("valid: {} == {}", material.example(), next.example());
 //				}
 			}
 		}
