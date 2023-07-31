@@ -8,10 +8,13 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.tag.TagKey;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 
@@ -201,13 +204,13 @@ public class Cache {
         // FabricTagProvider.BlockTagProvider x = null;
         logger.log(Registry.BLOCK.getKey(Blocks.AIR));
         // Registry.BLOCK.forEach(
-        Registry.REGISTRIES.streamTags().forEach(
-                (tagKey) -> {
-                    logger.log(
-                        tagKey.registry().getValue().getPath()
-                    );
-                }
-        );
+        logger.log("{}", () -> {
+            return Registry.REGISTRIES.streamTags()
+                    .map(TagKey::registry)
+                    .map(RegistryKey::getValue)
+                    .map(Identifier::getPath)
+                    .collect(Collectors.joining("\n"));
+        });
         return false;
     }
 
