@@ -14,12 +14,13 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
+
+import org.apache.logging.log4j.LogBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -196,13 +197,13 @@ public class Cache {
     // determined by temperature & humidity (global transmission coefficient -> alters permeability)
     public static double transmission = 1;
 
-    public static boolean generate(Consumer<String> logger) {
+    public static boolean generate(LogBuilder logger) {
         // FabricTagProvider.BlockTagProvider x = null;
-        logger.accept(Registry.BLOCK.getKey(Blocks.AIR).toString());
+        logger.log(Registry.BLOCK.getKey(Blocks.AIR));
         // Registry.BLOCK.forEach(
         Registry.REGISTRIES.streamTags().forEach(
                 (tagKey) -> {
-                    logger.accept(
+                    logger.log(
                         tagKey.registry().getValue().getPath()
                     );
                 }
