@@ -45,7 +45,7 @@ public class ALUtils {
 	}
 
 	public static boolean checkErrors(String message) {
-		return checkErrors(s -> LOGGER.info(s+message));
+		return checkErrors(s -> LOGGER.info(() -> s+message));
 	}
 
 	@Contract(pure = true)
