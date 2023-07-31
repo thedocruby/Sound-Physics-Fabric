@@ -8,12 +8,12 @@ import java.util.Arrays;
 import java.util.Objects;
 
 @Environment(EnvType.CLIENT)
-public record SoundProfile(
-		int sourceID,
-		double directGain,
-		double directCutoff,
-		double[] sendGain,
-		double[] sendCutoff
+public record SoundProfile
+		( int sourceID
+		, double directGain
+		, double directCutoff
+		, double[] sendGain
+		, double[] sendCutoff
 ) {
 	@Override
 	public boolean equals(Object o) {

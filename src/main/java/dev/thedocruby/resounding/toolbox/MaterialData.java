@@ -2,10 +2,10 @@ package dev.thedocruby.resounding.toolbox;
 
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 
-public record MaterialData(
-	String example,
-	double reflectivity,
-	double permeability
+public record MaterialData
+	( String example
+	, double reflectivity
+	, double permeability
 	) {
 	@Override
 	public boolean equals(Object o) {

@@ -5,9 +5,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Objects;
 import java.util.Set;
 
-public record EnvData(
-		Set<CastResults> reflRays,
-		Set<OccludedRayData> occlRays
+public record EnvData
+		( Set<CastResults> reflRays
+		, Set<OccludedRayData> occlRays
 ) {
 	@Override
 	public boolean equals(Object o) {

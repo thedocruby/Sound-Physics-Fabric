@@ -8,14 +8,14 @@ import java.util.Arrays;
 import java.util.Objects;
 
 @Environment(EnvType.CLIENT)
-public record OccludedRayData(
-		int lastLeg,
-		double totalDistance,
-		double totalOcclusion,
-		double[] legDistance,
-		double[] totalLegDistance,
-		double[] legOcclusion,
-		double[] totalLegOcclusion
+public record OccludedRayData
+		( int lastLeg
+		, double totalDistance
+		, double totalOcclusion
+		, double[] legDistance
+		, double[] totalLegDistance
+		, double[] legOcclusion
+		, double[] totalLegOcclusion
 ) {
 	@Override
 	public boolean equals(Object o) {

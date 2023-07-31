@@ -5,8 +5,8 @@ import dev.thedocruby.resounding.toolbox.ChunkChain;
 import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.particle.ParticleTypes;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -20,10 +20,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-import static dev.thedocruby.resounding.Cache.CUBE;
-import static dev.thedocruby.resounding.Cache.EMPTY;
+import static dev.thedocruby.resounding.Cache.*;
 import static dev.thedocruby.resounding.Engine.LOGGER;
-import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 
 @Environment(EnvType.CLIENT)
 public class Cast {
@@ -81,8 +79,8 @@ public class Cast {
         pdistance = step.step().length();
         pposition = position.add(step.step());
 
-        // truncate to 8 decimals -> to prevent floating-point rounding errors
-        // wish this didn't have to be done. Yet, the errors arising from this are crucially bad
+        // truncate to 5 decimals -> to prevent floating-point rounding errors
+        // wish this didn't have to be done. Yet, this solves critical errors
         pposition = new Vec3d(
                 ((long) (pposition.x * 1e5)) / 1e5,
                 ((long) (pposition.y * 1e5)) / 1e5,
@@ -104,14 +102,13 @@ public class Cast {
         // } */
         //* amplitude and vector {
         // material properties
-        @Nullable MaterialData material = Cache.getProperties(branch.state);
-        double reflectivity = material.reflectivity();
-        double permeability = Math.pow(material.permeability(),pdistance);
+        double reflectivity = branch.material.reflectivity();
+        double permeability = Math.pow(branch.material.permeability(),pdistance);
 
         // if reflection / permeation -> calculate -> bounce / refract
         @Nullable Vec3d reflected = reflectivity > 0 ? pseudoReflect(vector,rstep.plane()) : null;
         // use single-surface refraction here, unpredictable effects with larger objects & permeation coefficients
-        @Nullable Vec3d permeated = pseudoReflect(vector, step.plane(), (1-material.permeability()) / 5 /* TODO: make non-arbitrary */);
+        @Nullable Vec3d permeated = pseudoReflect(vector, step.plane(), (1-branch.material.permeability()) / 5 /* TODO: make non-arbitrary */);
         // } */
         // apply movement
         reflect (reflectivity*power, rposition, reflected, rdistance);
@@ -124,9 +121,9 @@ public class Cast {
     public static Vec3d normalize(Vec3d pos, Vec3d vector) {
         //return pos;
         return new Vec3d(
-                vector.x < 0 ? Math.ceil(pos.x) - 1 : pos.x,
-                vector.y < 0 ? Math.ceil(pos.y) - 1 : pos.y,
-                vector.z < 0 ? Math.ceil(pos.z) - 1 : pos.z);
+                vector.x < 0 ? Math.ceil(pos.x) - 1 : Math.floor(pos.x),
+                vector.y < 0 ? Math.ceil(pos.y) - 1 : Math.floor(pos.y),
+                vector.z < 0 ? Math.ceil(pos.z) - 1 : Math.floor(pos.z));
         // */
     }
     public Branch getBlock(Vec3d pos) {
@@ -141,8 +138,9 @@ public class Cast {
         // therefore, tree.get will always return the smallest branch at a given location
         final Branch branch = this.tree.get(block);
         // when null, simply fall through and get the underlying block
-        if (branch.state == null) {
-            return new Branch(block, 1, ((WorldChunk) this.chunk).getBlockState(block));
+        if (branch.material == null) {
+            BlockState state = ((WorldChunk) this.chunk).getBlockState(block);
+            return new Branch(block, 1, state.getCollisionShape(world, block), getProperties(state));
         } else return branch;
     }
     public static Vec3d blockToVec(BlockPos pos) { return new Vec3d(pos.getX(), pos.getY(), pos.getZ()); }
@@ -185,8 +183,9 @@ public class Cast {
     private static double boundAxis(double base, double pos, double size, double dir) {
         // normalize position, determine distance, apply direction
         double value = (base - pos  +  (dir > 0 ? size : 0)) / dir;
-        // zeroes break the min² in getStep, infinity is always more than non-infinity
-        if (value < 0 || Double.isNaN(value)) value = Double.POSITIVE_INFINITY;
+        // theoretically zeroes/negatives shouldn't ever happen, but they did extensively during debugging
+        // (and were promptly fixed!) But you can't ever be too sure.
+        if (value <= 0 || Double.isNaN(value)) value = Double.POSITIVE_INFINITY; // endless loops -> always bigger
         return value;
         /*     (dist + (   size   )) / vector = magnitude
          *     (   1 + (16  * 0   )) / -2     = -1/2
@@ -224,8 +223,8 @@ public class Cast {
         VoxelShape shape = shapes.get(posl);
         // TODO evaluate actual benefit for shape cache
         if (shape == null) {
-            if (pC.dRays) world.addParticle(ParticleTypes.END_ROD, false, branch.start.getX() + 0.5d, branch.start.getY() + 1d, branch.start.getZ() + 0.5d, 0, 0, 0);
-            shape = branch.state.getCollisionShape(world, branch.start);
+            // if (pC.dRays) world.addParticle(ParticleTypes.END_ROD, false, branch.start.getX() + 0.5d, branch.start.getY() + 1d, branch.start.getZ() + 0.5d, vector.x, vector.y, vector.z);
+            shape = branch.shape;
             if (shape == null) return null;
             shapes.put(posl, shape);
         }
