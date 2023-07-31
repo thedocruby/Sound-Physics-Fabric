@@ -17,6 +17,9 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
@@ -24,7 +27,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -115,13 +117,12 @@ public class Engine {
 	public static void playSound(Context context, Vec3d pos, int sourceIDIn, boolean auxOnlyIn) {
 		assert !Engine.isOff;
 		soundPos = pos;
-		long startTime = 0;
-		if (pC.pLog) startTime = System.nanoTime();
+		final long startTime = pC.pLog ? System.nanoTime() : 0;
 		auxOnly = auxOnlyIn;
 		sourceID = sourceIDIn;
 		//* TODO remove
 		if (!hasLoaded) {
-			Cache.generate(LOGGER::info);
+			Cache.generate(LOGGER.atInfo());
 			hasLoaded = true;
 			return;
 		}
@@ -156,13 +157,20 @@ public class Engine {
 
 		final EnvData env;
 		if (pC.dLog) LOGGER.info(
-				"Sound {"
-					+ "\n  Player:   " + playerPos
-					+ "\n  Listener: " + listenerPos
-					+ "\n  Source:   " + soundPos
-					+ "\n  ID:       " + sourceID
-					+ "\n  Name:     " + category + "." + tag
-					+ "\n  }"
+				"""
+						Sound {
+							Player:   {}
+							Listener: {}
+							Source:   {}
+							ID:       {}
+							Name:     {}.{}
+						}
+						""",
+				playerPos,
+				listenerPos,
+				soundPos,
+				sourceID,
+				category, tag
 		);
 		env = evalEnv();
 
@@ -171,7 +179,7 @@ public class Engine {
 		catch (Exception e) { e.printStackTrace(); }
 
 		if (pC.pLog) LOGGER.info("Total calculation time for sound {}: {} milliseconds",
-				tag, (System.nanoTime() - startTime) / 10e5D);
+				() -> tag, () -> (System.nanoTime() - startTime) / 10e5D);
 	}
 
     /* TODO: Occlusion
@@ -331,16 +339,16 @@ public class Engine {
 		// Throw rays around
 		// TODO implement tagging system here
 		// TODO? implement lambda function referencing to remove branches
-		Consumer<String> logger = pC.log ? (pC.eLog ? LOGGER::info : LOGGER::debug) : (x) -> {};
+		LogBuilder logger = pC.log ? (pC.eLog ? LOGGER.atInfo() : LOGGER.atDebug()) : LOGGER.atLevel(Level.OFF);
 		Set<CastResults> reflRays;
-		logger.accept("Sampling environment with "+pC.nRays+" seed rays...");
+		logger.log("Sampling environment with {} seed rays...", pC.nRays);
 		reflRays = rays.stream().parallel().unordered().map(Engine::raycast).collect(Collectors.toSet());
 		if (pC.eLog) {
 			int rayCount = 0;
 			for (CastResults reflRay : reflRays){
 				rayCount += reflRay.bounces * 2 + 1;
 			}
-			logger.accept("Total number of rays casted: "+rayCount);
+			logger.log("Total number of rays casted: {}", rayCount);
 		}
 
 		// TODO: Occlusion. Also, add occlusion profiles.
@@ -349,7 +357,7 @@ public class Engine {
 
 		// Pass data to post
 		EnvData data = new EnvData(reflRays, occlRays);
-		logger.accept("Raw Environment data:\n"+data);
+		logger.log("Raw Environment data:\n{}", data);
 		return data;
 	}
 
