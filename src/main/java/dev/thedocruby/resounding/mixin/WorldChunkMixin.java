@@ -1,7 +1,9 @@
 package dev.thedocruby.resounding.mixin;
 
+import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.raycast.Branch;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
+import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
@@ -37,6 +39,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import static dev.thedocruby.resounding.Cache.getProperties;
+
 @Environment(EnvType.CLIENT)
 @Mixin(WorldChunk.class)
 public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
@@ -58,6 +62,8 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 	public @NotNull Map<Long, VoxelShape> getShapes() { return shapes; }
 
 	public @NotNull Branch[] branches = new Branch[0];
+
+	public boolean loaded = true;
 
 	@Override
 	public Branch getBranch(int y) { return ArrayUtils.get(branches,y+this.yOffset, null); }
@@ -134,35 +140,30 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		final ChunkPos pos = this.getPos();
 		final double x     = pos.x << 4; // * 16
 		final double z     = pos.z << 4; // * 16
+		this.branches = new Branch[chunkSections.length];
 		final Branch[] branches = new Branch[chunkSections.length];
 
 		// chunk up a section into an octree
 		Stream.of(chunkSections).parallel().forEach((chunkSection) -> {
 			int y = chunkSection.getYOffset();
-			Branch base = new Branch(new BlockPos(x,y,z),16,Blocks.AIR.getDefaultState());
-			// only calculate if necessary
-			Branch branch = chunkSection.isEmpty() ? base : layer(base);
-			// if (chunkSection.isEmpty()) LOGGER.info("empty section optimized");
+			final int index = this.yOffset + (y >> 4);
+			boolean empty = chunkSection.isEmpty();
+
+			Branch air = new Branch(new BlockPos(x,y,z),16, getProperties(Blocks.AIR.getDefaultState()));
+			Branch blank = new Branch(new BlockPos(x,y,z),16);
+
+			// provide fallback or all-air branch when necessary
 			synchronized (branches) {
-				branches[(y>>4)+this.yOffset] = branch;
+				branches[index] = empty ? air : blank;
+			}
+			// only calculate if necessary
+			if (empty) {
+				Cache.counter++;
+				Cache.octreePool.execute(() -> Cache.plantOctree(this, index, blank));
 			}
 		});
 
 		this.branches = branches;
-
-        //* TODO remove entire block:
-		String[] states = new String[branches.length];
-		boolean any = false;
-		for (int i = 0; i < branches.length; i++) {
-			final String state = branches[i].state == null ? "null" : branches[i].state.toString();
-			states[i] = state + "\t" + branches[i].start.getY();
-			any = any || state != "null";
-		}
-		if (any) {
-			// LOGGER.info(() -> Arrays.toString(states));
-			// LOGGER.info(() -> Arrays.toString(branches));
-		}
-		// TODO remove */
 
 		ChunkChain[] adj = new ChunkChain[4];
 		// retrieve & save locally
@@ -176,17 +177,19 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		if (adj[1] != null) adj[1].set(0,-1,this);
 		if (adj[2] != null) adj[2].set(1,+1,this);
 		if (adj[3] != null) adj[3].set(1,-1,this);
+	}
 
+	public void set(int index, Branch branch) {
+		this.branches[index] = branch;
 	}
 
 
 	// upon setting block in client, update our copy {
 	@Inject(method = "setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Z)Lnet/minecraft/block/BlockState;", at = @At("HEAD"))
-	private void setBlock(BlockPos pos, BlockState state, boolean moved, CallbackInfoReturnable<BlockState> cir){
+	private void setBlock(BlockPos pos, BlockState state, boolean moved, CallbackInfoReturnable<BlockState> cir) {
 		if (!world.isClient) return;
-		// TODO
-		// this.branches[pos.getY()<<4].setBlock(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15, state, moved);
-		this.shapes.clear();
+		if (loaded)
+			updateBlock(pos, state, moved);
 	}
 	// }
 
@@ -218,78 +221,17 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		}
 	}
 
-	private static final BlockPos base = new BlockPos(0, 0, 0);
 
-	private static final BlockPos[] sequence2 = {
-			new BlockPos(1, 0, 0),
-			new BlockPos(0, 1, 0),
-			new BlockPos(1, 1, 0),
-			new BlockPos(0, 0, 1),
-			new BlockPos(1, 0, 1),
-			new BlockPos(0, 1, 1),
-			new BlockPos(1, 1, 1)
-	};
+	private void updateBlock(BlockPos pos, BlockState state, boolean moved) {
+		// get smallest branch at position
+		final Branch branch = this.getBranch(pos.getY() >> 4).get(pos);
 
-	private static final BlockPos[] sequence = ArrayUtils.addFirst(sequence2, base);
+		MaterialData material = getProperties(state);
+		// if block is homogenous with branch
+		if (material.equals(branch.material)) return;
 
-
-	// TODO integrate into initStorage() and onUpdate/setBlock
-	public Branch layer(Branch root) {
-		root.state = null; // TODO remove / fix
-		/*
-		// determine scale to play with
-		final int scale = root.size >> 1;
-		final BlockPos start = root.start;
-		// get first state at root position
-		BlockState state = this.getBlockState(start);
-		@NotNull MaterialData material = Cache.getProperties(state);
-		boolean valid = true;
-		if (scale > 1) {
-			boolean any = false;
-			for (BlockPos block : sequence) {
-				final BlockPos position = start.add(block.multiply(scale));
-				// use recursion here
-				Branch leaf = layer(new Branch(position,scale,null));
-				if (leaf.state == null) any = any || !leaf.isEmpty();
-				else {
-					any = true;
-					@NotNull MaterialData next = Cache.getProperties(leaf.state);
-					if (!material.equals(next)) {
-						state = leaf.state;
-						valid = false;
-						// any = true;
-					}
-				}
-				// don't break here, as understanding adjacent sections is important
-				root.put(start.asLong(),leaf);
-			}
-			if (any) valid = false;
-			else root.empty();
-//			if (!any) {
-//				root.empty();
-//			} else {
-//				valid = false;
-//			}
-			// for single-blocks
-		} else {
-			for (BlockPos block : sequence2) {
-				final BlockPos position = start.add(block);
-				BlockState nextState = this.getBlockState(position);
-				@NotNull MaterialData next = Cache.getProperties(nextState);
-				// break if next block isn't similar enough
-				if (!material.equals(next)) {
-					state = nextState;
-					valid = false;
-					break;
-				}
-//				else {
-//					LOGGER.info("valid: {} == {}", material.example(), next.example());
-//				}
-			}
-		}
-		root.set(valid ? state : null);
-		//*/
-		return root;
+		// will get optimized on reload, must keep this function quick
+		branch.material = null;
+		this.shapes.remove(pos.asLong());
 	}
 }
-
