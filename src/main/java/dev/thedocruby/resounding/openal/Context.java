@@ -47,12 +47,12 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 	public boolean activate() {
 		old = EXTThreadLocalContext.alcGetThreadContext();
 		EXTThreadLocalContext.alcSetThreadContext(self);
-		return !ALUtils.checkErrors("Error while activating openAL context "+self+".");
+		return !ALUtils.logErrors(() -> "Error while activating openAL context "+self+".");
 	}
 	public boolean deactivate() {
 		if (old == -1) return false;
 		EXTThreadLocalContext.alcSetThreadContext(old);
-		return !ALUtils.checkErrors("Error while reactivating openAL context "+old+".");
+		return !ALUtils.logErrors(() -> "Error while reactivating openAL context "+old+".");
 	}
 	// }
 	
