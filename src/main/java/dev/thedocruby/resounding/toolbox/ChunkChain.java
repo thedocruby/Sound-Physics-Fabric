@@ -15,6 +15,7 @@ public interface ChunkChain {
 	//*/
 	public String yOffset = ""; // 1.18 (0- -16(y) >> 4)
 
+	public void set(int index, Branch branch);
 	public ChunkChain set(int plane, ChunkChain negative, ChunkChain positive);
 
 	public ChunkChain set(int plane, int index, ChunkChain link);

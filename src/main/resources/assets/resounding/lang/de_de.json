@@ -1,0 +1,50 @@
+{
+  "text.autoconfig.resounding.title": "Resounding Konfiguration",
+
+  "text.autoconfig.resounding.option.enabled": "Resounding einschalten",
+
+  "text.autoconfig.resounding.option.general": "Allgemeine Präferenzen",
+  "text.autoconfig.resounding.option.quality": "Qualitätseinstellungen",
+  "text.autoconfig.resounding.option.effects": "Zusätzliche Effekte",
+  "text.autoconfig.resounding.option.materials": "Materialeigenschaften",
+  "text.autoconfig.resounding.option.misc": "Sonstige Optionen",
+  "text.autoconfig.resounding.option.debug": "Debug toggles",
+
+  "text.autoconfig.resounding.option.general.globalReverbGain": "Hall Lautstärke",
+  "text.autoconfig.resounding.option.general.globalReverbStrength": "Hall Stärke",
+  "text.autoconfig.resounding.option.general.globalReverbSmoothness": "Sanftheit des Halls",
+  "text.autoconfig.resounding.option.general.globalReverbBrightness": "Hall Helligkeit",
+  "text.autoconfig.resounding.option.general.globalAbsorptionBrightness": "Absorptionshelligkeit",
+
+  "text.autoconfig.resounding.option.quality.reverbResolution": "Auflösung des Halls",
+  "text.autoconfig.resounding.option.quality.envEvalRays": "Strahlen pro Klang",
+  "text.autoconfig.resounding.option.quality.occlusionMode": "Okklusionsmodus",
+  "text.autoconfig.resounding.option.quality.sharedAirspaceMode": "Geteilter Luftraum-Modus",
+  "text.autoconfig.resounding.option.quality.envEvalRayBounces": "Zusätzliche Reflexionen pro Strahl",
+  "text.autoconfig.resounding.option.quality.soundSimulationDistance": "Entfernung der Klangsimulation",
+  "text.autoconfig.resounding.option.quality.rayLength": "Strahlenlänge",
+  "text.autoconfig.resounding.option.quality.sourceRefreshRate": "Intervall der Klang auffrischung",
+
+  "text.autoconfig.resounding.option.effects.airAbsorption": "Schallabsorption durch Luft",
+  "text.autoconfig.resounding.option.effects.humidityAbsorption": "Schallabsorption durch Feuchtigkeit",
+  "text.autoconfig.resounding.option.effects.rainAbsorption": "Schallabsorption durch Regentropfen",
+  "text.autoconfig.resounding.option.effects.underwaterFilter": "Stärke des Unterwasserfilters",
+
+  "text.autoconfig.resounding.option.materials.materialProperties": "Nach Kategorie",
+  "text.autoconfig.resounding.option.materials.blockWhiteList": "Nach Block (Whitelist)",
+
+  "text.autoconfig.resounding.option.MaterialData": "Materialdaten Eintrag",
+  "text.autoconfig.resounding.option.MaterialData.example": "Material",
+  "text.autoconfig.resounding.option.MaterialData.reflectivity": "Reflexionsvermögen",
+  "text.autoconfig.resounding.option.MaterialData.absorption": "Okklusionsdichte",
+
+  "text.autoconfig.resounding.option.misc.recordsDisable": "Überspringen von Jukebox/Note Block Okklusion",
+
+  "text.autoconfig.resounding.option.debug.debugLogging": "Allgemeines Debug Logging",
+  "text.autoconfig.resounding.option.debug.occlusionLogging": "Okklusions Logging",
+  "text.autoconfig.resounding.option.debug.environmentLogging": "Umgebungs Logging",
+  "text.autoconfig.resounding.option.debug.performanceLogging": "Leistungs Logging",
+  "text.autoconfig.resounding.option.debug.raytraceParticles": "Raytracing Partikel",
+
+  "text.autoconfig.resounding.option.preset": "Konfig Voreinstellung"
+}

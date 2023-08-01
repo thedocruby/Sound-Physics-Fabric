@@ -1,5 +1,6 @@
 package dev.thedocruby.resounding.raycast;
 
+import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -7,6 +8,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.shape.VoxelShape;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -18,20 +20,41 @@ import static dev.thedocruby.resounding.Cache.blockMap;
 public class Branch {
     public BlockPos start;
     public int size;
-    public @Nullable BlockState state;
-    public @Nullable MaterialData material;
+    public @NotNull VoxelShape shape = Cache.CUBE;
+    public @Nullable MaterialData material; // TODO: use!
 
     public @NotNull HashMap<Long, Branch> leaves;
 
-    public Branch(BlockPos start, int size, @Nullable BlockState state) {
+
+    public Branch(BlockPos start, int size) {
+        this.leaves = new HashMap<>(size < 4 ? 0 : 8, 2 /* should never be reached */);
         this.start = start;
         this.size = size;
-        this.state = state;
-        this.leaves = new HashMap<>(this.size < 4 ? 0 : 8, 2 /* should never be reached */);
     }
 
-    public Branch set(@Nullable BlockState state) {
-        this.state = state;
+    public Branch(BlockPos start, int size, @NotNull VoxelShape shape) {
+        this(start, size);
+        set(shape);
+    }
+
+    public Branch(BlockPos start, int size, @Nullable MaterialData material) {
+        this(start, size);
+        set(material);
+    }
+
+    public Branch(BlockPos start, int size, @Nullable VoxelShape shape, @Nullable MaterialData material) {
+        this(start, size);
+        set(shape);
+        set(material);
+    }
+
+    public Branch set(@Nullable VoxelShape shape) {
+        this.shape = shape;
+        return this;
+    }
+
+    public Branch set(@Nullable MaterialData material) {
+        this.material = material;
         return this;
     }
 
