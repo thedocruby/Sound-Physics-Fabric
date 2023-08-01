@@ -69,7 +69,7 @@ public class ALUtils {
 	private static boolean checkAlcErrors(long deviceHandle, String message) {
 		int i = ALC10.alcGetError(deviceHandle);
 		if (i != ALC10.ALC_NO_ERROR) {
-			LOGGER.error("Caught new OpenAL ALC10 error!\n{}\nCaused by: {}\nDevice: {}", message, getAlcErrorMessage(i), deviceHandle);
+			LOGGER.error("Caught new OpenAL ALC10 error!\n{}\nCaused by: {}\nDevice: {}", () -> message, () -> getAlcErrorMessage(i), () -> deviceHandle);
 			return true;
 		} return false;
 	}
