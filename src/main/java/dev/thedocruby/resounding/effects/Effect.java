@@ -54,9 +54,7 @@ public class Effect extends Utils {
 				if(verify.test(bit)) { // verify     bit
 					init.accept(bit);  // initialize bit
 					// if successful (otherwise error)
-					if (!ALUtils.checkErrors(
-						s -> Engine.LOGGER.info(s+"Failed to create {}.{}", type, bit)
-						)) {
+					if (!ALUtils.logErrors(() -> "Failed to create " + type + "." + bit)) {
 						// log
 						if (pC.dLog) Engine.LOGGER.info("Created {}.{}", type, bit); continue;
 					} active = false; continue; // fail gracefully ← & ↓
