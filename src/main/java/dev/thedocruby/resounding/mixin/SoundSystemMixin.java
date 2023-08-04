@@ -52,10 +52,9 @@ public class SoundSystemMixin {
 				return mc.world.getRegistryManager()
 						.get(Registry.BLOCK_KEY)
 						.streamTags()
-						.map(TagKey::registry)
-						.map(RegistryKey::getValue)
-						.map(String::valueOf)
-						.collect(Collectors.joining("\n")));
+						.collect(() -> new StringJoiner("\n"),
+								(joiner, tagKey) -> joiner.add(tagKey.registry().getValue().getPath()),
+								StringJoiner::merge);
 			}*/
 		}
 			//((SourceAccessor)null)
