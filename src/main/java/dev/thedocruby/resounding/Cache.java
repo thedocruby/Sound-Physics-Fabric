@@ -10,24 +10,23 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.tag.TagKey;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.chunk.WorldChunk;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogBuilder;
+import org.apache.logging.log4j.message.ObjectMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
@@ -289,12 +288,13 @@ public class Cache {
         // FabricTagProvider.BlockTagProvider x = null;
         logger.log(Registry.BLOCK.getKey(Blocks.AIR));
         // Registry.BLOCK.forEach(
-        logger.log("{}", () -> {
-            return Registry.REGISTRIES.streamTags()
-                    .map(TagKey::registry)
-                    .map(RegistryKey::getValue)
-                    .map(Identifier::getPath)
-                    .collect(Collectors.joining("\n"));
+        logger.log(() -> {
+            StringJoiner obj = Registry.REGISTRIES.streamTags().collect(
+                    () -> new StringJoiner("\n"),
+                    (joiner, tagKey) -> joiner.add(tagKey.registry().getValue().getPath()),
+                    StringJoiner::merge);
+
+            return new ObjectMessage(obj);
         });
         return false;
     }
