@@ -10,6 +10,7 @@ import dev.thedocruby.resounding.raycast.Renderer;
 import dev.thedocruby.resounding.toolbox.*;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundListener;
@@ -17,18 +18,22 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.registry.Registry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static dev.thedocruby.resounding.Cache.adjustSource;
+import static dev.thedocruby.resounding.Cache.generate;
 import static dev.thedocruby.resounding.config.PrecomputedConfig.*;
 // }
 // }
@@ -40,6 +45,9 @@ public class Engine {
 	private Engine() { }
 
 	public static Context root;
+
+	// TODO: remove!!
+	public static boolean temp = false;
 
 	public static EnvType env = null;
 	public static MinecraftClient mc;
@@ -347,6 +355,14 @@ public class Engine {
 		// TODO: Occlusion. Also, add occlusion profiles.
 		// Step rays from sound to listener
 		Set<OccludedRayData> occlRays = throwOcclRay(soundPos, listenerPos);
+
+		// TODO: remove!!
+		StringBuilder sb = new StringBuilder();
+//		LinkedList<String> tags = new LinkedList<String>();
+		if (!temp) {
+			generate();
+			temp = true;
+		}
 
 		// Pass data to post
 		EnvData data = new EnvData(reflRays, occlRays);
