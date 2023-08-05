@@ -24,16 +24,17 @@ import org.apache.logging.log4j.message.ObjectMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.StringJoiner;
+
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static dev.thedocruby.resounding.Engine.LOGGER;
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 import static java.util.Map.entry;
+import static org.apache.commons.lang3.math.NumberUtils.max;
 
 public class Cache {
     // do these really belong here?
@@ -355,5 +356,142 @@ public class Cache {
                                 "DEFAULT"),
                         pC.defaultRefl)
         );
+    }
+
+    @Environment(EnvType.CLIENT)
+    public static void generate() {
+        // prepopulated & loaded from disk
+        HashMap<String, Tag> config = new HashMap<>();
+
+        // read from game registry
+        HashMap<String, LinkedList<String>> tags = new HashMap<>();
+        HashMap<String, LinkedList<String>> blocks = new HashMap<>();
+        Registry.BLOCK.forEach((Block block) -> {
+            String name = block.getTranslationKey();
+            block.getDefaultState().streamTags()
+                .forEach((tag) -> {
+                    String id = tag.id().toString();
+                    update(tags, id, name);
+                    update(blocks, name, id);
+                });
+        });
+        LOGGER.info(tags.size() + "");
+    }
+
+    public static void calculate(HashMap<String, Tag> tags) {
+        // iterate over all tags by name
+        LinkedList<String> list = (LinkedList<String>) tags.keySet().stream().toList();
+        int done = 0;
+        int failStreak = 0;
+        while (!list.isEmpty()) {
+            // prevent infinite loop
+            assert failStreak <= tags.size();
+
+            // churn through list, get relevant tag and subtags (solute)
+            String name = list.pop();
+            Tag tag = tags.get(name);
+            String[] solute = tag.solute() == null ? new String[]{} : tag.solute();
+            Double[] composition = tag.composition() == null ? new Double[]{} : tag.composition();
+            int length = solute.length;
+            boolean success = length == 0;
+            assert length != 1; // redundancy! *Might* remove this later #TODO
+            // calculate complex tags
+            if (!success && // don't calculate simple tags
+                    // calculate tags only when possible
+                    length <= done && // shortcut for next check
+                    // calculate only when all values present
+                    !list.containsAll(Arrays.stream(solute).toList())) {
+                success = true;
+                Double totalWeight = 0D;
+                // if tag has override from solute, null is used
+                Double[] weight = tag.weight() == null ? new Double[length] : null;
+                Double[] granularity = tag.granularity() == null ? new Double[length] : null;
+                Double[] melt = tag.melt() == null ? new Double[length] : null;
+                Double[] boil = tag.boil() == null ? new Double[length] : null;
+                Double[] density = tag.density() == null ? new Double[length] : null;
+                Double[] swave = tag.swave() == null ? new Double[length] : null;
+                Double[] lwave = tag.lwave() == null ? new Double[length] : null;
+                // loop through solute, collect values for weighted calculations
+                for (String reference : solute) {
+                    // fails when null (should never happen)
+                    totalWeight += tags.get(reference).weight();
+                }
+                // calculate composition
+                for (int i = 0; i < length; i++) {
+                    String reference = solute[i];
+                    Double percent = composition[i];
+                    Tag subtag = tags.get(reference);
+                    Double w = subtag.weight();
+                    // calculate composition
+                    Double c = totalWeight+totalWeight*percent-w;
+                    totalWeight += c-w; // adjust weight for next item
+                    weight[i] = c;
+
+                    // apply composition
+                    updWeight(granularity, i, subtag.granularity(), c);
+                    updWeight(melt,        i, subtag.melt(),        c);
+                    updWeight(boil,        i, subtag.boil(),        c);
+                    updWeight(density,     i, subtag.density(),     c);
+                    updWeight(swave,       i, subtag.swave(),       c);
+                    updWeight(lwave,       i, subtag.lwave(),       c);
+                }
+
+                // apply weights to values and update HashMap
+//                double totalWeight = smartSum(weight, tag.weight());
+                Tag newTag = new Tag(
+                        totalWeight,
+                        tag.solvent(),
+                        tag.solute(),
+                        tag.composition(),
+                        unWeight(totalWeight, granularity, tag.granularity()),
+                        unWeight(totalWeight, melt, tag.melt()),
+                        unWeight(totalWeight, boil, tag.boil()),
+                        unWeight(totalWeight, density, tag.density()),
+                        unWeight(totalWeight, swave, tag.swave()),
+                        unWeight(totalWeight, lwave, tag.lwave())
+                );
+                tags.put(name, newTag);
+            }
+            if (success) {
+                // allow more complex calculations, now that there's more resources to do so
+                done++;
+                failStreak = 0;
+            } else {
+                // re-add the current item as it could not be calculated
+                list.addLast(name);
+                failStreak++;
+            }
+        }
+    }
+
+    // ba-d-ad jokes will never get old!
+    // update + weight
+    private static void updWeight(Double[] list, int index, @Nullable Double value, double coefficient) {
+        if (list != null)
+            list[index] = value == null ? 0 : value * coefficient;
+    }
+
+    // average values using weights
+    private static Double unWeight(Double weight, Double[] values, Double fallback) {
+        // density == 0 is for single-value modifications (shapes, lone values)
+        return smartSum(values, fallback) / (weight == 0 ? values.length : weight);
+    }
+
+    // sum with specialized fallback
+    private static Double smartSum(Double[] values, Double fallback) {
+        if (values == null) {
+            return fallback;
+        }
+        double output = 0;
+        for (Double value : values)
+            output += value == null ? 0 : value;
+        return output;
+    }
+
+    // update a value in a particular type of hashmap (see signature)
+    private static void update(HashMap<String, LinkedList<String>> map, String key, String value) {
+        final LinkedList<String> list = map.getOrDefault(key, new LinkedList<>());
+        list.add(value);
+        map.put(key, list);
     }
 }

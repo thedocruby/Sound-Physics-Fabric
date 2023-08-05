@@ -50,7 +50,7 @@ public class Cast {
     }
     public void raycast(@NotNull Vec3d position, @NotNull Vec3d vector, double power) {
         //* access branch {
-        // assert ray.vector() != null; // the power check above will catch this
+        assert vector != null; // the power check above will catch this
         final Vec3d normalized = normalize(position,vector);
         chunk = chunk.access((int) normalized.x >> 4, (int) normalized.z >> 4);
         if (chunk != null) tree = chunk.getBranch((int) normalized.y >> 4);
@@ -118,7 +118,7 @@ public class Cast {
     // } */
 
     //* fetch {
-    public static Vec3d normalize(Vec3d pos, Vec3d vector) {
+    public static Vec3d normalize(@NotNull Vec3d pos, @NotNull Vec3d vector) {
         //return pos;
         return new Vec3d(
                 vector.x < 0 ? Math.ceil(pos.x) - 1 : Math.floor(pos.x),
