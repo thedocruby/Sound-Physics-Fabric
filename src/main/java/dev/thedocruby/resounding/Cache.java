@@ -25,7 +25,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -386,77 +388,91 @@ public class Cache {
     }
 
     // fully calculates a raw material, and recursively flattens all dependencies
-    private static RawMaterial flatten(HashMap<String, RawMaterial> in, HashMap<String, RawMaterial> out, String name) {
-        // memoization
-        if (out.containsKey(name))
-            return out.get(name);
-        out.put(name, null);
+    private static void flatten(HashMap<String, RawMaterial> in, HashMap<String, RawMaterial> out, String key) {
+        // TODO: could this be done with annotations?
+        // NOTE: don't access any non-static variables other than (getter, raw) inside the calculation phase
+        //       This will change how the compiler sees the lambda, (see: lambda closures)
+        //       and will not reuse it (resulting in a large performance hit)
+        memoize(in, out, key, (getter, raw) -> {
+            // calculation logic
+            String[] solute = raw.solute() == null ? new String[]{} : raw.solute();
+            int length = solute.length;
+            // only calculate if necessary
+            if (length > 0) {
+                // coefficient initialization
+                Double totalWeight = 0D;
+                Double[] composition = raw.composition() == null ? new Double[]{} : raw.composition();
 
-        // calculation
-        RawMaterial raw = in.remove(name);
-        String[] solute = raw.solute() == null ? new String[]{} : raw.solute();
-        int length = solute.length;
-        // only calculate if necessary
-        if (length > 0) {
-            // coefficient initialization
-            Double totalWeight = 0D;
-            Double[] composition = raw.composition() == null ? new Double[]{} : raw.composition();
+                // raw.value.overridden? -> null
+                Double[] weight = raw.weight() == null ? new Double[length] : null;
+                Double[] granularity = raw.granularity() == null ? new Double[length] : null;
+                Double[] melt = raw.melt() == null ? new Double[length] : null;
+                Double[] boil = raw.boil() == null ? new Double[length] : null;
+                Double[] density = raw.density() == null ? new Double[length] : null;
+                Double[] swave = raw.swave() == null ? new Double[length] : null;
+                Double[] lwave = raw.lwave() == null ? new Double[length] : null;
 
-            // raw.value.overridden? -> null
-            Double[] weight = raw.weight() == null ? new Double[length] : null;
-            Double[] granularity = raw.granularity() == null ? new Double[length] : null;
-            Double[] melt = raw.melt() == null ? new Double[length] : null;
-            Double[] boil = raw.boil() == null ? new Double[length] : null;
-            Double[] density = raw.density() == null ? new Double[length] : null;
-            Double[] swave = raw.swave() == null ? new Double[length] : null;
-            Double[] lwave = raw.lwave() == null ? new Double[length] : null;
-
-            // loop through solute, collect values for weighted calculations
-            RawMaterial[] components = new RawMaterial[length];
-            for (int i = 0; i < length; i++) {
-                // recursion + memoization
-                components[i] = flatten(in, out, solute[i]);
-                if (components[i] == null) {
-                    LOGGER.error("{} is invalid because {} is invalid or cyclical", name, solute[i]);
-                    return null;
+                // loop through solute, collect values for weighted calculations
+                RawMaterial[] components = new RawMaterial[length];
+                for (int i = 0; i < length; i++) {
+                    // get values
+                    components[i] = getter.apply(solute[i]);
+                    if (components[i] == null) {
+                        LOGGER.error("{} is invalid or cyclical", solute[i]);
+                        return null;
+                    }
+                    totalWeight += components[i].weight();
                 }
-                totalWeight += components[i].weight();
-            }
-            // calculate composition
-            for (int i = 0; i < length; i++) {
-                RawMaterial component = components[i];
-                Double percent = composition[i];
-                Double w = component.weight();
                 // calculate composition
-                Double c = totalWeight + totalWeight * percent - w;
-                totalWeight += c - w; // adjust weight for next item
-                weight[i] = c;
+                for (int i = 0; i < length; i++) {
+                    RawMaterial component = components[i];
+                    Double percent = composition[i];
+                    Double w = component.weight();
+                    // calculate composition
+                    Double c = totalWeight + totalWeight * percent - w;
+                    totalWeight += c - w; // adjust weight for next item
+                    weight[i] = c;
 
-                // apply composition
-                updWeight(granularity, i, component.granularity(), c);
-                updWeight(melt, i, component.melt(), c);
-                updWeight(boil, i, component.boil(), c);
-                updWeight(density, i, component.density(), c);
-                updWeight(swave, i, component.swave(), c);
-                updWeight(lwave, i, component.lwave(), c);
+                    // apply composition
+                    updWeight(granularity, i, component.granularity(), c);
+                    updWeight(melt, i, component.melt(), c);
+                    updWeight(boil, i, component.boil(), c);
+                    updWeight(density, i, component.density(), c);
+                    updWeight(swave, i, component.swave(), c);
+                    updWeight(lwave, i, component.lwave(), c);
+                }
+
+                // apply weights to values and update value
+                raw = new RawMaterial(
+                        totalWeight,
+                        raw.solvent(),
+                        null, //raw.solute(),      // for posterity/debug, not needed in runtime
+                        null, //raw.composition(), // for posterity/debug, not needed in runtime
+                        unWeight(totalWeight, granularity, raw.granularity()),
+                        unWeight(totalWeight, melt, raw.melt()),
+                        unWeight(totalWeight, boil, raw.boil()),
+                        unWeight(totalWeight, density, raw.density()),
+                        unWeight(totalWeight, swave, raw.swave()),
+                        unWeight(totalWeight, lwave, raw.lwave())
+                );
             }
+            return raw;
+        });
+    }
 
-            // apply weights to values and update HashMap
-            raw = new RawMaterial(
-                    totalWeight,
-                    raw.solvent(),
-                    null, //raw.solute(),      // for posterity/debug, not needed in runtime
-                    null, //raw.composition(), // for posterity/debug, not needed in runtime
-                    unWeight(totalWeight, granularity, raw.granularity()),
-                    unWeight(totalWeight, melt, raw.melt()),
-                    unWeight(totalWeight, boil, raw.boil()),
-                    unWeight(totalWeight, density, raw.density()),
-                    unWeight(totalWeight, swave, raw.swave()),
-                    unWeight(totalWeight, lwave, raw.lwave())
-            );
-        }
-        out.put(name, raw);
-        return raw;
+    // specialized memoization for tag/material cache functionality
+    private static <T> T memoize(HashMap<String, T> in, HashMap<String, T> out, String key, BiFunction<Function<String,T>,T,T> calculate) {
+        // return cached values
+        if (out.containsKey(key))
+            return out.get(key);
+        // mark as in-progress
+        // getter == null; should be scanned for in calculate to prevent cyclic references
+        out.put(key, null);
+        T value = calculate.apply((String x) -> memoize(in, out, x, calculate), in.remove(key));
+        out.put(key, value);
+        if (value == null)
+            LOGGER.error("{} is invalid or cyclical", key);
+        return value;
     }
 
     // ba-d-ad jokes will never get old!
