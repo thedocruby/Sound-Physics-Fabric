@@ -14,7 +14,5 @@ public record RawMaterial(
         @Nullable Double   density,      // density of tag (kg/m³ or %)
         @Nullable Double   swave,        // shear-wave velocity (for solids)
         @Nullable Double   lwave         // longitudinal-wave velocity (for liquids & gasses)
-//        @Nullable Double   density,      // density of material (kg/m³)
-//        @NotNull  Double   weight,       // tag's weight, how much it applies to material
 ) {
 }

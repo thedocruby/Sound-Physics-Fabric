@@ -13,6 +13,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.shape.VoxelShape;
@@ -377,6 +378,44 @@ public class Cache {
         LOGGER.info(tags.size() + "");
     }
 
+    public static void refineMaterials(HashMap<String, RawMaterial> rawMaterials) {
+        // global average for 20th century 14°C/57°F/287°K
+        refineMaterials(rawMaterials, 287.15D);
+    }
+
+    public static HashMap<String, Material> refineMaterials(HashMap<String, RawMaterial> rawMaterials, double kelvins) {
+        HashMap<String, Material> refined = new HashMap<>();
+        for (String key : rawMaterials.keySet()) {
+            RawMaterial raw = rawMaterials.get(key);
+            // if material isn't worthy of a tag, skip it
+            if
+            (  raw.granularity() == null
+            || raw.melt() == null || raw.boil() == null
+            || raw.density() == null
+            || raw.swave() == null || raw.lwave() == null
+            )  continue;
+            refined.put(key, refine(rawMaterials.get(key), kelvins));
+        }
+        return refined;
+    }
+
+
+    // TODO: actually utilize solvents
+    private static Material refine(RawMaterial raw, double kelvins) {
+        // TODO: consider using isFluid() in runtime (affects absorption)
+        //     : (isFluid * .25 + 2state)/2
+        double state = MathHelper.getLerpProgress(kelvins, raw.melt(), raw.boil());
+        double velocity = MathHelper.lerp(state, raw.lwave(), raw.swave());
+        double impedance = velocity * raw.density();
+        // TODO: calculate full absorption value using solvents
+        //     : must also change calculation in runtime/raytrace
+        double absorption = raw.granularity() * (1 + state);
+        return new Material(
+                impedance,
+                absorption,
+                state);
+    }
+
     // flatten all materials
     private static HashMap<String, RawMaterial> flattenMaterials(HashMap<String, RawMaterial> raw) {
         HashMap<String, RawMaterial> flat = new HashMap<>();
@@ -390,9 +429,9 @@ public class Cache {
     // fully calculates a raw material, and recursively flattens all dependencies
     private static void flatten(HashMap<String, RawMaterial> in, HashMap<String, RawMaterial> out, String key) {
         // TODO: could this be done with annotations?
-        // NOTE: don't access any non-static variables other than (getter, raw) inside the calculation phase
+        // NOTE: don't access any non-static closure variables other than (getter, raw) inside the calculation phase
         //       This will change how the compiler sees the lambda, (see: lambda closures)
-        //       and will not reuse it (resulting in a large performance hit)
+        //       and will recreate it on every use (resulting in a large performance hit)
         memoize(in, out, key, (getter, raw) -> {
             // calculation logic
             String[] solute = raw.solute() == null ? new String[]{} : raw.solute();
