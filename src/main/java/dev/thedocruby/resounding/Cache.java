@@ -377,12 +377,23 @@ public class Cache {
         LOGGER.info(tags.size() + "");
     }
 
-    public static void refineMaterials(HashMap<String, RawMaterial> rawMaterials) {
+    // TODO: AIR as base solvent
+    public static HashMap<String, Material> refineMaterials(HashMap<String, RawMaterial> rawMaterials) {
+        final double temperature = 287.15D;
         // global average for 20th century 14°C/57°F/287°K
-        refineMaterials(rawMaterials, 287.15D);
-    }
+        rawMaterials.forEach((String key, RawMaterial raw) -> {
+            rawMaterials.put(key,
+                    new RawMaterial(raw.weight(),
+                        raw.solvent(), raw.solute(), raw.composition(),
+                        raw.granularity(),
+                        raw.melt(), raw.boil(),
+                        temperature,
+                        raw.density(),
+                        raw.swave(), raw.lwave()
+                    )
+            );
+        });
 
-    public static HashMap<String, Material> refineMaterials(HashMap<String, RawMaterial> rawMaterials, double kelvins) {
         HashMap<String, Material> refined = new HashMap<>();
         for (String key : rawMaterials.keySet()) {
             RawMaterial raw = rawMaterials.get(key);
@@ -391,28 +402,38 @@ public class Cache {
             (  raw.granularity() == null
             || raw.melt() == null || raw.boil() == null
             || raw.density() == null
+            || raw.temperature() == null
             || raw.swave() == null || raw.lwave() == null
             )  continue;
-            refined.put(key, refine(rawMaterials.get(key), kelvins));
+            refine(rawMaterials, refined, key);
         }
         return refined;
     }
 
 
-    // TODO: actually utilize solvents
-    private static Material refine(RawMaterial raw, double kelvins) {
-        // TODO: consider using isFluid() in runtime (affects absorption)
-        //     : (isFluid * .25 + 2state)/2
-        double state = MathHelper.getLerpProgress(kelvins, raw.melt(), raw.boil());
-        double velocity = MathHelper.lerp(state, raw.lwave(), raw.swave());
-        double impedance = velocity * raw.density();
-        // TODO: calculate full absorption value using solvents
-        //     : must also change calculation in runtime/raytrace
-        double absorption = raw.granularity() * (1 + state);
-        return new Material(
-                impedance,
-                absorption,
-                state);
+    private static Material refine(HashMap<String, RawMaterial> in, HashMap<String, Material> out, String key) {
+        return Utils.memoize(in, out, key, (getter, raw) -> {
+            // TODO: consider using isFluid() in runtime (affects absorption)
+            //     : (isFluid * .25 + 2state)/2
+            double state = MathHelper.getLerpProgress(raw.temperature(), raw.melt(), raw.boil());
+            double velocity = MathHelper.lerp(state, raw.lwave(), raw.swave());
+            double impedance = velocity * raw.density();
+
+            // solvent material is i.8 when undefined.
+            double solvent = raw.solvent() == null ? impedance * 0.8 : getter.apply(raw.solvent()).impedance();
+
+            double permeation;
+            // java doesn't handle x.pow(infinity) correctly! Fix this.
+            if (raw.granularity() == Double.POSITIVE_INFINITY)
+                permeation = 0;
+            else
+                permeation = Math.pow(1-Physics.reflection(impedance, solvent), raw.granularity() * (1 + state));
+
+            return new Material(
+                    impedance,
+                    permeation,
+                    state);
+        });
     }
 
     // flatten all materials
@@ -443,6 +464,7 @@ public class Cache {
 
                 // raw.value.overridden? -> null
                 Double[] weight = raw.weight() == null ? new Double[length] : null;
+                String   solvent = raw.solvent();
                 Double[] granularity = raw.granularity() == null ? new Double[length] : null;
                 Double[] melt = raw.melt() == null ? new Double[length] : null;
                 Double[] boil = raw.boil() == null ? new Double[length] : null;
@@ -472,6 +494,8 @@ public class Cache {
                     weight[i] = c;
 
                     // apply composition
+                    // 1st component dictates solvent when not present
+                    if (solvent == null) solvent = component.solvent();
                     Utils.updWeight(granularity, i, component.granularity(), c);
                     Utils.updWeight(melt, i, component.melt(), c);
                     Utils.updWeight(boil, i, component.boil(), c);
@@ -489,6 +513,7 @@ public class Cache {
                         Utils.unWeight(totalWeight, granularity, raw.granularity()),
                         Utils.unWeight(totalWeight, melt, raw.melt()),
                         Utils.unWeight(totalWeight, boil, raw.boil()),
+                        raw.temperature(),
                         Utils.unWeight(totalWeight, density, raw.density()),
                         Utils.unWeight(totalWeight, swave, raw.swave()),
                         Utils.unWeight(totalWeight, lwave, raw.lwave())

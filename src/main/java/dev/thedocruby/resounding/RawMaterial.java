@@ -10,6 +10,7 @@ public record RawMaterial(
         @Nullable Double   granularity,  // boundary count between solvent & solute
         @Nullable Double   melt,         // melting point (kelvin)
         @Nullable Double   boil,         // boiling point (kelvin)
+        @Nullable Double   temperature,  // used to override atmospheric effects (lock s/lwave).
 
         @Nullable Double   density,      // density of tag (kg/m³ or %)
         @Nullable Double   swave,        // shear-wave velocity (for solids)
