@@ -70,7 +70,6 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 		*/new Reverb()
 		/*new Style()
 		, new Travel()
-		, new Water()
 		*/
 		}; // cleaner syntax...
 		contexts = new ALset[effects.length];

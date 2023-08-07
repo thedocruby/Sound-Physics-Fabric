@@ -13,6 +13,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.shape.VoxelShape;
@@ -27,6 +28,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -360,7 +364,7 @@ public class Cache {
     @Environment(EnvType.CLIENT)
     public static void generate() {
         // prepopulated & loaded from disk
-        HashMap<String, Tag> config = new HashMap<>();
+        HashMap<String, RawMaterial> config = new HashMap<>();
 
         // read from game registry
         HashMap<String, LinkedList<String>> tags = new HashMap<>();
@@ -377,90 +381,140 @@ public class Cache {
         LOGGER.info(tags.size() + "");
     }
 
-    public static void calculate(HashMap<String, Tag> tags) {
-        // iterate over all tags by name
-        LinkedList<String> list = (LinkedList<String>) tags.keySet().stream().toList();
-        int done = 0;
-        int failStreak = 0;
-        while (!list.isEmpty()) {
-            // prevent infinite loop
-            assert failStreak <= tags.size();
+    public static void refineMaterials(HashMap<String, RawMaterial> rawMaterials) {
+        // global average for 20th century 14°C/57°F/287°K
+        refineMaterials(rawMaterials, 287.15D);
+    }
 
-            // churn through list, get relevant tag and subtags (solute)
-            String name = list.pop();
-            Tag tag = tags.get(name);
-            String[] solute = tag.solute() == null ? new String[]{} : tag.solute();
-            Double[] composition = tag.composition() == null ? new Double[]{} : tag.composition();
+    public static HashMap<String, Material> refineMaterials(HashMap<String, RawMaterial> rawMaterials, double kelvins) {
+        HashMap<String, Material> refined = new HashMap<>();
+        for (String key : rawMaterials.keySet()) {
+            RawMaterial raw = rawMaterials.get(key);
+            // if material isn't worthy of a tag, skip it
+            if
+            (  raw.granularity() == null
+            || raw.melt() == null || raw.boil() == null
+            || raw.density() == null
+            || raw.swave() == null || raw.lwave() == null
+            )  continue;
+            refined.put(key, refine(rawMaterials.get(key), kelvins));
+        }
+        return refined;
+    }
+
+
+    // TODO: actually utilize solvents
+    private static Material refine(RawMaterial raw, double kelvins) {
+        // TODO: consider using isFluid() in runtime (affects absorption)
+        //     : (isFluid * .25 + 2state)/2
+        double state = MathHelper.getLerpProgress(kelvins, raw.melt(), raw.boil());
+        double velocity = MathHelper.lerp(state, raw.lwave(), raw.swave());
+        double impedance = velocity * raw.density();
+        // TODO: calculate full absorption value using solvents
+        //     : must also change calculation in runtime/raytrace
+        double absorption = raw.granularity() * (1 + state);
+        return new Material(
+                impedance,
+                absorption,
+                state);
+    }
+
+    // flatten all materials
+    private static HashMap<String, RawMaterial> flattenMaterials(HashMap<String, RawMaterial> raw) {
+        HashMap<String, RawMaterial> flat = new HashMap<>();
+        for (String key : raw.keySet()) {
+            flatten(raw, flat, key);
+        }
+        raw = flat;
+        return raw;
+    }
+
+    // fully calculates a raw material, and recursively flattens all dependencies
+    private static void flatten(HashMap<String, RawMaterial> in, HashMap<String, RawMaterial> out, String key) {
+        // TODO: could this be done with annotations?
+        // NOTE: don't access any non-static closure variables other than (getter, raw) inside the calculation phase
+        //       This will change how the compiler sees the lambda, (see: lambda closures)
+        //       and will recreate it on every use (resulting in a large performance hit)
+        memoize(in, out, key, (getter, raw) -> {
+            // calculation logic
+            String[] solute = raw.solute() == null ? new String[]{} : raw.solute();
             int length = solute.length;
-            boolean success = length == 0;
-            assert length != 1; // redundancy! *Might* remove this later #TODO
-            // calculate complex tags
-            if (!success && // don't calculate simple tags
-                    // calculate tags only when possible
-                    length <= done && // shortcut for next check
-                    // calculate only when all values present
-                    !list.containsAll(Arrays.stream(solute).toList())) {
-                success = true;
+            // only calculate if necessary
+            if (length > 0) {
+                // coefficient initialization
                 Double totalWeight = 0D;
-                // if tag has override from solute, null is used
-                Double[] weight = tag.weight() == null ? new Double[length] : null;
-                Double[] granularity = tag.granularity() == null ? new Double[length] : null;
-                Double[] melt = tag.melt() == null ? new Double[length] : null;
-                Double[] boil = tag.boil() == null ? new Double[length] : null;
-                Double[] density = tag.density() == null ? new Double[length] : null;
-                Double[] swave = tag.swave() == null ? new Double[length] : null;
-                Double[] lwave = tag.lwave() == null ? new Double[length] : null;
+                Double[] composition = raw.composition() == null ? new Double[]{} : raw.composition();
+
+                // raw.value.overridden? -> null
+                Double[] weight = raw.weight() == null ? new Double[length] : null;
+                Double[] granularity = raw.granularity() == null ? new Double[length] : null;
+                Double[] melt = raw.melt() == null ? new Double[length] : null;
+                Double[] boil = raw.boil() == null ? new Double[length] : null;
+                Double[] density = raw.density() == null ? new Double[length] : null;
+                Double[] swave = raw.swave() == null ? new Double[length] : null;
+                Double[] lwave = raw.lwave() == null ? new Double[length] : null;
+
                 // loop through solute, collect values for weighted calculations
-                for (String reference : solute) {
-                    // fails when null (should never happen)
-                    totalWeight += tags.get(reference).weight();
+                RawMaterial[] components = new RawMaterial[length];
+                for (int i = 0; i < length; i++) {
+                    // get values
+                    components[i] = getter.apply(solute[i]);
+                    if (components[i] == null) {
+                        LOGGER.error("{} is invalid or cyclical", solute[i]);
+                        return null;
+                    }
+                    totalWeight += components[i].weight();
                 }
                 // calculate composition
                 for (int i = 0; i < length; i++) {
-                    String reference = solute[i];
+                    RawMaterial component = components[i];
                     Double percent = composition[i];
-                    Tag subtag = tags.get(reference);
-                    Double w = subtag.weight();
+                    Double w = component.weight();
                     // calculate composition
-                    Double c = totalWeight+totalWeight*percent-w;
-                    totalWeight += c-w; // adjust weight for next item
+                    Double c = totalWeight + totalWeight * percent - w;
+                    totalWeight += c - w; // adjust weight for next item
                     weight[i] = c;
 
                     // apply composition
-                    updWeight(granularity, i, subtag.granularity(), c);
-                    updWeight(melt,        i, subtag.melt(),        c);
-                    updWeight(boil,        i, subtag.boil(),        c);
-                    updWeight(density,     i, subtag.density(),     c);
-                    updWeight(swave,       i, subtag.swave(),       c);
-                    updWeight(lwave,       i, subtag.lwave(),       c);
+                    updWeight(granularity, i, component.granularity(), c);
+                    updWeight(melt, i, component.melt(), c);
+                    updWeight(boil, i, component.boil(), c);
+                    updWeight(density, i, component.density(), c);
+                    updWeight(swave, i, component.swave(), c);
+                    updWeight(lwave, i, component.lwave(), c);
                 }
 
-                // apply weights to values and update HashMap
-//                double totalWeight = smartSum(weight, tag.weight());
-                Tag newTag = new Tag(
+                // apply weights to values and update value
+                raw = new RawMaterial(
                         totalWeight,
-                        tag.solvent(),
-                        tag.solute(),
-                        tag.composition(),
-                        unWeight(totalWeight, granularity, tag.granularity()),
-                        unWeight(totalWeight, melt, tag.melt()),
-                        unWeight(totalWeight, boil, tag.boil()),
-                        unWeight(totalWeight, density, tag.density()),
-                        unWeight(totalWeight, swave, tag.swave()),
-                        unWeight(totalWeight, lwave, tag.lwave())
+                        raw.solvent(),
+                        null, //raw.solute(),      // for posterity/debug, not needed in runtime
+                        null, //raw.composition(), // for posterity/debug, not needed in runtime
+                        unWeight(totalWeight, granularity, raw.granularity()),
+                        unWeight(totalWeight, melt, raw.melt()),
+                        unWeight(totalWeight, boil, raw.boil()),
+                        unWeight(totalWeight, density, raw.density()),
+                        unWeight(totalWeight, swave, raw.swave()),
+                        unWeight(totalWeight, lwave, raw.lwave())
                 );
-                tags.put(name, newTag);
             }
-            if (success) {
-                // allow more complex calculations, now that there's more resources to do so
-                done++;
-                failStreak = 0;
-            } else {
-                // re-add the current item as it could not be calculated
-                list.addLast(name);
-                failStreak++;
-            }
-        }
+            return raw;
+        });
+    }
+
+    // specialized memoization for tag/material cache functionality
+    private static <T> T memoize(HashMap<String, T> in, HashMap<String, T> out, String key, BiFunction<Function<String,T>,T,T> calculate) {
+        // return cached values
+        if (out.containsKey(key))
+            return out.get(key);
+        // mark as in-progress
+        // getter == null; should be scanned for in calculate to prevent cyclic references
+        out.put(key, null);
+        T value = calculate.apply((String x) -> memoize(in, out, x, calculate), in.remove(key));
+        out.put(key, value);
+        if (value == null)
+            LOGGER.error("{} is invalid or cyclical", key);
+        return value;
     }
 
     // ba-d-ad jokes will never get old!
