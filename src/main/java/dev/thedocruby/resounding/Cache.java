@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
 import static dev.thedocruby.resounding.Engine.LOGGER;
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 import static java.util.Map.entry;
-import static org.apache.commons.lang3.math.NumberUtils.max;
 
 public class Cache {
     // do these really belong here?
@@ -371,8 +370,8 @@ public class Cache {
             block.getDefaultState().streamTags()
                 .forEach((tag) -> {
                     String id = tag.id().toString();
-                    update(tags, id, name);
-                    update(blocks, name, id);
+                    Utils.update(tags, id, name);
+                    Utils.update(blocks, name, id);
                 });
         });
         LOGGER.info(tags.size() + "");
@@ -432,7 +431,7 @@ public class Cache {
         // NOTE: don't access any non-static closure variables other than (getter, raw) inside the calculation phase
         //       This will change how the compiler sees the lambda, (see: lambda closures)
         //       and will recreate it on every use (resulting in a large performance hit)
-        memoize(in, out, key, (getter, raw) -> {
+        Utils.memoize(in, out, key, (getter, raw) -> {
             // calculation logic
             String[] solute = raw.solute() == null ? new String[]{} : raw.solute();
             int length = solute.length;
@@ -473,12 +472,12 @@ public class Cache {
                     weight[i] = c;
 
                     // apply composition
-                    updWeight(granularity, i, component.granularity(), c);
-                    updWeight(melt, i, component.melt(), c);
-                    updWeight(boil, i, component.boil(), c);
-                    updWeight(density, i, component.density(), c);
-                    updWeight(swave, i, component.swave(), c);
-                    updWeight(lwave, i, component.lwave(), c);
+                    Utils.updWeight(granularity, i, component.granularity(), c);
+                    Utils.updWeight(melt, i, component.melt(), c);
+                    Utils.updWeight(boil, i, component.boil(), c);
+                    Utils.updWeight(density, i, component.density(), c);
+                    Utils.updWeight(swave, i, component.swave(), c);
+                    Utils.updWeight(lwave, i, component.lwave(), c);
                 }
 
                 // apply weights to values and update value
@@ -486,62 +485,17 @@ public class Cache {
                         totalWeight,
                         raw.solvent(),
                         null, //raw.solute(),      // for posterity/debug, not needed in runtime
-                        null, //raw.composition(), // for posterity/debug, not needed in runtime
-                        unWeight(totalWeight, granularity, raw.granularity()),
-                        unWeight(totalWeight, melt, raw.melt()),
-                        unWeight(totalWeight, boil, raw.boil()),
-                        unWeight(totalWeight, density, raw.density()),
-                        unWeight(totalWeight, swave, raw.swave()),
-                        unWeight(totalWeight, lwave, raw.lwave())
+                        raw.composition(), // for posterity/debug, not needed in runtime
+                        Utils.unWeight(totalWeight, granularity, raw.granularity()),
+                        Utils.unWeight(totalWeight, melt, raw.melt()),
+                        Utils.unWeight(totalWeight, boil, raw.boil()),
+                        Utils.unWeight(totalWeight, density, raw.density()),
+                        Utils.unWeight(totalWeight, swave, raw.swave()),
+                        Utils.unWeight(totalWeight, lwave, raw.lwave())
                 );
             }
             return raw;
         });
     }
 
-    // specialized memoization for tag/material cache functionality
-    private static <T> T memoize(HashMap<String, T> in, HashMap<String, T> out, String key, BiFunction<Function<String,T>,T,T> calculate) {
-        // return cached values
-        if (out.containsKey(key))
-            return out.get(key);
-        // mark as in-progress
-        // getter == null; should be scanned for in calculate to prevent cyclic references
-        out.put(key, null);
-        T value = calculate.apply((String x) -> memoize(in, out, x, calculate), in.remove(key));
-        out.put(key, value);
-        if (value == null)
-            LOGGER.error("{} is invalid or cyclical", key);
-        return value;
-    }
-
-    // ba-d-ad jokes will never get old!
-    // update + weight
-    private static void updWeight(Double[] list, int index, @Nullable Double value, double coefficient) {
-        if (list != null)
-            list[index] = value == null ? 0 : value * coefficient;
-    }
-
-    // average values using weights
-    private static Double unWeight(Double weight, Double[] values, Double fallback) {
-        // density == 0 is for single-value modifications (shapes, lone values)
-        return smartSum(values, fallback) / (weight == 0 ? values.length : weight);
-    }
-
-    // sum with specialized fallback
-    private static Double smartSum(Double[] values, Double fallback) {
-        if (values == null) {
-            return fallback;
-        }
-        double output = 0;
-        for (Double value : values)
-            output += value == null ? 0 : value;
-        return output;
-    }
-
-    // update a value in a particular type of hashmap (see signature)
-    private static void update(HashMap<String, LinkedList<String>> map, String key, String value) {
-        final LinkedList<String> list = map.getOrDefault(key, new LinkedList<>());
-        list.add(value);
-        map.put(key, list);
-    }
 }

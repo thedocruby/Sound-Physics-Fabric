@@ -1,6 +1,7 @@
 package dev.thedocruby.resounding.raycast;
 
 import dev.thedocruby.resounding.Cache;
+import dev.thedocruby.resounding.Physics;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
 import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
@@ -14,7 +15,6 @@ import net.minecraft.util.math.Vec3i;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.WorldChunk;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -106,9 +106,9 @@ public class Cast {
         double permeability = Math.pow(branch.material.permeability(),pdistance);
 
         // if reflection / permeation -> calculate -> bounce / refract
-        @Nullable Vec3d reflected = reflectivity > 0 ? pseudoReflect(vector,rstep.plane()) : null;
+        @Nullable Vec3d reflected = reflectivity > 0 ? Physics.pseudoReflect(vector,rstep.plane()) : null;
         // use single-surface refraction here, unpredictable effects with larger objects & permeation coefficients
-        @Nullable Vec3d permeated = pseudoReflect(vector, step.plane(), (1-branch.material.permeability()) / 5 /* TODO: make non-arbitrary */);
+        @Nullable Vec3d permeated = Physics.pseudoReflect(vector, step.plane(), (1-branch.material.permeability()) / 5 /* TODO: make non-arbitrary */);
         // } */
         // apply movement
         reflect (reflectivity*power, rposition, reflected, rdistance);
@@ -192,31 +192,7 @@ public class Cast {
          *     (   7 + (16  * 1   )) /  2     = 14/2
          */
     }
-    @Contract("_, _ -> new")
-    public static @NotNull Vec3d pseudoReflect(Vec3d ray, @NotNull Vec3i plane) { return pseudoReflect(ray,plane,2); }
-    @Contract("_, _, _ -> new")
-    public static @NotNull Vec3d pseudoReflect(Vec3d ray, @NotNull Vec3i plane, double fresnel) {
-        // Fresnels on a 1-30 scale
-        // TODO account for http://hyperphysics.phy-astr.gsu.edu/hbase/Tables/indrf.html
 
-        final Vec3d planeD = new Vec3d(
-                plane.getX(),
-                plane.getY(),
-                plane.getZ()
-        );
-        // ( ray - plane * (normal/air) * dot(ray,plane) ) / air * normal
-        // https://blog.demofox.org/2017/01/09/raytracing-reflection-refraction-fresnel-total-internal-reflection-and-beers-law/
-        // adjusted for refraction approximation
-        // for a visualization, see: https://www.math3d.org/UYUQRza8n
-        // assert fresnel != 0;
-        // return ray.multiply(planeD.multiply(-1));
-        //*
-        return ray.subtract(
-                planeD.multiply
-                        (ray.multiply(planeD).multiply(fresnel))
-        );
-        // */
-    }
     private @Nullable Step bounce(Branch branch, Vec3d start, Vec3d vector) {
         final long posl = branch.start.asLong();
         Map<Long, VoxelShape> shapes = chunk.getShapes();
