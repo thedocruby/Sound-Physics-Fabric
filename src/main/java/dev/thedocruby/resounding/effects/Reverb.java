@@ -113,7 +113,7 @@ public class Reverb extends Effect {
 			);
 		}
 		EXTEfx.alFilteri(context.direct, EXTEfx.AL_FILTER_TYPE, EXTEfx.AL_FILTER_LOWPASS);
-		final boolean success = !ALUtils.checkErrors("Failed to properly initialize OpenAL Auxiliary Effect slots. Aborting");
+		final boolean success = !ALUtils.logAndConsumeError("Failed to properly initialize OpenAL Auxiliary Effect slots. Aborting");
 		if (success && pC.dLog) LOGGER.info("Finished initializing OpenAL Auxiliary Effect slots!");
 		// TODO ? what ?
 		// efxEnabled = false;
