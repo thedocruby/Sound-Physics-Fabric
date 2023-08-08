@@ -1,6 +1,7 @@
 package dev.thedocruby.resounding.raycast;
 
 import dev.thedocruby.resounding.Cache;
+import dev.thedocruby.resounding.Material;
 import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -21,7 +22,7 @@ public class Branch {
     public BlockPos start;
     public int size;
     public @NotNull VoxelShape shape = Cache.CUBE;
-    public @Nullable MaterialData material; // TODO: use!
+    public @Nullable Material material; // TODO: use!
 
     public @NotNull HashMap<Long, Branch> leaves;
 
@@ -37,12 +38,12 @@ public class Branch {
         set(shape);
     }
 
-    public Branch(BlockPos start, int size, @Nullable MaterialData material) {
+    public Branch(BlockPos start, int size, @Nullable Material material) {
         this(start, size);
         set(material);
     }
 
-    public Branch(BlockPos start, int size, @Nullable VoxelShape shape, @Nullable MaterialData material) {
+    public Branch(BlockPos start, int size, @Nullable VoxelShape shape, @Nullable Material material) {
         this(start, size);
         set(shape);
         set(material);
@@ -53,7 +54,7 @@ public class Branch {
         return this;
     }
 
-    public Branch set(@Nullable MaterialData material) {
+    public Branch set(@Nullable Material material) {
         this.material = material;
         return this;
     }

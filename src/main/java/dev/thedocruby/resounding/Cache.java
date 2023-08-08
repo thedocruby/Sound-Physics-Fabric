@@ -26,9 +26,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -40,6 +38,8 @@ public class Cache {
     // do these really belong here?
     public final static VoxelShape EMPTY = VoxelShapes.empty();
     public final static VoxelShape CUBE = VoxelShapes.fullCube();
+
+    public final static HashMap<String, Material> materials = new HashMap<String, Material>();
 
     public final static ExecutorService octreePool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
@@ -84,7 +84,7 @@ public class Cache {
             for (BlockPos block : blockSequence) {
                 final BlockPos position = start.add(block.multiply(scale));
                 // use recursion here
-                Branch leaf = growOctree(chunk, new Branch(position,scale, (MaterialData) null));
+                Branch leaf = growOctree(chunk, new Branch(position,scale, (Material) null));
                 // if (leaf.material != null) {
                 if (leaf.material == null) any = any || !leaf.isEmpty();
                 else {
@@ -104,7 +104,7 @@ public class Cache {
         } else {
             for (BlockPos block : branchSequence) {
                 final BlockPos position = start.add(block);
-                @NotNull MaterialData next = getProperties(chunk.getBlockState(position));
+                @NotNull Material next = getProperties(chunk.getBlockState(position));
                 // break if next block isn't similar enough
                 if (!root.material.equals(next)) {
                     // root.material = null;
@@ -113,7 +113,7 @@ public class Cache {
                 }
             }
         }
-        root.set(valid ? root.material : (MaterialData) null);
+        root.set(valid ? root.material : (Material) null);
         //*/
         return root;
     }
@@ -299,35 +299,11 @@ public class Cache {
         return false;
     }
 
-    public static @NotNull MaterialData getProperties(@Nullable BlockState state) {
-        MaterialData material;
-        @Nullable Pair<Double,Double> attributes;// = blockMap.get(branch.state.getBlock());
-        //*/
-        /*
-        final double reflec =   pC.reflMap.get(branch.state.getBlock().getTranslationKey());
-        final double perm   = 1-pC.absMap.get(branch.state.getBlock().getTranslationKey());
-        //*/
-        /* TODO remove
-        final double reflec = Math.random();
-        final double perm = Math.random();
-        return new MaterialData("random", reflec, perm);
-        //*/
-        // attributes = new Pair<>(reflec,perm);
-        // in the event of a modded block
-        /*if (attributes == null) {
-            final BlockPos blockPos = new BlockPos(position);
-            final double hardness = (double) Math.min(5,world.getBlockState(blockPos).getHardness(world, blockPos)) / 5 / 4;
-            attributes = new Pair<>(hardness * 3,1-hardness);
-        }*/
+    public static @NotNull Material getProperties(@Nullable BlockState state) {
+        // TODO: separate map for fluids? (performance consideration)
         // state.getFluidState().getFluid(); // Fluids.WATER/EMPTY/etc
-        //* TODO remove
-        if (state == null || state.getBlock() == Blocks.STONE)
-            material = new MaterialData("stone",1.0,0.0);
-        else
-            material = new MaterialData("air",  0.0,transmission);
-        //*/
-        // for hashmap usage
-        return material != null ? material : new MaterialData("stone", 1.0, 0.0);
+        // TODO: cascading effect material controllers
+        return materials.getOrDefault(state.getBlock().getName(), null);
     }
 
     // TODO integrate tagging system here

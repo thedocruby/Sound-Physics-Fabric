@@ -36,6 +36,6 @@ public class Physics {
 
     public static @NotNull Double reflection(@NotNull Double impedanceA, @NotNull Double impedanceB) {
         // difference of squares
-        return Math.pow(impedanceA - impedanceB, 2)/Math.pow(impedanceA + impedanceB, 2);
+        return Math.pow( (impedanceA - impedanceB) / (impedanceA + impedanceB), 2);
     }
 }
