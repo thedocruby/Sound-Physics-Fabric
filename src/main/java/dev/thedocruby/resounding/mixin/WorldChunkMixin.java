@@ -1,6 +1,7 @@
 package dev.thedocruby.resounding.mixin;
 
 import dev.thedocruby.resounding.Cache;
+import dev.thedocruby.resounding.Material;
 import dev.thedocruby.resounding.raycast.Branch;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
 import dev.thedocruby.resounding.toolbox.MaterialData;
@@ -228,7 +229,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		// get smallest branch at position
 		final Branch branch = this.getBranch(pos.getY() >> 4).get(pos);
 
-		MaterialData material = getProperties(state);
+		Material material = getProperties(state);
 		// if block is homogenous with branch
 		if (material.equals(branch.material)) return;
 

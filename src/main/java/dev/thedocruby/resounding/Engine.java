@@ -10,7 +10,6 @@ import dev.thedocruby.resounding.raycast.Renderer;
 import dev.thedocruby.resounding.toolbox.*;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundListener;
@@ -18,7 +17,6 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogBuilder;
 import org.apache.logging.log4j.LogManager;
@@ -27,8 +25,6 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -212,9 +208,9 @@ public class Engine {
 		Cast cast = new Cast(mc.world, null, soundChunk);
 		// launch initial ray & always permeate first
 		cast.raycast(soundPos, vector, amplitude);
-		Ray ray = new Ray(amplitude,cast.permeated.position(),cast.permeated.vector(), cast.permeated.length());
+		Ray ray = new Ray(amplitude,cast.transmitted.position(),cast.transmitted.vector(), cast.transmitted.length());
 
-		double length = cast.permeated.length();
+		double length = cast.transmitted.length();
 		Vec3d prior = soundPos; // used solely for debugging
 		byte reflected = 0; // used to stop rays that are trapped between two walls
 		int casts = 0;
@@ -231,7 +227,7 @@ public class Engine {
 			//* handle properties {
 			// TODO handle splits & replace:
 			//  reflect instead of permeate, when logical
-			if (cast.reflected.power() > cast.permeated.power()
+			if (cast.reflected.power() > cast.transmitted.power()
 					// TODO use better method for permeation preference near start
 					* (2 - (pC.nRayBounces - results.bounces) / (double) pC.nRayBounces)) {
 				// stop rays stuck between two walls (not moving)
@@ -249,7 +245,7 @@ public class Engine {
 				ray = cast.reflected;
 				length = 0;
 			} else {
-				ray = cast.permeated;
+				ray = cast.transmitted;
 				length += ray.length();
 				reflected = 0;
 			}

@@ -28,21 +28,20 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static dev.thedocruby.resounding.Engine.LOGGER;
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 import static java.util.Map.entry;
-import static org.apache.commons.lang3.math.NumberUtils.max;
 
 public class Cache {
     // do these really belong here?
     public final static VoxelShape EMPTY = VoxelShapes.empty();
     public final static VoxelShape CUBE = VoxelShapes.fullCube();
+
+    public final static HashMap<String, Material> materials = new HashMap<String, Material>();
 
     public final static ExecutorService octreePool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
@@ -87,7 +86,7 @@ public class Cache {
             for (BlockPos block : blockSequence) {
                 final BlockPos position = start.add(block.multiply(scale));
                 // use recursion here
-                Branch leaf = growOctree(chunk, new Branch(position,scale, (MaterialData) null));
+                Branch leaf = growOctree(chunk, new Branch(position,scale, (Material) null));
                 // if (leaf.material != null) {
                 if (leaf.material == null) any = any || !leaf.isEmpty();
                 else {
@@ -107,7 +106,7 @@ public class Cache {
         } else {
             for (BlockPos block : branchSequence) {
                 final BlockPos position = start.add(block);
-                @NotNull MaterialData next = getProperties(chunk.getBlockState(position));
+                @NotNull Material next = getProperties(chunk.getBlockState(position));
                 // break if next block isn't similar enough
                 if (!root.material.equals(next)) {
                     // root.material = null;
@@ -116,7 +115,7 @@ public class Cache {
                 }
             }
         }
-        root.set(valid ? root.material : (MaterialData) null);
+        root.set(valid ? root.material : (Material) null);
         //*/
         return root;
     }
@@ -303,35 +302,11 @@ public class Cache {
         return false;
     }
 
-    public static @NotNull MaterialData getProperties(@Nullable BlockState state) {
-        MaterialData material;
-        @Nullable Pair<Double,Double> attributes;// = blockMap.get(branch.state.getBlock());
-        //*/
-        /*
-        final double reflec =   pC.reflMap.get(branch.state.getBlock().getTranslationKey());
-        final double perm   = 1-pC.absMap.get(branch.state.getBlock().getTranslationKey());
-        //*/
-        /* TODO remove
-        final double reflec = Math.random();
-        final double perm = Math.random();
-        return new MaterialData("random", reflec, perm);
-        //*/
-        // attributes = new Pair<>(reflec,perm);
-        // in the event of a modded block
-        /*if (attributes == null) {
-            final BlockPos blockPos = new BlockPos(position);
-            final double hardness = (double) Math.min(5,world.getBlockState(blockPos).getHardness(world, blockPos)) / 5 / 4;
-            attributes = new Pair<>(hardness * 3,1-hardness);
-        }*/
+    public static @NotNull Material getProperties(@Nullable BlockState state) {
+        // TODO: separate map for fluids? (performance consideration)
         // state.getFluidState().getFluid(); // Fluids.WATER/EMPTY/etc
-        //* TODO remove
-        if (state == null || state.getBlock() == Blocks.STONE)
-            material = new MaterialData("stone",1.0,0.0);
-        else
-            material = new MaterialData("air",  0.0,transmission);
-        //*/
-        // for hashmap usage
-        return material != null ? material : new MaterialData("stone", 1.0, 0.0);
+        // TODO: cascading effect material controllers
+        return materials.getOrDefault(state.getBlock().getName(), null);
     }
 
     // TODO integrate tagging system here
@@ -374,19 +349,30 @@ public class Cache {
             block.getDefaultState().streamTags()
                 .forEach((tag) -> {
                     String id = tag.id().toString();
-                    update(tags, id, name);
-                    update(blocks, name, id);
+                    Utils.update(tags, id, name);
+                    Utils.update(blocks, name, id);
                 });
         });
         LOGGER.info(tags.size() + "");
     }
 
-    public static void refineMaterials(HashMap<String, RawMaterial> rawMaterials) {
+    // TODO: AIR as base solvent
+    public static HashMap<String, Material> refineMaterials(HashMap<String, RawMaterial> rawMaterials) {
+        final double temperature = 287.15D;
         // global average for 20th century 14°C/57°F/287°K
-        refineMaterials(rawMaterials, 287.15D);
-    }
+        rawMaterials.forEach((String key, RawMaterial raw) -> {
+            rawMaterials.put(key,
+                    new RawMaterial(raw.weight(),
+                        raw.solvent(), raw.solute(), raw.composition(),
+                        raw.granularity(),
+                        raw.melt(), raw.boil(),
+                        temperature,
+                        raw.density(),
+                        raw.swave(), raw.lwave()
+                    )
+            );
+        });
 
-    public static HashMap<String, Material> refineMaterials(HashMap<String, RawMaterial> rawMaterials, double kelvins) {
         HashMap<String, Material> refined = new HashMap<>();
         for (String key : rawMaterials.keySet()) {
             RawMaterial raw = rawMaterials.get(key);
@@ -395,28 +381,38 @@ public class Cache {
             (  raw.granularity() == null
             || raw.melt() == null || raw.boil() == null
             || raw.density() == null
+            || raw.temperature() == null
             || raw.swave() == null || raw.lwave() == null
             )  continue;
-            refined.put(key, refine(rawMaterials.get(key), kelvins));
+            refine(rawMaterials, refined, key);
         }
         return refined;
     }
 
 
-    // TODO: actually utilize solvents
-    private static Material refine(RawMaterial raw, double kelvins) {
-        // TODO: consider using isFluid() in runtime (affects absorption)
-        //     : (isFluid * .25 + 2state)/2
-        double state = MathHelper.getLerpProgress(kelvins, raw.melt(), raw.boil());
-        double velocity = MathHelper.lerp(state, raw.lwave(), raw.swave());
-        double impedance = velocity * raw.density();
-        // TODO: calculate full absorption value using solvents
-        //     : must also change calculation in runtime/raytrace
-        double absorption = raw.granularity() * (1 + state);
-        return new Material(
-                impedance,
-                absorption,
-                state);
+    private static Material refine(HashMap<String, RawMaterial> in, HashMap<String, Material> out, String key) {
+        return Utils.memoize(in, out, key, (getter, raw) -> {
+            // TODO: consider using isFluid() in runtime (affects absorption)
+            //     : (isFluid * .25 + 2state)/2
+            double state = MathHelper.getLerpProgress(raw.temperature(), raw.melt(), raw.boil());
+            double velocity = MathHelper.lerp(state, raw.lwave(), raw.swave());
+            double impedance = velocity * raw.density();
+
+            // solvent material is i.8 when undefined.
+            double solvent = raw.solvent() == null ? impedance * 0.8 : getter.apply(raw.solvent()).impedance();
+
+            double permeation;
+            // java doesn't handle x.pow(infinity) correctly! Fix this.
+            if (raw.granularity() == Double.POSITIVE_INFINITY)
+                permeation = 0;
+            else
+                permeation = Math.pow(1-Physics.reflection(impedance, solvent), raw.granularity() * (1 + state));
+
+            return new Material(
+                    impedance,
+                    permeation,
+                    state);
+        });
     }
 
     // flatten all materials
@@ -435,7 +431,7 @@ public class Cache {
         // NOTE: don't access any non-static closure variables other than (getter, raw) inside the calculation phase
         //       This will change how the compiler sees the lambda, (see: lambda closures)
         //       and will recreate it on every use (resulting in a large performance hit)
-        memoize(in, out, key, (getter, raw) -> {
+        Utils.memoize(in, out, key, (getter, raw) -> {
             // calculation logic
             String[] solute = raw.solute() == null ? new String[]{} : raw.solute();
             int length = solute.length;
@@ -447,6 +443,7 @@ public class Cache {
 
                 // raw.value.overridden? -> null
                 Double[] weight = raw.weight() == null ? new Double[length] : null;
+                String   solvent = raw.solvent();
                 Double[] granularity = raw.granularity() == null ? new Double[length] : null;
                 Double[] melt = raw.melt() == null ? new Double[length] : null;
                 Double[] boil = raw.boil() == null ? new Double[length] : null;
@@ -476,12 +473,14 @@ public class Cache {
                     weight[i] = c;
 
                     // apply composition
-                    updWeight(granularity, i, component.granularity(), c);
-                    updWeight(melt, i, component.melt(), c);
-                    updWeight(boil, i, component.boil(), c);
-                    updWeight(density, i, component.density(), c);
-                    updWeight(swave, i, component.swave(), c);
-                    updWeight(lwave, i, component.lwave(), c);
+                    // 1st component dictates solvent when not present
+                    if (solvent == null) solvent = component.solvent();
+                    Utils.updWeight(granularity, i, component.granularity(), c);
+                    Utils.updWeight(melt, i, component.melt(), c);
+                    Utils.updWeight(boil, i, component.boil(), c);
+                    Utils.updWeight(density, i, component.density(), c);
+                    Utils.updWeight(swave, i, component.swave(), c);
+                    Utils.updWeight(lwave, i, component.lwave(), c);
                 }
 
                 // apply weights to values and update value
@@ -489,62 +488,18 @@ public class Cache {
                         totalWeight,
                         raw.solvent(),
                         null, //raw.solute(),      // for posterity/debug, not needed in runtime
-                        null, //raw.composition(), // for posterity/debug, not needed in runtime
-                        unWeight(totalWeight, granularity, raw.granularity()),
-                        unWeight(totalWeight, melt, raw.melt()),
-                        unWeight(totalWeight, boil, raw.boil()),
-                        unWeight(totalWeight, density, raw.density()),
-                        unWeight(totalWeight, swave, raw.swave()),
-                        unWeight(totalWeight, lwave, raw.lwave())
+                        raw.composition(), // for posterity/debug, not needed in runtime
+                        Utils.unWeight(totalWeight, granularity, raw.granularity()),
+                        Utils.unWeight(totalWeight, melt, raw.melt()),
+                        Utils.unWeight(totalWeight, boil, raw.boil()),
+                        raw.temperature(),
+                        Utils.unWeight(totalWeight, density, raw.density()),
+                        Utils.unWeight(totalWeight, swave, raw.swave()),
+                        Utils.unWeight(totalWeight, lwave, raw.lwave())
                 );
             }
             return raw;
         });
     }
 
-    // specialized memoization for tag/material cache functionality
-    private static <T> T memoize(HashMap<String, T> in, HashMap<String, T> out, String key, BiFunction<Function<String,T>,T,T> calculate) {
-        // return cached values
-        if (out.containsKey(key))
-            return out.get(key);
-        // mark as in-progress
-        // getter == null; should be scanned for in calculate to prevent cyclic references
-        out.put(key, null);
-        T value = calculate.apply((String x) -> memoize(in, out, x, calculate), in.remove(key));
-        out.put(key, value);
-        if (value == null)
-            LOGGER.error("{} is invalid or cyclical", key);
-        return value;
-    }
-
-    // ba-d-ad jokes will never get old!
-    // update + weight
-    private static void updWeight(Double[] list, int index, @Nullable Double value, double coefficient) {
-        if (list != null)
-            list[index] = value == null ? 0 : value * coefficient;
-    }
-
-    // average values using weights
-    private static Double unWeight(Double weight, Double[] values, Double fallback) {
-        // density == 0 is for single-value modifications (shapes, lone values)
-        return smartSum(values, fallback) / (weight == 0 ? values.length : weight);
-    }
-
-    // sum with specialized fallback
-    private static Double smartSum(Double[] values, Double fallback) {
-        if (values == null) {
-            return fallback;
-        }
-        double output = 0;
-        for (Double value : values)
-            output += value == null ? 0 : value;
-        return output;
-    }
-
-    // update a value in a particular type of hashmap (see signature)
-    private static void update(HashMap<String, LinkedList<String>> map, String key, String value) {
-        final LinkedList<String> list = map.getOrDefault(key, new LinkedList<>());
-        list.add(value);
-        map.put(key, list);
-    }
 }

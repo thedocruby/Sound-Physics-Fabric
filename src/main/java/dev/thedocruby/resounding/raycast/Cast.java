@@ -1,6 +1,8 @@
 package dev.thedocruby.resounding.raycast;
 
 import dev.thedocruby.resounding.Cache;
+import dev.thedocruby.resounding.Material;
+import dev.thedocruby.resounding.Physics;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
 import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
@@ -14,7 +16,6 @@ import net.minecraft.util.math.Vec3i;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.WorldChunk;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,11 +33,12 @@ public class Cast {
     public @Nullable Branch tree = null;
 
     public @Nullable Ray reflected = null;
-    public @Nullable Ray permeated = null;
+    public @Nullable Ray transmitted = null;
 
-    public @Nullable Step stood = null;
+    public @Nullable Step stood = null; // prior position
+    public @Nullable Double impeded = null; // prior impedance
 
-    public static MaterialData air = Cache.getProperties(Blocks.AIR.getDefaultState());
+    public static Material air = Cache.getProperties(Blocks.AIR.getDefaultState());
 
     public Cast(@NotNull World world, @Nullable Branch tree, @Nullable ChunkChain chunk) {
         this.world = world;
@@ -50,13 +52,10 @@ public class Cast {
     }
     public void raycast(@NotNull Vec3d position, @NotNull Vec3d vector, double power) {
         //* access branch {
-        assert vector != null; // the power check above will catch this
+//        assert vector != null; // the power check above will catch this
         final Vec3d normalized = normalize(position,vector);
         chunk = chunk.access((int) normalized.x >> 4, (int) normalized.z >> 4);
         if (chunk != null) tree = chunk.getBranch((int) normalized.y >> 4);
-        /*if (chunk != null && tree != null && tree.state == null) {
-            chunk.layer(tree);
-        }*/
         Branch branch = getBlock(normalized);
         if (branch == null) {
             blank(position);
@@ -69,13 +68,9 @@ public class Cast {
         double pdistance, rdistance;
 
         //* true voxel handling {
-        /* use step algorithm
-         * (A) start    of branch
-         * (B) size     of branch
-         * (C) position of ray
-         * (D) direction (minus magnitude)
-         */
+        // obtain coefficient for vector to reach nearest boundary
         step = getStep(blockToVec(branch.start), branch.size, position, vector);
+        // permeation distance, position
         pdistance = step.step().length();
         pposition = position.add(step.step());
 
@@ -87,7 +82,8 @@ public class Cast {
                 ((long) (pposition.z * 1e5)) / 1e5);
         // } */
         // defaults
-        rstep = stood != null ? stood : step;
+        rstep = stood == null ? step : stood;
+        // additional distance traveled on sub-geometry bounces
         rdistance = 0;
         rposition = position;
         //* reflection w/ sub-voxel geometry (irony) {
@@ -102,18 +98,22 @@ public class Cast {
         // } */
         //* amplitude and vector {
         // material properties
-        double reflectivity = branch.material.reflectivity();
-        double permeability = Math.pow(branch.material.permeability(),pdistance);
+        // TODO abstract out one-time branch
+        double reflectivity = impeded == null ? 0 : Physics.reflection(impeded, branch.material.impedance());
+        double transmission = (1-reflectivity) * Math.pow(branch.material.permeation(), pdistance);
 
         // if reflection / permeation -> calculate -> bounce / refract
-        @Nullable Vec3d reflected = reflectivity > 0 ? pseudoReflect(vector,rstep.plane()) : null;
+        @Nullable Vec3d reflected = reflectivity > 0 ? Physics.pseudoReflect(vector,rstep.plane()) : null;
         // use single-surface refraction here, unpredictable effects with larger objects & permeation coefficients
-        @Nullable Vec3d permeated = pseudoReflect(vector, step.plane(), (1-branch.material.permeability()) / 5 /* TODO: make non-arbitrary */);
+        // TODO: remove fresnel in favor of atmospheric effects
+        // TODO: branch here to avoid calculations on last raycast
+        @Nullable Vec3d transmitted = Physics.pseudoReflect(vector, step.plane(), transmission / 5);
         // } */
         // apply movement
         reflect (reflectivity*power, rposition, reflected, rdistance);
-        permeate(permeability*power, pposition, permeated, pdistance);
+        transmit(transmission*power, pposition, transmitted, pdistance);
         stood = step; // TODO ?
+        this.impeded = branch.material.impedance();
     }
     // } */
 
@@ -192,31 +192,7 @@ public class Cast {
          *     (   7 + (16  * 1   )) /  2     = 14/2
          */
     }
-    @Contract("_, _ -> new")
-    public static @NotNull Vec3d pseudoReflect(Vec3d ray, @NotNull Vec3i plane) { return pseudoReflect(ray,plane,2); }
-    @Contract("_, _, _ -> new")
-    public static @NotNull Vec3d pseudoReflect(Vec3d ray, @NotNull Vec3i plane, double fresnel) {
-        // Fresnels on a 1-30 scale
-        // TODO account for http://hyperphysics.phy-astr.gsu.edu/hbase/Tables/indrf.html
 
-        final Vec3d planeD = new Vec3d(
-                plane.getX(),
-                plane.getY(),
-                plane.getZ()
-        );
-        // ( ray - plane * (normal/air) * dot(ray,plane) ) / air * normal
-        // https://blog.demofox.org/2017/01/09/raytracing-reflection-refraction-fresnel-total-internal-reflection-and-beers-law/
-        // adjusted for refraction approximation
-        // for a visualization, see: https://www.math3d.org/UYUQRza8n
-        // assert fresnel != 0;
-        // return ray.multiply(planeD.multiply(-1));
-        //*
-        return ray.subtract(
-                planeD.multiply
-                        (ray.multiply(planeD).multiply(fresnel))
-        );
-        // */
-    }
     private @Nullable Step bounce(Branch branch, Vec3d start, Vec3d vector) {
         final long posl = branch.start.asLong();
         Map<Long, VoxelShape> shapes = chunk.getShapes();
@@ -237,13 +213,13 @@ public class Cast {
     //* mutate {
     public void blank(Vec3d position) {
         this.reflected = new Ray(0, position, null, 0);
-        this.permeated = new Ray(0, position, null, 0);
+        this.transmitted = new Ray(0, position, null, 0);
     }
     private void reflect(/*MaterialData material,*/ double power, Vec3d position, Vec3d angle, double distance) {
         this.reflected = new Ray(power, position, angle, distance);
     }
-    private void permeate(/*MaterialData material,*/ double power, Vec3d position, Vec3d angle, double distance) {
-        this.permeated = new Ray(power, position, angle, distance);
+    private void transmit(/*MaterialData material,*/ double power, Vec3d position, Vec3d angle, double distance) {
+        this.transmitted = new Ray(power, position, angle, distance);
     }
     // } */
 }
