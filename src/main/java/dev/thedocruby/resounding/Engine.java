@@ -124,7 +124,7 @@ public class Engine {
 	public static void playSound(Context context, Vec3d pos, int sourceIDIn, boolean auxOnlyIn) {
 		assert !Engine.isOff;
 		soundPos = pos;
-		final long startTime = pC.pLog ? System.nanoTime() : 0;
+		long startTime = pC.pLog ? System.nanoTime() : 0;
 		auxOnly = auxOnlyIn;
 		sourceID = sourceIDIn;
 		//* TODO remove
@@ -186,7 +186,7 @@ public class Engine {
 		catch (Exception e) { e.printStackTrace(); }
 
 		if (pC.pLog) LOGGER.info("Total calculation time for sound {}: {} milliseconds",
-				() -> tag, () -> (System.nanoTime() - startTime) / 10e5D);
+				tag, (System.nanoTime() - startTime) / 10e5D);
 	}
 
     /* TODO: Occlusion
