@@ -10,6 +10,6 @@ public class ModClient implements ClientModInitializer {
 		Engine.env = EnvType.CLIENT;
 		ConfigManager.registerAutoConfig();
 		// TODO make more than debug
-		// Cache.generate(Engine.LOGGER.atInfo());
+		// Cache.generate(Utils.LOGGER.atInfo());
 	}
 }
