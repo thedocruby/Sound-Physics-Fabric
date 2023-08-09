@@ -138,7 +138,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 
 		// 16³ blocks
 		ChunkSection[] chunkSections = getSectionArray();
-		// LOGGER.info(() -> chunkSections.length /* +"\t"+Arrays.toString(chunkSections)*/); // TODO remove
+		// LOGGER.info("{}\t{}", chunkSections.length, "" /*chunkSections*/); // TODO remove
 		this.yOffset = -chunkSections[0].getYOffset() >> 4;
 		final ChunkPos pos = this.getPos();
 		final double x     = pos.x << 4; // * 16
