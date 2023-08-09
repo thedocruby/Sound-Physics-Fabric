@@ -125,7 +125,9 @@ public class ALUtils {
 		if (!pC.dLog || !LOGGER.isInfoEnabled()) return false;
 		Optional<String> errorMessage = consumeErrorMessage();
 		if (errorMessage.isEmpty()) return false;
-		StringJoiner messageJoiner = new StringJoiner(" & ", "Error while applying ", " to "+out+"."+outID);
+		StringJoiner messageJoiner = new StringJoiner(" & ",
+				"OpenAL AL error " + errorMessage.get() + ": Error while applying ",
+				" to " + out + "." + outID);
 		for (int i = 0; i<in.length; i++) {
 			messageJoiner.add(in[i]+"."+inIDs[i]);
 		}
