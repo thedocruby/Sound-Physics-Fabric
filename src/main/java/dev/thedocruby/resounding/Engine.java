@@ -151,7 +151,7 @@ public class Engine {
 		boolean isGentle = Cache.gentlePattern.matcher(tag).matches();
 
 		final EnvData env;
-		if (pC.dLog) Utils.LGGER.info(
+		if (pC.dLog) Utils.LOGGER.info(
 				"""
 						Sound {
 						  Player:   {}
