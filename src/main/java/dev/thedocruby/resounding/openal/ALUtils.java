@@ -6,7 +6,7 @@ import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.ALC10;
 
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
-import static dev.thedocruby.resounding.Engine.LOGGER;
+import static dev.thedocruby.resounding.Utils.LOGGER;
 
 import java.util.Optional;
 import java.util.StringJoiner;

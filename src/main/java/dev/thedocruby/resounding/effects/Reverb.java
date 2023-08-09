@@ -2,13 +2,12 @@ package dev.thedocruby.resounding.effects;
 
 import dev.thedocruby.resounding.toolbox.*;
 import dev.thedocruby.resounding.openal.*;
-import static dev.thedocruby.resounding.Engine.LOGGER;
+
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 import net.minecraft.util.math.MathHelper;
 
 import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.AL11;
-import org.lwjgl.openal.ALC10;
 import org.lwjgl.openal.EXTEfx;
 
 // this effect adds reverberation - sorta like echo, but instead of hearing the

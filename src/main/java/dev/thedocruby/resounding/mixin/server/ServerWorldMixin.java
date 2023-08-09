@@ -19,7 +19,7 @@ public class ServerWorldMixin {
 
 	@ModifyArg(method = {"playSound","playSoundFromEntity"}, at = @At(value = "INVOKE", target = "net/minecraft/server/PlayerManager.sendToAround (Lnet/minecraft/entity/player/PlayerEntity;DDDDLnet/minecraft/util/registry/RegistryKey;Lnet/minecraft/network/Packet;)V"),index = 4)
 	private double SoundDistanceModifierInjector(double distance){
-		if ((Engine.env == EnvType.CLIENT && Engine.isOff) || (Engine.env == EnvType.SERVER && !pC.enabled)) return distance;
+		if ((Engine.env == EnvType.CLIENT && !Engine.on) || (Engine.env == EnvType.SERVER && !pC.enabled)) return distance;
 		return Math.min(distance * pC.soundSimulationDistance, 16 * Math.min(this.server.getPlayerManager().getViewDistance(), this.server.getPlayerManager().getSimulationDistance()) );
 	}
 }

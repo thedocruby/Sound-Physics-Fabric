@@ -2,6 +2,7 @@ package dev.thedocruby.resounding.config.BlueTapePack;
 
 import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.Engine;
+import dev.thedocruby.resounding.Utils;
 import dev.thedocruby.resounding.config.PrecomputedConfig;
 import dev.thedocruby.resounding.config.ResoundingConfig;
 import dev.thedocruby.resounding.config.presets.ConfigPresets;
@@ -42,7 +43,7 @@ public class ConfigManager {
         holder = AutoConfig.register(ResoundingConfig.class, JanksonConfigSerializer::new);
 
         if (Engine.env == EnvType.CLIENT) try {GuiRegistryinit.register();} catch (Throwable ignored){
-            Engine.LOGGER.error("Failed to register config menu unwrappers. Edit config that isn't working in the config file");}
+            Utils.LOGGER.error("Failed to register config menu unwrappers. Edit config that isn't working in the config file");}
 
         holder.registerSaveListener((holder, config) -> onSave(config));
         holder.registerLoadListener((holder, config) -> onSave(config));
@@ -67,7 +68,7 @@ public class ConfigManager {
 
     @Environment(EnvType.CLIENT)
     public static void handleBrokenMaterials(@NotNull ResoundingConfig c ){
-        Engine.LOGGER.error("Critical materialProperties error. Resetting materialProperties");
+        Utils.LOGGER.error("Critical materialProperties error. Resetting materialProperties");
         c.materials.materialProperties = Cache.materialDefaults;
         c.materials.blockWhiteList = Collections.emptyList();
     }
@@ -78,7 +79,7 @@ public class ConfigManager {
     }
 
     public static void handleUnstableConfig( ResoundingConfig c ){
-        Engine.LOGGER.error("Error: Config file is not from a compatible version! Resetting the config...");
+        Utils.LOGGER.error("Error: Config file is not from a compatible version! Resetting the config...");
         resetOnReload = true;
     }
 
@@ -88,7 +89,7 @@ public class ConfigManager {
         if ((c.version == null || !Objects.equals(c.version, configVersion)) && !resetOnReload) handleUnstableConfig(c);
         if (PrecomputedConfig.pC != null) PrecomputedConfig.pC.deactivate();
         try {PrecomputedConfig.pC = new PrecomputedConfig(c);} catch (CloneNotSupportedException e) {e.printStackTrace(); return ActionResult.FAIL;}
-        if (Engine.env == EnvType.CLIENT && !Engine.isOff) {
+        if (Engine.env == EnvType.CLIENT && Engine.on) {
             Engine.updateRays();
             Engine.mc.getSoundManager().reloadSounds();
         }

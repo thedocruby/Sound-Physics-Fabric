@@ -17,10 +17,6 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogBuilder;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -42,27 +38,23 @@ public class Engine {
 	private Engine() { }
 
 	public static Context root;
-
-	// TODO: remove!!
-	public static boolean temp = false;
-
 	public static EnvType env = null;
 	public static MinecraftClient mc;
-	public static boolean isOff = true;
-	public static final Logger LOGGER = LogManager.getLogger("Resounding");
+	public static boolean on = false;
 
 
 	// init vars {
-	private static Set<Pair<Vec3d,Integer>> rays;
-	private static SoundCategory category;
-	private static String tag;
-	private static SoundListener lastSoundListener;
-	private static Vec3d playerPos;
-	private static Vec3d listenerPos;
-	private static @NotNull ChunkChain soundChunk;
-	private static Vec3d soundPos;
-	private static boolean auxOnly;
-	private static int sourceID;
+	private static Set<Pair<Vec3d,Integer>> rays; // TODO: move inside sound entity
+	private static String tag; // TODO: move inside sound entity
+	private static Vec3d listenerPos; // TODO remove?
+	private static SoundListener lastSoundListener; // TODO: move inside sound entity
+	// TODO: refactor away ^^
+	private static int sourceID; // TODO: move inside sound entity
+	private static @NotNull ChunkChain soundChunk; // TODO: move inside sound entity
+	private static Vec3d soundPos; // TODO: move inside sound entity
+
+	private static SoundCategory category; // TODO: replace with tagging system
+	private static boolean auxOnly; // TODO: rename?
 
 	private static boolean hasLoaded = false;
 	//private static boolean doDirEval; // TODO: DirEval
@@ -70,9 +62,6 @@ public class Engine {
 	// }
 
 	public static void setRoot(Context context) {root=context;}
-
-	/* utility function */
-	public static <T> double logBase(T x, T b) { return Math.log((Double) x) / Math.log((Double) b); }
 
 	@Environment(EnvType.CLIENT)
 	public static void updateRays() {
@@ -98,7 +87,7 @@ public class Engine {
 					Math.cos(theta) * sP,
 					Math.sin(theta) * sP,
 					Math.cos(phi)
-			),(Integer) i);
+			), i);
 		}).collect(Collectors.toSet());
 	}
 
@@ -111,14 +100,14 @@ public class Engine {
 
 	@Contract("_, _, _, _ -> _")
 	@Environment(EnvType.CLIENT) // wraps playSound() in order to process SVC audio chunks
-	public static void svc_playSound(Context context, Vec3d soundPos, int sourceIDIn, boolean auxOnlyIn) {
+	public static void play_svc(Context context, Vec3d soundPos, int sourceIDIn, boolean auxOnlyIn) {
 		tag = "voice-chat";
-		playSound(context, soundPos, sourceIDIn, auxOnlyIn);
+		play(context, soundPos, sourceIDIn, auxOnlyIn);
 	}
 
 	@Environment(EnvType.CLIENT)
-	public static void playSound(Context context, Vec3d pos, int sourceIDIn, boolean auxOnlyIn) {
-		assert !Engine.isOff;
+	public static void play(Context context, Vec3d pos, int sourceIDIn, boolean auxOnlyIn) {
+		assert Engine.on;
 		soundPos = pos;
 		long startTime = 0;
 		if (pC.pLog) startTime = System.nanoTime();
@@ -126,7 +115,7 @@ public class Engine {
 		sourceID = sourceIDIn;
 		//* TODO remove
 		if (!hasLoaded) {
-			Cache.generate(LOGGER.atInfo());
+			Cache.generate(Utils.LOGGER.atInfo());
 			hasLoaded = true;
 			return;
 		}
@@ -137,11 +126,11 @@ public class Engine {
 		soundPos = adjustSource(category, tag, soundPos);
 		// quit early if needed
 		if (soundPos == null || mc.player == null || mc.world == null) {
-			if (pC.dLog) LOGGER.info("skipped tracing sound \"{}\"", tag);
+			if (pC.dLog) Utils.LOGGER.info("skipped tracing sound \"{}\"", tag);
 			return;
 		}
 		// get pose
-		playerPos = mc.player.getPos().add(new Vec3d(0, mc.player.getEyeHeight(mc.player.getPose()), 0));
+		Cache.playerPos = mc.player.getPos().add(new Vec3d(0, mc.player.getEyeHeight(mc.player.getPose()), 0));
 		listenerPos = lastSoundListener.getPos();
 		double maxDist = Math.min(
 				Math.min(
@@ -150,8 +139,8 @@ public class Engine {
 				) * 16, // chunk
 				pC.maxTraceDist / 2); // diameter -> radius
 		// too far/quiet
-		if (Math.max(playerPos.distanceTo(soundPos), listenerPos.distanceTo(soundPos)) > maxDist) {
-			if (pC.dLog) LOGGER.info("skipped tracing sound \"{}\"", tag);
+		if (Math.max(Cache.playerPos.distanceTo(soundPos), listenerPos.distanceTo(soundPos)) > maxDist) {
+			if (pC.dLog) Utils.LOGGER.info("skipped tracing sound \"{}\"", tag);
 			return;
 		}
 
@@ -160,17 +149,17 @@ public class Engine {
 		boolean isGentle = Cache.gentlePattern.matcher(tag).matches();
 
 		final EnvData env;
-		if (pC.dLog) LOGGER.info(
+		if (pC.dLog) Utils.LGGER.info(
 				"""
 						Sound {
-							Player:   {}
-							Listener: {}
-							Source:   {}
-							ID:       {}
-							Name:     {}.{}
+						  Player:   {}
+						  Listener: {}
+						  Source:   {}
+						  ID:       {}
+						  Name:     {}.{}
 						}
 						""",
-				playerPos,
+				Cache.playerPos,
 				listenerPos,
 				soundPos,
 				sourceID,
@@ -182,7 +171,7 @@ public class Engine {
 		try { setEnv(context, processEnv(env), isGentle); }
 		catch (Exception e) { e.printStackTrace(); }
 
-		if (pC.pLog) LOGGER.info("Total calculation time for sound {}: {} milliseconds",
+		if (pC.pLog) Utils.LOGGER.info("Total calculation time for sound {}: {} milliseconds",
 				tag, (System.nanoTime() - startTime) / 10e5D);
 	}
 
@@ -199,17 +188,18 @@ public class Engine {
 	*/
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull CastResults raycast(@NotNull Pair<Vec3d,Integer> input) {
+	private static @NotNull CastResults raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude) {
 		int id = input.getRight();
 		Vec3d vector = input.getLeft();
+		// TODO: allow arbitrary bounces per ray & splitting
 		// int bounces = 100; // -> incompatible with present algorithms
 		// assert mc.world != null; // should never happen (never should be called uninitialized)
-		double amplitude = 128; // TODO fine-tune & pull from sound volume
+//		double amplitude = 128; // TODO fine-tune & pull from sound volume
 		CastResults results = new CastResults(0,0,0);
 		Cast cast = new Cast(mc.world, null, soundChunk);
 		// launch initial ray & always permeate first
 		cast.raycast(soundPos, vector, amplitude);
-		Ray ray = new Ray(amplitude,cast.transmitted.position(),cast.transmitted.vector(), cast.transmitted.length());
+		Ray ray = new Ray(amplitude, cast.transmitted.position(), cast.transmitted.vector(), cast.transmitted.length());
 
 		double length = cast.transmitted.length();
 		Vec3d prior = soundPos; // used solely for debugging
@@ -258,7 +248,7 @@ public class Engine {
 
 	@Environment(EnvType.CLIENT)
 	private static @NotNull Set<OccludedRayData> throwOcclRay(@NotNull Vec3d sourcePos, @NotNull Vec3d sinkPos) { //Direct sound occlusion
-		assert !Engine.isOff;
+		assert Engine.on;
 
 		// TODO: This still needs to be rewritten
 		// TODO: fix reflection/permeability calc with fresnels
@@ -344,10 +334,10 @@ public class Engine {
 		// Throw rays around
 		// TODO implement tagging system here
 		// TODO? implement lambda function referencing to remove branches
-		LogBuilder logger = pC.log ? (pC.eLog ? LOGGER.atInfo() : LOGGER.atDebug()) : LOGGER.atLevel(Level.OFF);
+		LogBuilder logger = pC.log ? (pC.eLog ? Utils.LOGGER.atInfo() : Utils.LOGGER.atDebug()) : Utils.LOGGER.atLevel(Level.OFF);
 		Set<CastResults> reflRays;
 		logger.log("Sampling environment with {} seed rays...", pC.nRays);
-		reflRays = rays.stream().parallel().unordered().map(Engine::raycast).collect(Collectors.toSet());
+		reflRays = rays.stream().parallel().unordered().map((ray) -> Engine.raycast(ray, 128)).collect(Collectors.toSet());
 		if (pC.eLog) {
 			int rayCount = 0;
 			for (CastResults reflRay : reflRays){
@@ -359,14 +349,6 @@ public class Engine {
 		// TODO: Occlusion. Also, add occlusion profiles.
 		// Step rays from sound to listener
 		Set<OccludedRayData> occlRays = throwOcclRay(soundPos, listenerPos);
-
-		// TODO: remove!!
-		StringBuilder sb = new StringBuilder();
-//		LinkedList<String> tags = new LinkedList<String>();
-		if (!temp) {
-			generate();
-			temp = true;
-		}
 
 		// Pass data to post
 		EnvData data = new EnvData(reflRays, occlRays);
@@ -475,7 +457,7 @@ public class Engine {
 
 				final double bounceTime = reflRay.lengths[i] / speedOfSound;
 
-				sendGain[MathHelper.clamp((int) (1/logBase(Math.max(Math.pow(bounceEnergy, pC.maxDecayTime / bounceTime * pC.energyFix), Double.MIN_VALUE), minEnergy) * pC.resolution), 0, pC.resolution)] += playerEnergy;
+				sendGain[MathHelper.clamp((int) (1/ Utils.logBase(Math.max(Math.pow(bounceEnergy, pC.maxDecayTime / bounceTime * pC.energyFix), Double.MIN_VALUE), minEnergy) * pC.resolution), 0, pC.resolution)] += playerEnergy;
 			}
 		}
 		sharedSum /= bounceCount;
@@ -498,7 +480,7 @@ public class Engine {
 
 		SoundProfile profile = new SoundProfile(sourceID, directGain, directCutoff, sendGain, sendCutoff);
 
-		if (pC.log) LOGGER.info("Processed sound profile:\n{}", profile);
+		if (pC.log) Utils.LOGGER.info("Processed sound profile:\n{}", profile);
 
 		return profile;
 	}
@@ -512,7 +494,7 @@ public class Engine {
 		final SlotProfile finalSend = selectSlot(profile.sendGain(), profile.sendCutoff());
 
 		if (pC.eLog || pC.dLog) {
-			LOGGER.info("Final reverb settings:\n{}", finalSend);
+			Utils.LOGGER.info("Final reverb settings:\n{}", finalSend);
 		}
 
 		context.update(finalSend, profile, isGentle);

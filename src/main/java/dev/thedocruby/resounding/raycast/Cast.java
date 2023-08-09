@@ -4,7 +4,6 @@ import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.Material;
 import dev.thedocruby.resounding.Physics;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
-import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
@@ -22,7 +21,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
 import static dev.thedocruby.resounding.Cache.*;
-import static dev.thedocruby.resounding.Engine.LOGGER;
+import static dev.thedocruby.resounding.Utils.LOGGER;
 
 @Environment(EnvType.CLIENT)
 public class Cast {
@@ -38,7 +37,7 @@ public class Cast {
     public @Nullable Step stood = null; // prior position
     public @Nullable Double impeded = null; // prior impedance
 
-    public static Material air = Cache.getProperties(Blocks.AIR.getDefaultState());
+    public static Material air = Cache.material(Blocks.AIR.getDefaultState());
 
     public Cast(@NotNull World world, @Nullable Branch tree, @Nullable ChunkChain chunk) {
         this.world = world;
@@ -140,7 +139,7 @@ public class Cast {
         // when null, simply fall through and get the underlying block
         if (branch.material == null) {
             BlockState state = ((WorldChunk) this.chunk).getBlockState(block);
-            return new Branch(block, 1, state.getCollisionShape(world, block), getProperties(state));
+            return new Branch(block, 1, state.getCollisionShape(world, block), material(state));
         } else return branch;
     }
     public static Vec3d blockToVec(BlockPos pos) { return new Vec3d(pos.getX(), pos.getY(), pos.getZ()); }
