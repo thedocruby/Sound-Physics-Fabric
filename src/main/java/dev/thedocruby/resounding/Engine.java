@@ -120,7 +120,8 @@ public class Engine {
 	public static void playSound(Context context, Vec3d pos, int sourceIDIn, boolean auxOnlyIn) {
 		assert !Engine.isOff;
 		soundPos = pos;
-		long startTime = pC.pLog ? System.nanoTime() : 0;
+		long startTime = 0;
+		if (pC.pLog) startTime = System.nanoTime();
 		auxOnly = auxOnlyIn;
 		sourceID = sourceIDIn;
 		//* TODO remove
