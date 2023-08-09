@@ -185,7 +185,7 @@ public class PrecomputedConfig {
                 }
             });
             if (!wrong.isEmpty()) {
-                Engine.LOGGER.error("Material Data map contains {} extra entries:\n{}\nPatching Material Data...", wrong.size(), wrong);
+                Engine.LOGGER.error("Material Data map contains {} extra entries:\n[{}]\nPatching Material Data...", wrong.size(), wrong);
                 toRemove.forEach(matProp::remove);
             }
 
