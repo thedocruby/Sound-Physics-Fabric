@@ -4,10 +4,8 @@ import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.Material;
 import dev.thedocruby.resounding.raycast.Branch;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
-import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.world.ClientChunkManager;
@@ -41,8 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import static dev.thedocruby.resounding.Cache.getProperties;
-import static dev.thedocruby.resounding.Engine.temp;
+import static dev.thedocruby.resounding.Cache.material;
 
 @Environment(EnvType.CLIENT)
 @Mixin(WorldChunk.class)
@@ -152,7 +149,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 			final int index = this.yOffset + (y >> 4);
 			boolean empty = chunkSection.isEmpty();
 
-			Branch air = new Branch(new BlockPos(x,y,z),16, getProperties(Blocks.AIR.getDefaultState()));
+			Branch air = new Branch(new BlockPos(x,y,z),16, material(Blocks.AIR.getDefaultState()));
 			Branch blank = new Branch(new BlockPos(x,y,z),16);
 
 			// provide fallback or all-air branch when necessary
@@ -229,7 +226,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		// get smallest branch at position
 		final Branch branch = this.getBranch(pos.getY() >> 4).get(pos);
 
-		Material material = getProperties(state);
+		Material material = material(state);
 		// if block is homogenous with branch
 		if (material.equals(branch.material)) return;
 

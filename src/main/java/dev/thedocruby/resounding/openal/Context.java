@@ -1,6 +1,5 @@
 package dev.thedocruby.resounding.openal;
 
-import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.Utils;
 import dev.thedocruby.resounding.effects.Effect;
 import dev.thedocruby.resounding.effects.Reverb;
@@ -103,14 +102,14 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 	}
 	public  boolean clean(final boolean force) {
 		if (garbage) return true;
-		Engine.LOGGER.info("{}: cleaning children[{}]", id, children.length);
+		Utils.LOGGER.info("{}: cleaning children[{}]", id, children.length);
 		boolean success = cleanObjects();
 		activate();
 		garbage = force || success;
 		active = false;
 		if (pC.dLog) {
-			if (success) Engine.LOGGER.info ("Cleaned context: {}.", id);
-			else         Engine.LOGGER.error("Context remains: {}.", id);
+			if (success) Utils.LOGGER.info ("Cleaned context: {}.", id);
+			else         Utils.LOGGER.error("Context remains: {}.", id);
 		}
 		return success;
 	}
@@ -127,13 +126,13 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 	}
 	// it's a pun! General function for cleaning slots/effects/filters
 	private int[]   deleteAL(final String type, int[] set, Consumer<int[]> delete, IntPredicate verify) {
-		if (pC.dLog) Engine.LOGGER.info("Removing {}[{}]", type, set.length);
+		if (pC.dLog) Utils.LOGGER.info("Removing {}[{}]", type, set.length);
 		delete.accept(set.clone());
 		// loop through slots
 		for (int bit : set) {
-			if (verify.test(bit)) { Engine.LOGGER.error("Failed to delete {}.{}", type, bit); continue; }
+			if (verify.test(bit)) { Utils.LOGGER.error("Failed to delete {}.{}", type, bit); continue; }
 			set = ArrayUtils.removeElement(set, bit);
-			if (pC.dLog) Engine.LOGGER.info("Deleting {}.{}", type, bit);
+			if (pC.dLog) Utils.LOGGER.info("Deleting {}.{}", type, bit);
 		}
 		return set;
 	}
@@ -164,9 +163,9 @@ public class Context extends Utils { // TODO: Create separate debug toggle for O
 	private boolean cleanDirect(ALset context) {
 		EXTEfx.alDeleteFilters(context.direct);
 		if (EXTEfx.alIsFilter(context.direct)) {
-			Engine.LOGGER.error("Failed to delete direct filter object!"); return false;
+			Utils.LOGGER.error("Failed to delete direct filter object!"); return false;
 		} else if (pC.dLog) {
-			Engine.LOGGER.info("Direct filter object deleted with ID {}", context.direct);
+			Utils.LOGGER.info("Direct filter object deleted with ID {}", context.direct);
 		}
 		return true;
 	}

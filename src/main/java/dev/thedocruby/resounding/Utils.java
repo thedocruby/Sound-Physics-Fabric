@@ -1,6 +1,8 @@
 package dev.thedocruby.resounding;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -8,12 +10,11 @@ import java.util.LinkedList;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static dev.thedocruby.resounding.Engine.LOGGER;
-
 /**
 * Utils
 */
 public class Utils {
+    public static final Logger LOGGER = LogManager.getLogger("Resounding");
 
 // java's type system sucks... overloading, ugh - even python could do better...
 // an overloaded array length extender function boolean[], boolean[][], int[], int[][] {
@@ -33,23 +34,6 @@ public static boolean[]   extendArray (final boolean[]   old, final int min) {
 public static boolean[][] extendArray (final boolean[][] old, final int min) {
 	return ArrayUtils.addAll(old, new boolean[Math.max(1,old.length - min)][]);
 }
-
-    // specialized memoization for tag/material cache functionality
-//    public static <T> T memoize(HashMap<String, T> in, HashMap<String, T> out, String key, BiFunction<Function<String, T>, T, T> calculate) {
-//        // return cached values
-//        if (out.containsKey(key))
-//            return out.get(key);
-//        // mark as in-progress
-//        // getter == null; should be scanned for in calculate to prevent cyclic references
-//        out.put(key, null);
-//        T value = calculate.apply((String x) -> memoize(in, out, x, calculate), in.remove(key));
-//        out.put(key, value);
-//        if (value == null)
-//            LOGGER.error("{} is invalid or cyclical", key);
-//        return value;
-//    }
-
-
     public static <IN,OUT> OUT memoize(HashMap<String, IN> in, HashMap<String, OUT> out, String key, BiFunction<Function<String, OUT>, IN, OUT> calculate) {
         return memoize(in, out, key, calculate, true);
     }
@@ -100,6 +84,9 @@ public static boolean[][] extendArray (final boolean[][] old, final int min) {
         list.add(value);
         map.put(key, list);
     }
+
+    /* utility function */
+    public static <T> double logBase(T x, T b) { return Math.log((Double) x) / Math.log((Double) b); }
 
 // }
 

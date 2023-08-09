@@ -1,6 +1,7 @@
 package dev.thedocruby.resounding.config;
 
 import dev.thedocruby.resounding.Engine;
+import dev.thedocruby.resounding.Utils;
 import dev.thedocruby.resounding.toolbox.MaterialData;
 import dev.thedocruby.resounding.toolbox.OcclusionMode;
 import dev.thedocruby.resounding.toolbox.SharedAirspaceMode;
@@ -166,7 +167,7 @@ public class PrecomputedConfig {
                             }
                             return;
                         }
-                        Engine.LOGGER.error("Missing material data for {}, Default entry created.", e.getLeft());
+                        Utils.LOGGER.error("Missing material data for {}, Default entry created.", e.getLeft());
                         final MaterialData newData = new MaterialData(e.getLeft(), defaultRefl, defaultAbs);
                         matProp.put(e.getLeft(), newData);
                     });
@@ -185,7 +186,7 @@ public class PrecomputedConfig {
                 }
             });
             if (!wrong.isEmpty()) {
-                Engine.LOGGER.error("Material Data map contains {} extra entries:\n{}\nPatching Material Data...", wrong.size(), Arrays.toString(new List[]{wrong}));
+                Utils.LOGGER.error("Material Data map contains {} extra entries:\n{}\nPatching Material Data...", wrong.size(), Arrays.toString(new List[]{wrong}));
                 toRemove.forEach(matProp::remove);
             }
 

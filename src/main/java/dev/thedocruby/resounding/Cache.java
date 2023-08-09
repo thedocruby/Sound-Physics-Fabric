@@ -30,8 +30,7 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static dev.thedocruby.resounding.Engine.LOGGER;
-import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
+import static dev.thedocruby.resounding.Utils.LOGGER;
 import static java.util.Map.entry;
 
 public class Cache {
@@ -53,6 +52,8 @@ public class Cache {
             new BlockPos(1, 1, 1)
     };
     public static final BlockPos[] blockSequence = ArrayUtils.addFirst(branchSequence, new BlockPos(0, 0, 0));
+
+    static Vec3d playerPos;
 
     // code for queue
     public static void plantOctree(ChunkChain chunk, int index, Branch root) {
@@ -76,7 +77,7 @@ public class Cache {
         final BlockPos start = root.start;
         // get first state at root position
         BlockState state = chunk.getBlockState(start);
-        root.material = getProperties(state);
+        root.material = material(state);
         boolean valid = true;
 
         if (scale > 1) {
@@ -104,7 +105,7 @@ public class Cache {
         } else {
             for (BlockPos block : branchSequence) {
                 final BlockPos position = start.add(block);
-                @NotNull Material next = getProperties(chunk.getBlockState(position));
+                @NotNull Material next = material(chunk.getBlockState(position));
                 // break if next block isn't similar enough
                 if (!root.material.equals(next)) {
                     // root.material = null;
@@ -299,7 +300,8 @@ public class Cache {
         return false;
     }
 
-    public static @NotNull Material getProperties(@Nullable BlockState state) {
+    @Environment(EnvType.CLIENT) // TODO: is this method needed on server side?
+    public static @NotNull Material material(@Nullable BlockState state) {
         // TODO: separate map for fluids? (performance consideration)
         // state.getFluidState().getFluid(); // Fluids.WATER/EMPTY/etc
         // TODO: cascading effect material controllers
@@ -317,20 +319,6 @@ public class Cache {
             || ignorePattern.matcher(tag).matches()
             || spamPattern  .matcher(tag).matches()
             ? null : soundPos.add(offset);
-    }
-
-    @Environment(EnvType.CLIENT)
-    private static double getBlockReflectivity(final @NotNull BlockState blockState) {
-        return pC.reflMap.getOrDefault(
-                blockState.getBlock().getTranslationKey(),
-                pC.reflMap.getOrDefault(
-                        groupToName.getOrDefault(
-                                redirectMap.getOrDefault(
-                                        blockState.getSoundGroup(),
-                                        blockState.getSoundGroup()),
-                                "DEFAULT"),
-                        pC.defaultRefl)
-        );
     }
 
     @Environment(EnvType.CLIENT)

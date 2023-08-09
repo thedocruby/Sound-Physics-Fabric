@@ -2,7 +2,6 @@ package dev.thedocruby.resounding.effects;
 
 import dev.thedocruby.resounding.openal.*;
 import dev.thedocruby.resounding.toolbox.*;
-import dev.thedocruby.resounding.Engine;
 import dev.thedocruby.resounding.Utils;
 import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.EXTEfx;
@@ -24,7 +23,7 @@ public class Effect extends Utils {
 
 	public  ALset   setup(final long id) {
 		// TODO check if this just returns "loading effect Effect"
-		if (pC.dLog) Engine.LOGGER.info("loading effect {}", name);
+		if (pC.dLog) Utils.LOGGER.info("loading effect {}", name);
 		context = new ALset();
 		context.self = id;
 
@@ -34,9 +33,9 @@ public class Effect extends Utils {
 			setupEffects() &&
 			setupFilters() &&
 			setupDirect () )) {
-			Engine.LOGGER.error("Failed to setup effect: {}", name);
+			Utils.LOGGER.error("Failed to setup effect: {}", name);
 		} else {
-			if (pC.dLog) Engine.LOGGER.info("Setup effect: {}", name);
+			if (pC.dLog) Utils.LOGGER.info("Setup effect: {}", name);
 			//active = true;
 		}
 		return context;
@@ -46,7 +45,7 @@ public class Effect extends Utils {
 
 	// it's a pun! General function for setup of slots/effects/filters
 	private int[]   generAL(final String type, Consumer<int[]> generate, IntPredicate verify, IntConsumer init) {
-			if (pC.dLog) Engine.LOGGER.info("Creating {}[{}]", type, pC.resolution);
+			if (pC.dLog) Utils.LOGGER.info("Creating {}[{}]", type, pC.resolution);
 			// create array
 			int[] set = new int[pC.resolution];
 			generate.accept(set);      // generate   set
@@ -55,12 +54,12 @@ public class Effect extends Utils {
 					init.accept(bit);  // initialize bit
 					// if successful (otherwise error)
 					if (!ALUtils.checkErrors(
-						s -> Engine.LOGGER.info(s+"Failed to create {}.{}", type, bit)
+						s -> Utils.LOGGER.info(s+"Failed to create {}.{}", type, bit)
 						)) {
 						// log
-						if (pC.dLog) Engine.LOGGER.info("Created {}.{}", type, bit); continue;
+						if (pC.dLog) Utils.LOGGER.info("Created {}.{}", type, bit); continue;
 					} active = false; continue; // fail gracefully ← & ↓
-				} Engine.LOGGER.error("Failed create {}.{}", type, bit); active = false;
+				} Utils.LOGGER.error("Failed create {}.{}", type, bit); active = false;
 			}
 			return active ? set : new int[0];
 		}
@@ -94,9 +93,9 @@ public class Effect extends Utils {
 	private boolean setupDirect() {
 		context.direct = EXTEfx.alGenFilters();
 		if (!EXTEfx.alIsFilter(context.direct)) {
-			Engine.LOGGER.error("Failed to create direct filter object!"); return false;
+			Utils.LOGGER.error("Failed to create direct filter object!"); return false;
 		} else if (pC.dLog) {
-			Engine.LOGGER.info("Direct filter object created with ID {}", context.direct);
+			Utils.LOGGER.info("Direct filter object created with ID {}", context.direct);
 		}
 		return true;
 	}};
