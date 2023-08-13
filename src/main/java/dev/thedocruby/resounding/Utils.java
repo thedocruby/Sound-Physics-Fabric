@@ -1,10 +1,12 @@
 package dev.thedocruby.resounding;
 
+import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.function.BiFunction;
@@ -14,6 +16,7 @@ import java.util.function.Function;
 * Utils
 */
 public class Utils {
+
     public static final Logger LOGGER = LogManager.getLogger("Resounding");
 
 // java's type system sucks... overloading, ugh - even python could do better...
@@ -46,13 +49,19 @@ public static boolean[][] extendArray (final boolean[][] old, final int min) {
         // mark as in-progress
         // getter == null; should be scanned for in calculate to prevent cyclic references
         out.put(key, null);
-        OUT value = calculate.apply(
+        OUT value = null;
+        if (in.containsKey(key))
+            value = calculate.apply(
                 x -> memoize(in, out, x, calculate, remove),
                 remove ? in.remove(key) : in.get(key));
         out.put(key, value);
         if (value == null)
             LOGGER.error("{} is invalid or cyclical", key);
         return value;
+    }
+
+    public static Double when(Double value, Double coefficient) {
+        return value == null ? null : value * coefficient;
     }
 
     // ba-d-ad jokes will never get old!
@@ -96,5 +105,10 @@ public static boolean[][] extendArray (final boolean[][] old, final int min) {
 		, int    s // second
 		, float  t  // third
 	) {}
+
+    // returns Tokenized Type for use in serialization, based on target type
+    public static <T> Type token(T x) {
+        return new TypeToken<T>(){}.getType();
+    }
 
 }

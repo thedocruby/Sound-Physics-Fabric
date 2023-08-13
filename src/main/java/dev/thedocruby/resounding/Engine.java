@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static dev.thedocruby.resounding.Cache.adjustSource;
-import static dev.thedocruby.resounding.Cache.generate;
 import static dev.thedocruby.resounding.config.PrecomputedConfig.*;
 // }
 // }
@@ -116,7 +115,7 @@ public class Engine {
 		sourceID = sourceIDIn;
 		//* TODO remove
 		if (!hasLoaded) {
-			Cache.generate(Utils.LOGGER::info);
+			Cache.generate();
 			hasLoaded = true;
 			return;
 		}
