@@ -1,5 +1,7 @@
 package dev.thedocruby.resounding;
 
+import com.google.gson.Gson;
+import com.google.gson.internal.LinkedTreeMap;
 import dev.thedocruby.resounding.raycast.Branch;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
 import dev.thedocruby.resounding.toolbox.MaterialData;
@@ -8,6 +10,8 @@ import net.fabricmc.api.Environment;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.resource.ResourcePack;
+import net.minecraft.resource.ResourcePackProfile;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Formatting;
@@ -25,14 +29,17 @@ import org.apache.logging.log4j.message.ObjectMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static dev.thedocruby.resounding.Utils.LOGGER;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Map.entry;
 
 public class Cache {
@@ -288,21 +295,6 @@ public class Cache {
     // determined by temperature & humidity (global transmission coefficient -> alters permeability)
     public static double transmission = 1;
 
-    public static boolean generate(LogBuilder logger) {
-        // FabricTagProvider.BlockTagProvider x = null;
-        logger.log(Registry.BLOCK.getKey(Blocks.AIR));
-        // Registry.BLOCK.forEach(
-        logger.log(() -> {
-            StringJoiner obj = Registry.REGISTRIES.streamTags().collect(
-                    () -> new StringJoiner("\n"),
-                    (joiner, tagKey) -> joiner.add(tagKey.registry().getValue().getPath()),
-                    StringJoiner::merge);
-
-            return new ObjectMessage(obj);
-        });
-        return false;
-    }
-
     @Environment(EnvType.CLIENT) // TODO: is this method needed on server side?
     public static @NotNull Material material(@Nullable BlockState state) {
         // TODO: separate map for fluids? (performance consideration)
@@ -326,10 +318,48 @@ public class Cache {
 
     @Environment(EnvType.CLIENT)
     public static void generate() {
-        // prepopulated & loaded from disk
         HashMap<String, RawMaterial> config = new HashMap<>();
+        // get & loop through enabled packs
+        String filename = "resounding.materials.json";
+        Collection<ResourcePackProfile> list = Engine.mc.getResourcePackManager().getEnabledProfiles();
+        for (ResourcePackProfile profile : list) {
+            ResourcePack pack = profile.createResourcePack();
+            InputStream input = null;
+            // if not available, move on
+            try { input = pack.openRoot(filename); }
+            catch (IOException e) { continue; }
 
-        // read from game registry
+            LinkedTreeMap<String, LinkedTreeMap> raw = new Gson().fromJson(
+                new InputStreamReader(input, UTF_8),
+                Utils.token(config)
+            );
+            // place deserialized values into record.
+            // this issue is fixed in GSON 2.10, but not in 2.8.9 (what 1.18.2 uses)
+            raw.forEach((String key, LinkedTreeMap value) -> {
+                ArrayList<String> solute = (ArrayList<String>) value.getOrDefault("solute", new ArrayList<String>());
+                ArrayList<Double> compo = (ArrayList<Double>) value.getOrDefault("composition", new ArrayList<Double>());
+                ArrayList<Double> composition = new ArrayList<Double>();
+                // adjust for %
+                compo.forEach(c -> composition.add(Utils.when(c, .01)));
+
+                config.put(key, new RawMaterial(
+                        (Double) value.getOrDefault("weight", null),
+                        // default solvent is air
+                        (String) value.getOrDefault("solvent", null),
+                        solute.toArray(new String[solute.size()]),
+                        composition.toArray(new Double[composition.size()]),
+                        (Double) value.getOrDefault("granularity", null),
+                        (Double) value.getOrDefault("melt", null),
+                        (Double) value.getOrDefault("boil", null),
+                        (Double) value.getOrDefault("temperature", null),
+                        (Double) value.getOrDefault("density", null),
+                        (Double) value.getOrDefault("swave", null),
+                        (Double) value.getOrDefault("lwave", null)
+                ));
+            });
+        }
+
+        // read tags & blocks from game registry
         HashMap<String, LinkedList<String>> tags = new HashMap<>();
         HashMap<String, LinkedList<String>> blocks = new HashMap<>();
         Registry.BLOCK.forEach((Block block) -> {
@@ -341,6 +371,11 @@ public class Cache {
                     Utils.update(blocks, name, id);
                 });
         });
+
+
+        // flatten & refine materials
+        HashMap<String, RawMaterial> flat = flattenMaterials(config);
+        HashMap<String, Material> refined = refineMaterials(flat);
         LOGGER.info(tags.size() + "");
     }
 
@@ -387,10 +422,18 @@ public class Cache {
             double impedance = velocity * raw.density();
 
             // solvent material is i.8 when undefined.
-            double solvent = raw.solvent() == null ? impedance * 0.8 : getter.apply(raw.solvent()).impedance();
+            // if material supplied doesn't exist, error
+            double solvent;
+            if (raw.solvent() == null)
+                solvent = impedance * 0.8;
+            else {
+                Material solve = getter.apply(raw.solvent());
+                if (solve == null) return null;
+                solvent = solve.impedance();
+            }
 
             double permeation;
-            // java doesn't handle x.pow(infinity) correctly! Fix this.
+            // java doesn't handle x.pow(infinity) when x.range(0, < 1) correctly! Fix this.
             if (raw.granularity() == Double.POSITIVE_INFINITY)
                 permeation = 0;
             else
@@ -400,7 +443,7 @@ public class Cache {
                     impedance,
                     permeation,
                     state);
-        });
+        }, false);
     }
 
     // flatten all materials
@@ -457,18 +500,18 @@ public class Cache {
                     Double w = component.weight();
                     // calculate composition
                     Double c = totalWeight + totalWeight * percent - w;
-                    totalWeight += c - w; // adjust weight for next item
-                    weight[i] = c;
+                    totalWeight = c; // adjust weight for next item
+                    weight[i] = c * percent;
 
                     // apply composition
                     // 1st component dictates solvent when not present
                     if (solvent == null) solvent = component.solvent();
-                    Utils.updWeight(granularity, i, component.granularity(), c);
-                    Utils.updWeight(melt, i, component.melt(), c);
-                    Utils.updWeight(boil, i, component.boil(), c);
-                    Utils.updWeight(density, i, component.density(), c);
-                    Utils.updWeight(swave, i, component.swave(), c);
-                    Utils.updWeight(lwave, i, component.lwave(), c);
+                    Utils.updWeight(granularity, i, component.granularity(), c * percent);
+                    Utils.updWeight(melt, i, component.melt(), c * percent);
+                    Utils.updWeight(boil, i, component.boil(), c * percent);
+                    Utils.updWeight(density, i, component.density(), c * percent);
+                    Utils.updWeight(swave, i, component.swave(), c * percent);
+                    Utils.updWeight(lwave, i, component.lwave(), c * percent);
                 }
 
                 // apply weights to values and update value
@@ -487,7 +530,7 @@ public class Cache {
                 );
             }
             return raw;
-        });
+        }, false);
     }
 
 }
