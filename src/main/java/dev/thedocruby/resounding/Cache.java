@@ -7,6 +7,7 @@ import dev.thedocruby.resounding.toolbox.ChunkChain;
 import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -27,9 +28,8 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.nio.file.FileSystems;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,9 +45,9 @@ public class Cache {
     public final static VoxelShape EMPTY = VoxelShapes.empty();
     public final static VoxelShape CUBE = VoxelShapes.fullCube();
 
-    public final static HashMap<String, Material> materials = new HashMap<String, Material>();
-
     public final static ExecutorService octreePool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+    public static HashMap<String, Material> materials = new HashMap<>();
 
     public static final BlockPos[] branchSequence = {
             new BlockPos(1, 0, 0),
@@ -314,6 +314,60 @@ public class Cache {
             ? null : soundPos.add(offset);
     }
 
+    public static void load(HashMap<String, RawMaterial> raw) {
+        // read tags & blocks from game registry
+        HashMap<String, LinkedList<String>> tags = new HashMap<>();
+        HashMap<String, LinkedList<String>> blocks = new HashMap<>();
+        Registry.BLOCK.forEach((Block block) -> {
+            String name = block.getTranslationKey();
+            block.getDefaultState().streamTags()
+                    .forEach((tag) -> {
+                        String id = tag.id().toString();
+                        Utils.update(tags, id, name);
+                        Utils.update(blocks, name, id);
+                    });
+        });
+        // TODO create custom tagging system w/ regex here
+        // TODO attach materials to tagging system
+    }
+
+    // Recalls baked materials from config
+    // gets the config dir, opens the save file, parses it
+    @Environment(EnvType.CLIENT)
+    public static void recall() {
+        try {
+            String name = FabricLoader.getInstance().getConfigDir().toAbsolutePath().resolve("resounding.cache").toString();
+            FileReader reader = new FileReader(name);
+            Cache.materials = new Gson().fromJson(reader, Utils.token(Cache.materials));
+            // TODO fix parsing?
+//            LinkedTreeMap<String, LinkedTreeMap>
+        } catch (IOException e) {
+            LOGGER.error("Failed recalling baked materials from config", e);
+        }
+    }
+
+    // saves baked materials for recalling later
+    // serializes materials, gets the config dir, writes to the file
+    @Environment(EnvType.CLIENT)
+    public static void save() {
+        if (Cache.materials.isEmpty()) {
+            // TODO perhaps generate here?
+            LOGGER.error("Cannot save, materials undefined");
+            return;
+        }
+        String json = new Gson().toJson(Cache.materials, Utils.token(Cache.materials));
+        String name = FabricLoader.getInstance().getConfigDir().toAbsolutePath().toString() + FileSystems.getDefault().getSeparator() + "resounding.cache";
+        try {
+            FileWriter writer = new FileWriter(name);
+            writer.write(json);
+            writer.close();
+        } catch (IOException e) {
+            LOGGER.error("Failed saving materials", e);
+        }
+    }
+
+    // generate / bake materials from resource packs
+    // gets resource pack list, filters for relevant sub-file, reads json values, refines the materials to relevant inputs
     @Environment(EnvType.CLIENT)
     public static void generate() {
         HashMap<String, RawMaterial> config = new HashMap<>();
@@ -322,7 +376,7 @@ public class Cache {
         Collection<ResourcePackProfile> list = Engine.mc.getResourcePackManager().getEnabledProfiles();
         for (ResourcePackProfile profile : list) {
             ResourcePack pack = profile.createResourcePack();
-            InputStream input = null;
+            InputStream input;
             // if not available, move on
             try { input = pack.openRoot(filename); }
             catch (IOException e) { continue; }
@@ -357,24 +411,11 @@ public class Cache {
             });
         }
 
-        // read tags & blocks from game registry
-        HashMap<String, LinkedList<String>> tags = new HashMap<>();
-        HashMap<String, LinkedList<String>> blocks = new HashMap<>();
-        Registry.BLOCK.forEach((Block block) -> {
-            String name = block.getTranslationKey();
-            block.getDefaultState().streamTags()
-                .forEach((tag) -> {
-                    String id = tag.id().toString();
-                    Utils.update(tags, id, name);
-                    Utils.update(blocks, name, id);
-                });
-        });
-
-
         // flatten & refine materials
         HashMap<String, RawMaterial> flat = flattenMaterials(config);
-        HashMap<String, Material> refined = refineMaterials(flat);
-        LOGGER.info(tags.size() + "");
+        // TODO: split this section into assign()?
+        load(flat);
+        Cache.materials = refineMaterials(flat);
     }
 
     // TODO: AIR as base solvent
