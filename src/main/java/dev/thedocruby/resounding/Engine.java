@@ -115,8 +115,7 @@ public class Engine {
 		sourceID = sourceIDIn;
 		//* TODO remove
 		if (!hasLoaded) {
-			Cache.generate();
-			hasLoaded = true;
+			hasLoaded = Cache.generate();
 			return;
 		}
 		// */

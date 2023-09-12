@@ -36,6 +36,7 @@ import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static dev.thedocruby.resounding.Engine.mc;
 import static dev.thedocruby.resounding.Utils.LOGGER;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Map.entry;
@@ -334,46 +335,68 @@ public class Cache {
     // Recalls baked materials from config
     // gets the config dir, opens the save file, parses it
     @Environment(EnvType.CLIENT)
-    public static void recall() {
+    public static boolean recall() {
         try {
             String name = FabricLoader.getInstance().getConfigDir().toAbsolutePath().resolve("resounding.cache").toString();
             FileReader reader = new FileReader(name);
-            Cache.materials = new Gson().fromJson(reader, Utils.token(Cache.materials));
-            // TODO fix parsing?
-//            LinkedTreeMap<String, LinkedTreeMap>
+            // parse JSON input
+            LinkedTreeMap<String, LinkedTreeMap> baked = new Gson().fromJson(reader, Utils.token(Cache.materials));
+            HashMap<String, Material> config = new HashMap<>();
+            baked.forEach((String key, LinkedTreeMap value) ->
+                config.put(key, new Material(
+                    // defaults to air's values
+                    (double) value.getOrDefault("impedance", 350),
+                    (double) value.getOrDefault("permeation", 1),
+                    (double) value.getOrDefault("state", 1)
+                ))
+            );
+            // when nothing's present, fix it!
+            if (config.isEmpty()) return false;
+            // keep atomic, apply last
+            Cache.materials = config;
+            return true;
         } catch (IOException e) {
             LOGGER.error("Failed recalling baked materials from config", e);
+            return false;
         }
     }
 
     // saves baked materials for recalling later
     // serializes materials, gets the config dir, writes to the file
     @Environment(EnvType.CLIENT)
-    public static void save() {
+    public static boolean save() {
         if (Cache.materials.isEmpty()) {
             // TODO perhaps generate here?
             LOGGER.error("Cannot save, materials undefined");
-            return;
+            return false;
         }
         String json = new Gson().toJson(Cache.materials, Utils.token(Cache.materials));
-        String name = FabricLoader.getInstance().getConfigDir().toAbsolutePath().toString() + FileSystems.getDefault().getSeparator() + "resounding.cache";
+        String name = FabricLoader.getInstance().getConfigDir().toAbsolutePath() + FileSystems.getDefault().getSeparator() + "resounding.cache";
         try {
             FileWriter writer = new FileWriter(name);
             writer.write(json);
             writer.close();
         } catch (IOException e) {
             LOGGER.error("Failed saving materials", e);
+            return false;
         }
+        return true;
     }
 
     // generate / bake materials from resource packs
     // gets resource pack list, filters for relevant sub-file, reads json values, refines the materials to relevant inputs
     @Environment(EnvType.CLIENT)
-    public static void generate() {
+    public static boolean generate() {
+        if (mc.world == null) return false;
+        boolean result = recall();
+        if (result) { // TODO extract into GUI handler
+            LOGGER.info("Recalled materials!");
+            return true;
+        }
         HashMap<String, RawMaterial> config = new HashMap<>();
         // get & loop through enabled packs
         String filename = "resounding.materials.json";
-        Collection<ResourcePackProfile> list = Engine.mc.getResourcePackManager().getEnabledProfiles();
+        Collection<ResourcePackProfile> list = mc.getResourcePackManager().getEnabledProfiles();
         for (ResourcePackProfile profile : list) {
             ResourcePack pack = profile.createResourcePack();
             InputStream input;
@@ -416,6 +439,9 @@ public class Cache {
         // TODO: split this section into assign()?
         load(flat);
         Cache.materials = refineMaterials(flat);
+
+        save(); // TODO remove?
+        return true;
     }
 
     // TODO: AIR as base solvent
