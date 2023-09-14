@@ -40,6 +40,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static dev.thedocruby.resounding.Cache.material;
+import static dev.thedocruby.resounding.Engine.hasLoaded;
 
 @Environment(EnvType.CLIENT)
 @Mixin(WorldChunk.class)
@@ -132,6 +133,12 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 
 	public void initStorage() {
 		if (world == null || !world.isClient) return;
+		//* TODO remove
+		if (!hasLoaded) {
+			hasLoaded = Cache.generate();
+//			return;
+		}
+		// */
 
 		// 16³ blocks
 		ChunkSection[] chunkSections = getSectionArray();
@@ -228,7 +235,9 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 
 		Material material = material(state);
 		// if block is homogenous with branch
+		//* TODO remove
 		if (material.equals(branch.material)) return;
+		// */
 
 		// will get optimized on reload, must keep this function quick
 		branch.material = null;

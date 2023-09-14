@@ -56,7 +56,7 @@ public class Engine {
 	private static SoundCategory category; // TODO: replace with tagging system
 	private static boolean auxOnly; // TODO: rename?
 
-	private static boolean hasLoaded = false;
+	public static boolean hasLoaded = false;
 	//private static boolean doDirEval; // TODO: DirEval
 	// }
 	// }
@@ -113,7 +113,7 @@ public class Engine {
 		if (pC.pLog) startTime = System.nanoTime();
 		auxOnly = auxOnlyIn;
 		sourceID = sourceIDIn;
-		//* TODO remove
+		/* TODO remove
 		if (!hasLoaded) {
 			hasLoaded = Cache.generate();
 			return;

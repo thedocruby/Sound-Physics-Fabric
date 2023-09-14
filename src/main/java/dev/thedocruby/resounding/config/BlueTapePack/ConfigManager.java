@@ -31,12 +31,7 @@ public class ConfigManager {
     public static final String configVersion = "1.0.0-bc.8";
 
     @Environment(EnvType.CLIENT)
-    public static final ResoundingConfig DEFAULT = Engine.env == EnvType.CLIENT ? new ResoundingConfig(){{
-        Map<String, MaterialData> map = Cache.nameToGroup.keySet().stream()
-                .collect(Collectors.toMap(e -> e, e -> new MaterialData(e, 0.5, 0.5)));
-        map.putIfAbsent("DEFAULT", new MaterialData("DEFAULT", 0.5, 0.5));
-        materials.materialProperties = map;
-    }} : null;
+    public static final ResoundingConfig DEFAULT = Engine.env == EnvType.CLIENT ? new ResoundingConfig() : null;
 
     public static void registerAutoConfig() {
         if (holder != null) {throw new IllegalStateException("Configuration already registered");}
@@ -69,7 +64,6 @@ public class ConfigManager {
     @Environment(EnvType.CLIENT)
     public static void handleBrokenMaterials(@NotNull ResoundingConfig c ){
         Utils.LOGGER.error("Critical materialProperties error. Resetting materialProperties");
-        c.materials.materialProperties = Cache.materialDefaults;
         c.materials.blockWhiteList = Collections.emptyList();
     }
 
@@ -84,7 +78,6 @@ public class ConfigManager {
     }
 
     public static ActionResult onSave(ResoundingConfig c) {
-        if (Engine.env == EnvType.CLIENT && (c.materials.materialProperties == null || c.materials.materialProperties.get("DEFAULT") == null)) handleBrokenMaterials(c);
         if (Engine.env == EnvType.CLIENT && c.preset != ConfigPresets.LOAD_SUCCESS) c.preset.configChanger.accept(c);
         if ((c.version == null || !Objects.equals(c.version, configVersion)) && !resetOnReload) handleUnstableConfig(c);
         if (PrecomputedConfig.pC != null) PrecomputedConfig.pC.deactivate();

@@ -15,8 +15,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 
-import static dev.thedocruby.resounding.Cache.blockMap;
-
 @Environment(EnvType.CLIENT)
 public class Branch {
     public BlockPos start;
@@ -103,9 +101,4 @@ public class Branch {
     }
 
     public Branch replace(Long pos, Branch branch) { return leaves.replace(pos, branch); }
-
-    public static Pair<Double,Double> blockAttributes(BlockState state) {
-        @Nullable Pair<Double,Double> attributes = blockMap.get(state.getBlock());
-        return attributes == null ? new Pair<>(0.0,0.0) : attributes;
-    }
 }

@@ -12,8 +12,6 @@ import net.minecraft.util.math.MathHelper;
 
 import java.util.*;
 
-import static dev.thedocruby.resounding.Cache.nameToGroup;
-
 /*
     Values, which remain constant after the config has changed
     Only one instance allowed
@@ -154,43 +152,28 @@ public class PrecomputedConfig {
             fastShared = c.quality.sharedAirspaceMode == SharedAirspaceMode.FAST;
             fastPick = true; // TODO: Make config setting for this
 
-            defaultRefl = c.materials.materialProperties.get("DEFAULT").reflectivity();
-            defaultAbs = c.materials.materialProperties.get("DEFAULT").permeability();
-            blockWhiteSet = new HashSet<>(c.materials.blockWhiteList);
-            Map<String, MaterialData> matProp = new HashMap<>(c.materials.materialProperties);
-            c.materials.blockWhiteList.stream()
-                    .map(a -> new Pair<>(a, matProp.get(a)))
-                    .forEach(e -> {
-                        if (e.getRight() != null && Double.isFinite(e.getRight().reflectivity()) && Double.isFinite(e.getRight().permeability())) {
-                            if (e.getRight().example() == null || e.getRight().example().isBlank()) {
-                                matProp.put(e.getLeft(), new MaterialData(e.getLeft(), e.getRight().reflectivity(), e.getRight().permeability()));
-                            }
-                            return;
-                        }
-                        Utils.LOGGER.error("Missing material data for {}, Default entry created.", e.getLeft());
-                        final MaterialData newData = new MaterialData(e.getLeft(), defaultRefl, defaultAbs);
-                        matProp.put(e.getLeft(), newData);
-                    });
+            defaultRefl = .5; // TODO remove
+            defaultAbs = .5; // TODO remove
+            blockWhiteSet = new HashSet<>(c.materials.blockWhiteList); // TODO remove/rework
+//            Map<String, MaterialData> matProp = new HashMap<>(c.materials.materialProperties);
+//            c.materials.blockWhiteList.stream()
+//                    .map(a -> new Pair<>(a, matProp.get(a)))
+//                    .forEach(e -> {
+//                        if (e.getRight() != null && Double.isFinite(e.getRight().reflectivity()) && Double.isFinite(e.getRight().permeability())) {
+//                            if (e.getRight().example() == null || e.getRight().example().isBlank()) {
+//                                matProp.put(e.getLeft(), new MaterialData(e.getLeft(), e.getRight().reflectivity(), e.getRight().permeability()));
+//                            }
+//                            return;
+//                        }
+//                        Utils.LOGGER.error("Missing material data for {}, Default entry created.", e.getLeft());
+//                        final MaterialData newData = new MaterialData(e.getLeft(), defaultRefl, defaultAbs);
+//                        matProp.put(e.getLeft(), newData);
+//                    });
 
-            reflMap = new HashMap<>();
-            absMap = new HashMap<>();
-            final List<String> wrong = new ArrayList<>();
-            final List<String> toRemove = new ArrayList<>();
-            matProp.forEach((k, v) -> { //TODO Materials need to be reworked.
-                if (nameToGroup.containsKey(k) || blockWhiteSet.contains(k)) {
-                    reflMap.put(k, Math.pow(v.reflectivity(), globalReflRcp));
-                    absMap.put(k, v.permeability());
-                } else if (!k.equals("DEFAULT")) {
-                    wrong.add(k + " (" + v.example() + ")");
-                    toRemove.add(k);
-                }
-            });
-            if (!wrong.isEmpty()) {
-                Utils.LOGGER.error("Material Data map contains {} extra entries:\n{}\nPatching Material Data...", wrong.size(), Arrays.toString(new List[]{wrong}));
-                toRemove.forEach(matProp::remove);
-            }
+            reflMap = new HashMap<>(); // TODO remove
+            absMap = new HashMap<>(); // TODO remove
 
-            c.materials.materialProperties = matProp;
+//            c.materials.materialProperties = matProp;
 
             recordsDisable = c.misc.recordsDisable;
             srcRefrRate = Math.max(c.quality.sourceRefreshRate, 1);

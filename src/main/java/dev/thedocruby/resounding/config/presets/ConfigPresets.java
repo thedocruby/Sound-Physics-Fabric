@@ -157,7 +157,7 @@ public enum ConfigPresets {
 
             null, null, null, null, null, null,
 
-            Cache.materialDefaults,
+            null,
 
             null, null, null, null,null, null
     ));//</editor-fold>

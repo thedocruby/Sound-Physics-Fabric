@@ -54,14 +54,14 @@ public class ConfigChanger {
 
     @Environment(EnvType.CLIENT)
     public static void setMaterialProperties(ResoundingConfig.Materials materials, @Nullable Map<String, MaterialData> materialProperties) {
-        if (materials.materialProperties == null || materials.materialProperties.isEmpty()) materials.materialProperties = Cache.materialDefaults;
-        if (materialProperties != null) materialProperties.forEach((s, newData) -> materials.materialProperties.compute(s, (k, v) -> (v == null) ?
-                new MaterialData( s,
-                        newData.reflectivity() == -1 ? 0.5 : newData.reflectivity(),
-                        newData.permeability() == -1 ? 0.5 : newData.permeability())
-              : new MaterialData( (v.example() == null) ? s : v.example(),
-                        newData.reflectivity() == -1 ? v.reflectivity() : newData.reflectivity(),
-                        newData.permeability() == -1 ? v.permeability() : newData.permeability())));
+//        if (materials.materialProperties == null || materials.materialProperties.isEmpty()) materials.materialProperties = Cache.materialDefaults;
+//        if (materialProperties != null) materialProperties.forEach((s, newData) -> materials.materialProperties.compute(s, (k, v) -> (v == null) ?
+//                new MaterialData( s,
+//                        newData.reflectivity() == -1 ? 0.5 : newData.reflectivity(),
+//                        newData.permeability() == -1 ? 0.5 : newData.permeability())
+//              : new MaterialData( (v.example() == null) ? s : v.example(),
+//                        newData.reflectivity() == -1 ? v.reflectivity() : newData.reflectivity(),
+//                        newData.permeability() == -1 ? v.permeability() : newData.permeability())));
     }
 
     /*

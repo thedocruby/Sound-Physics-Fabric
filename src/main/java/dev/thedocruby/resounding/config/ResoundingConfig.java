@@ -38,8 +38,8 @@ public class ResoundingConfig implements ConfigData {
     @ConfigEntry.Gui.CollapsibleObject @Environment(EnvType.CLIENT)
     public Effects effects = new Effects();
 
-    @Comment("These affect how sound interacts with different categories of blocks.")
-    @ConfigEntry.Gui.CollapsibleObject @Environment(EnvType.CLIENT) @ConfigEntry.Gui.Excluded // TODO: Materials
+    @Comment("These affect how sound waves interact with different materials.")
+    @ConfigEntry.Gui.CollapsibleObject @Environment(EnvType.CLIENT) // TODO: Materials
     public Materials materials = new Materials();
 
     @Comment("Minor tweaks and toggles that didn't fit in another category.")
@@ -54,7 +54,7 @@ public class ResoundingConfig implements ConfigData {
     public Server server = new Server();
 
     @Environment(EnvType.CLIENT)
-    public static class General{
+    public static class General {
 
         // TODO: Attenuation
 
@@ -62,7 +62,7 @@ public class ResoundingConfig implements ConfigData {
         @Comment("The global volume of simulated reverberations, in percent.\n§7[•]§r Range: 0 - 100\n§a[+]§r Performance Impact: Low")
         public int globalReverbGain = 75;
 
-        @Comment("The strength of the reverb effect.\n§7[•]§r Range: >= 0.0\n§7[•]§r Higher values make the echo last longer.\n§7[•]§r Lower values make the echos shorter.\n§a[+]§r Performance Impact: Low")
+        @Comment("The strength of the reverb effect.\n§7[•]§r Range: >= 0.0\n§7[•]§r Higher values gives longer reverberation.\n§7[•]§r Lower values give shorter reverberation.\n§a[+]§r Performance Impact: Low")
         public double globalReverbStrength = 2.5;
 
         @Comment("The smoothness of the reverb.\n§7[•]§r Range: 0.0 - 1.0\n§7[•]§r Affects how uniform the reverb is.\n§7[•]§r Low values cause a distinct fluttering or bouncing echo.\n§7[•]§r High values make this effect less distinct by smoothing out the reverb.\n§a[+]§r Performance Impact: Low")
@@ -84,7 +84,7 @@ public class ResoundingConfig implements ConfigData {
     }
 
     @Environment(EnvType.CLIENT)
-    public static class Quality{
+    public static class Quality { // TODO extends...
 
         @ConfigEntry.BoundedDiscrete(max = 32, min = 4)
         @Comment("The resolution quality of the reverb effect.\n§7[•]§r Range: 4 - 32\n§a[+]§r Higher values create a fuller, more colorful, more immersive reverb effect.\n§c[ ! ]§r Performance Impact: High\n§e[-]§r Increases memory usage")
@@ -154,9 +154,10 @@ public class ResoundingConfig implements ConfigData {
 
     @Environment(EnvType.CLIENT)
     public static class Materials {
-            @ConfigEntry.Gui.Excluded // TODO: Materials
-            //@Comment("Material properties for blocks.\n§7[•]§r Range: 0.0 - 1.0\n§a[+]§r Performance Impact: Low\n§c[ ! ]§r NOTE: Material occlusion is not implemented in the current version.")
-            public Map<String, MaterialData> materialProperties = Cache.materialDefaults;
+//            @ConfigEntry.Gui.Excluded // TODO: Materials
+//            @ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
+//            @Comment("Material properties for blocks.\n§7[•]§r Range: 0.0 - 1.0\n§a[+]§r Performance Impact: Low\n§c[ ! ]§r NOTE: Material occlusion is not implemented in the current version.")
+//            public Map<String, MaterialData> materialProperties = Cache.materialDefaults;
 
             @ConfigEntry.Gui.Excluded // TODO: Materials
             //@Comment("Material properties for specific blocks. (e.g. block.minecraft.stone)\n§7[•]§r Overrides the \"By category\" setting.\n§a[+]§r Performance Impact: Low")
