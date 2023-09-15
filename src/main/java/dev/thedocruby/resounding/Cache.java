@@ -4,16 +4,13 @@ import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import dev.thedocruby.resounding.raycast.Branch;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
-import dev.thedocruby.resounding.toolbox.MaterialData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.resource.ResourcePackProfile;
-import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Pair;
@@ -34,12 +31,10 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static dev.thedocruby.resounding.Engine.mc;
 import static dev.thedocruby.resounding.Utils.LOGGER;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Map.entry;
 
 public class Cache {
     // do these really belong here?
@@ -49,6 +44,8 @@ public class Cache {
     public final static ExecutorService octreePool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
     public static HashMap<String, Material> materials = new HashMap<>();
+
+    public static HashMap<String, Tag> tags = new HashMap<>();
 
     public static final BlockPos[] branchSequence = {
             new BlockPos(1, 0, 0),
@@ -152,15 +149,6 @@ public class Cache {
     // determined by temperature & humidity (global transmission coefficient -> alters permeability)
     public static double transmission = 1;
 
-    @Environment(EnvType.CLIENT) // TODO: is this method needed on server side?
-    public static @NotNull Material material(@Nullable BlockState state) {
-        // TODO: separate map for fluids? (performance consideration)
-        // state.getFluidState().getFluid(); // Fluids.WATER/EMPTY/etc
-        // TODO: cascading effect material controllers
-        return materials.getOrDefault(state.getBlock().getName(), materials.get("air")); // TODO remove / use block tagging/regex system
-//        return materials.getOrDefault(state.getBlock().getName(), null);
-    }
-
     // TODO integrate tagging system here
     public static Vec3d adjustSource(SoundCategory category, String tag, Vec3d soundPos) {
         Vec3d offset = new Vec3d(0,0,0);
@@ -169,9 +157,18 @@ public class Cache {
         if (stepPattern.matcher(tag).matches()) offset = offset.add(0.0,0.2,0.0);
         // doNineRay = pC.nineRay && (lastSoundCategory == SoundCategory.BLOCKS || isBlock); // TODO: Occlusion
         return uiPattern    .matcher(tag).matches()
-            || ignorePattern.matcher(tag).matches()
-            || spamPattern  .matcher(tag).matches()
-            ? null : soundPos.add(offset);
+                || ignorePattern.matcher(tag).matches()
+                || spamPattern  .matcher(tag).matches()
+                ? null : soundPos.add(offset);
+    }
+
+    @Environment(EnvType.CLIENT) // TODO: is this method needed on server side?
+    public static @NotNull Material material(@Nullable BlockState state) {
+        // TODO: separate map for fluids? (performance consideration)
+        // state.getFluidState().getFluid(); // Fluids.WATER/EMPTY/etc
+        // TODO: cascading effect material controllers
+        return materials.getOrDefault(state.getBlock().getName(), materials.get("air")); // TODO remove / use block tagging/regex system
+//        return materials.getOrDefault(state.getBlock().getName(), null);
     }
 
     public static void load() {
@@ -187,42 +184,41 @@ public class Cache {
                         Utils.update(blocks, name, id);
                     });
         });
+//        Pattern.compile();
         // TODO create custom tagging system w/ regex here
         // TODO attach materials to tagging system
+        // TODO cache tags instead of dynamic determination
+    }
+
+    // Recalls tags from config
+    // gets the config dir, opens the save file, parses it
+    public static boolean recallTags() {
+        HashMap<String, Tag> temp = Utils.recall("resounding.tags", Utils.token(Cache.tags), (LinkedTreeMap value) -> new Tag(
+                // defaults to air's values
+                (String[]) value.getOrDefault("regexes",  new String[] {}),
+                (String[]) value.getOrDefault("blocks", new String[] {})
+        ));
+        if (temp.isEmpty()) return false;
+        else Cache.tags = temp;
+        return true;
     }
 
     // Recalls baked materials from config
     // gets the config dir, opens the save file, parses it
-    @Environment(EnvType.CLIENT)
-    public static boolean recall() {
-        try {
-            String name = FabricLoader.getInstance().getConfigDir().toAbsolutePath().resolve("resounding.cache").toString();
-            FileReader reader = new FileReader(name);
-            // parse JSON input
-            LinkedTreeMap<String, LinkedTreeMap> baked = new Gson().fromJson(reader, Utils.token(Cache.materials));
-            HashMap<String, Material> config = new HashMap<>();
-            baked.forEach((String key, LinkedTreeMap value) ->
-                config.put(key, new Material(
-                    // defaults to air's values
-                    (double) value.getOrDefault("impedance", 350),
-                    (double) value.getOrDefault("permeation", 1),
-                    (double) value.getOrDefault("state", 1)
-                ))
-            );
-            // when nothing's present, fix it!
-            if (config.isEmpty()) return false;
-            // keep atomic, apply last
-            Cache.materials = config;
-            return true;
-        } catch (IOException e) {
-            LOGGER.error("Failed recalling baked materials from config", e);
-            return false;
-        }
+    public static boolean recallMaterials() {
+        HashMap<String, Material> temp = Utils.recall("resounding.cache", Utils.token(Cache.materials), (LinkedTreeMap value) -> new Material(
+                // defaults to air's values
+                (double) value.getOrDefault("impedance",  350),
+                (double) value.getOrDefault("permeation", 1),
+                (double) value.getOrDefault("state",      1)
+        ));
+        if (temp.isEmpty()) return false;
+        else Cache.materials = temp;
+        return true;
     }
 
     // saves baked materials for recalling later
     // serializes materials, gets the config dir, writes to the file
-    @Environment(EnvType.CLIENT)
     public static boolean save() {
         if (Cache.materials.isEmpty()) {
             // TODO perhaps generate here?
@@ -247,7 +243,7 @@ public class Cache {
     @Environment(EnvType.CLIENT)
     public static boolean generate() {
         if (mc.world == null) return false;
-        boolean result = recall();
+        boolean result = recallMaterials();
         if (result) { // TODO extract into GUI handler
             load();
             LOGGER.info("Recalled materials!");

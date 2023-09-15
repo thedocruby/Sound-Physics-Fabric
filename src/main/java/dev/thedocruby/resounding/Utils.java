@@ -1,11 +1,16 @@
 package dev.thedocruby.resounding;
 
+import com.google.gson.Gson;
+import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
+import net.fabricmc.loader.api.FabricLoader;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.FileReader;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -19,24 +24,24 @@ public class Utils {
 
     public static final Logger LOGGER = LogManager.getLogger("Resounding");
 
-// java's type system sucks... overloading, ugh - even python could do better...
-// an overloaded array length extender function boolean[], boolean[][], int[], int[][] {
+    // java's type system sucks... overloading, ugh - even python could do better...
+    // an overloaded array length extender function boolean[], boolean[][], int[], int[][] {
 
-public static int[]       extendArray (final int[]       old, final int min) {
-	return ArrayUtils.addAll(old, new int    [Math.max(1,old.length - min)]  );
-}
+    public static int[]       extendArray (final int[]       old, final int min) {
+        return ArrayUtils.addAll(old, new int    [Math.max(1,old.length - min)]  );
+    }
 
-public static int[][]     extendArray (final int[][]     old, final int min) {
-	return ArrayUtils.addAll(old, new int    [Math.max(1,old.length - min)][]);
-}
+    public static int[][]     extendArray (final int[][]     old, final int min) {
+        return ArrayUtils.addAll(old, new int    [Math.max(1,old.length - min)][]);
+    }
 
-public static boolean[]   extendArray (final boolean[]   old, final int min) {
-	return ArrayUtils.addAll(old, new boolean[Math.max(1,old.length - min)]  );
-}
+    public static boolean[]   extendArray (final boolean[]   old, final int min) {
+        return ArrayUtils.addAll(old, new boolean[Math.max(1,old.length - min)]  );
+    }
 
-public static boolean[][] extendArray (final boolean[][] old, final int min) {
-	return ArrayUtils.addAll(old, new boolean[Math.max(1,old.length - min)][]);
-}
+    public static boolean[][] extendArray (final boolean[][] old, final int min) {
+        return ArrayUtils.addAll(old, new boolean[Math.max(1,old.length - min)][]);
+    }
     public static <IN,OUT> OUT memoize(HashMap<String, IN> in, HashMap<String, OUT> out, String key, BiFunction<Function<String, OUT>, IN, OUT> calculate) {
         return memoize(in, out, key, calculate, true);
     }
@@ -96,6 +101,25 @@ public static boolean[][] extendArray (final boolean[][] old, final int min) {
 
     /* utility function */
     public static <T> double logBase(T x, T b) { return Math.log((Double) x) / Math.log((Double) b); }
+
+    // Recalls arbitrary configuration from file
+    // gets the config dir, opens the save file, parses it
+    public static <T> HashMap<String, T> recall(String path, Type token, Function<LinkedTreeMap,T> deserializer) {
+        HashMap<String, T> output = new HashMap<>();
+        LinkedTreeMap<String, LinkedTreeMap> input = new LinkedTreeMap<>();
+        try {
+            String name = FabricLoader.getInstance().getConfigDir().toAbsolutePath().resolve(path).toString();
+            FileReader reader = new FileReader(name);
+            // parse JSON input
+            input = new Gson().fromJson(reader, token);
+        } catch (IOException e) {
+            LOGGER.error("Failed recalling '" + token.toString() + "'s from config", e);
+        }
+        input.forEach((String key, LinkedTreeMap value) ->
+                output.put(key, deserializer.apply(value))
+        );
+        return output;
+    }
 
 // }
 
