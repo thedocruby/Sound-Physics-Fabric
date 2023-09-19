@@ -30,7 +30,10 @@ import java.nio.file.FileSystems;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static dev.thedocruby.resounding.Engine.mc;
 import static dev.thedocruby.resounding.Utils.LOGGER;
@@ -184,6 +187,30 @@ public class Cache {
                         Utils.update(blocks, name, id);
                     });
         });
+        // if recalling yields results
+        if (recallTags()) {
+            // loop through all tags and check all blocks against them
+            for (String name : Cache.tags.keySet()) {
+                Tag tag = Cache.tags.get(name);
+                Stream<String> updates = blocks.keySet().stream().filter(
+                        // if matches any of the patterns
+                        block -> Arrays.stream(tag.patterns())
+                                .filter(Objects::nonNull)
+                                .anyMatch(t -> t.matcher(block).find())
+                              // or is explicitly stated
+                              || Arrays.asList(tag.blocks()).contains(block)
+                );
+                // update both mappings
+                updates.forEach(block -> {
+                    LinkedList<String> list = tags.getOrDefault(name, new LinkedList<>() {});
+                    list.add(block);
+                    tags.put(name, list);
+                    list = blocks.getOrDefault(block, new LinkedList<>() {});
+                    list.add(name);
+                    blocks.put(block, list);
+                });
+            }
+        }
 //        Pattern.compile();
         // TODO create custom tagging system w/ regex here
         // TODO attach materials to tagging system
@@ -193,10 +220,11 @@ public class Cache {
     // Recalls tags from config
     // gets the config dir, opens the save file, parses it
     public static boolean recallTags() {
+        final Function<String[],Pattern[]> toPatterns = patterns -> (Pattern[]) Arrays.stream(patterns).map(Pattern::compile).toArray();
         HashMap<String, Tag> temp = Utils.recall("resounding.tags", Utils.token(Cache.tags), (LinkedTreeMap value) -> new Tag(
                 // defaults to air's values
-                (String[]) value.getOrDefault("regexes",  new String[] {}),
-                (String[]) value.getOrDefault("blocks", new String[] {})
+                toPatterns.apply(((String[]) value.getOrDefault("patterns",  new String[] {}))),
+                (String[]) value.getOrDefault("list", new String[] {})
         ));
         if (temp.isEmpty()) return false;
         else Cache.tags = temp;
@@ -269,7 +297,7 @@ public class Cache {
             raw.forEach((String key, LinkedTreeMap value) -> {
                 ArrayList<String> solute = (ArrayList<String>) value.getOrDefault("solute", new ArrayList<String>());
                 ArrayList<Double> compo = (ArrayList<Double>) value.getOrDefault("composition", new ArrayList<Double>());
-                ArrayList<Double> composition = new ArrayList<Double>();
+                ArrayList<Double> composition = new ArrayList<>();
                 // adjust for %
                 compo.forEach(c -> composition.add(Utils.when(c, .01)));
 
