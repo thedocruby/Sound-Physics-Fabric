@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.resource.ResourcePack;
+import net.minecraft.resource.ResourcePackProfile;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,11 +13,17 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
+import static dev.thedocruby.resounding.Engine.mc;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
 * Utils
@@ -119,6 +127,34 @@ public class Utils {
                 output.put(key, deserializer.apply(value))
         );
         return output;
+    }
+
+    public static <T> HashMap<String, T> resource(ResourcePack pack, String path, Type token, Function<LinkedTreeMap, T> deserializer) {
+        HashMap<String, T> output = new HashMap<>();
+        InputStream input;
+        // if not available, move on
+        try { input = pack.openRoot(path); }
+        catch (IOException e) { return output; }
+
+        LinkedTreeMap<String, LinkedTreeMap> raw = new Gson().fromJson(new InputStreamReader(input, UTF_8), token);
+        // place deserialized values into record.
+        // this issue is fixed in GSON 2.10, but not in 2.8.9 (what 1.18.2 uses)
+        raw.forEach((String key, LinkedTreeMap value) -> {
+            output.put(key, deserializer.apply(value));
+        });
+
+        return output;
+    }
+
+    public static Stream<String> granularFilter(Set<String> items, Pattern[] patterns, String[] keys) {
+        return items.stream().filter(
+                // if matches any of the patterns
+                item -> Arrays.stream(patterns)
+                        .filter(Objects::nonNull)
+                        .anyMatch(t -> t.matcher(item).find())
+                     // or is explicitly stated
+                     || Arrays.asList(keys).contains(item)
+        );
     }
 
 // }

@@ -32,12 +32,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static dev.thedocruby.resounding.Engine.mc;
 import static dev.thedocruby.resounding.Utils.LOGGER;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class Cache {
     // do these really belong here?
@@ -62,6 +60,7 @@ public class Cache {
     public static final BlockPos[] blockSequence = ArrayUtils.addFirst(branchSequence, new BlockPos(0, 0, 0));
 
     static Vec3d playerPos;
+    private static HashMap<String, LinkedList<String>> blocks;
 
     // code for queue
     public static void plantOctree(ChunkChain chunk, int index, Branch root) {
@@ -174,66 +173,14 @@ public class Cache {
 //        return materials.getOrDefault(state.getBlock().getName(), null);
     }
 
-    public static void load() {
-        // read tags & blocks from game registry
-        HashMap<String, LinkedList<String>> tags = new HashMap<>();
-        HashMap<String, LinkedList<String>> blocks = new HashMap<>();
-        Registry.BLOCK.forEach((Block block) -> {
-            String name = block.getTranslationKey();
-            block.getDefaultState().streamTags()
-                    .forEach((tag) -> {
-                        String id = tag.id().toString();
-                        Utils.update(tags, id, name);
-                        Utils.update(blocks, name, id);
-                    });
-        });
-        // if recalling yields results
-        if (recallTags()) {
-            // loop through all tags and check all blocks against them
-            for (String name : Cache.tags.keySet()) {
-                Tag tag = Cache.tags.get(name);
-                Stream<String> updates = blocks.keySet().stream().filter(
-                        // if matches any of the patterns
-                        block -> Arrays.stream(tag.patterns())
-                                .filter(Objects::nonNull)
-                                .anyMatch(t -> t.matcher(block).find())
-                              // or is explicitly stated
-                              || Arrays.asList(tag.blocks()).contains(block)
-                );
-                // update both mappings
-                updates.forEach(block -> {
-                    LinkedList<String> list = tags.getOrDefault(name, new LinkedList<>() {});
-                    list.add(block);
-                    tags.put(name, list);
-                    list = blocks.getOrDefault(block, new LinkedList<>() {});
-                    list.add(name);
-                    blocks.put(block, list);
-                });
-            }
-        }
-//        Pattern.compile();
-        // TODO create custom tagging system w/ regex here
-        // TODO attach materials to tagging system
-        // TODO cache tags instead of dynamic determination
-    }
 
-    // Recalls tags from config
-    // gets the config dir, opens the save file, parses it
-    public static boolean recallTags() {
-        final Function<String[],Pattern[]> toPatterns = patterns -> (Pattern[]) Arrays.stream(patterns).map(Pattern::compile).toArray();
-        HashMap<String, Tag> temp = Utils.recall("resounding.tags", Utils.token(Cache.tags), (LinkedTreeMap value) -> new Tag(
-                // defaults to air's values
-                toPatterns.apply(((String[]) value.getOrDefault("patterns",  new String[] {}))),
-                (String[]) value.getOrDefault("list", new String[] {})
-        ));
-        if (temp.isEmpty()) return false;
-        else Cache.tags = temp;
-        return true;
-    }
 
+
+
+    // TODO integrate
     // Recalls baked materials from config
     // gets the config dir, opens the save file, parses it
-    public static boolean recallMaterials() {
+    public static boolean recall() {
         HashMap<String, Material> temp = Utils.recall("resounding.cache", Utils.token(Cache.materials), (LinkedTreeMap value) -> new Material(
                 // defaults to air's values
                 (double) value.getOrDefault("impedance",  350),
@@ -270,99 +217,48 @@ public class Cache {
     // gets resource pack list, filters for relevant sub-file, reads json values, refines the materials to relevant inputs
     @Environment(EnvType.CLIENT)
     public static boolean generate() {
+        // TODO figure out in-menu-cache generation
         if (mc.world == null) return false;
-        boolean result = recallMaterials();
-        if (result) { // TODO extract into GUI handler
-            load();
-            LOGGER.info("Recalled materials!");
-            return true;
-        }
-        HashMap<String, RawMaterial> config = new HashMap<>();
+        // TODO save/recall cacheTable
+//        boolean result = recallMaterials();
+        HashMap<String, RawMaterial> materials = new HashMap<>();
+        HashMap<String, RawTag> tags = new HashMap<>();
         // get & loop through enabled packs
-        String filename = "resounding.materials.json";
         Collection<ResourcePackProfile> list = mc.getResourcePackManager().getEnabledProfiles();
         for (ResourcePackProfile profile : list) {
             ResourcePack pack = profile.createResourcePack();
-            InputStream input;
-            // if not available, move on
-            try { input = pack.openRoot(filename); }
-            catch (IOException e) { continue; }
-
-            LinkedTreeMap<String, LinkedTreeMap> raw = new Gson().fromJson(
-                new InputStreamReader(input, UTF_8),
-                Utils.token(config)
-            );
-            // place deserialized values into record.
-            // this issue is fixed in GSON 2.10, but not in 2.8.9 (what 1.18.2 uses)
-            raw.forEach((String key, LinkedTreeMap value) -> {
-                ArrayList<String> solute = (ArrayList<String>) value.getOrDefault("solute", new ArrayList<String>());
-                ArrayList<Double> compo = (ArrayList<Double>) value.getOrDefault("composition", new ArrayList<Double>());
-                ArrayList<Double> composition = new ArrayList<>();
-                // adjust for %
-                compo.forEach(c -> composition.add(Utils.when(c, .01)));
-
-                config.put(key, new RawMaterial(
-                        (Double) value.getOrDefault("weight", null),
-                        // default solvent is air
-                        (String) value.getOrDefault("solvent", null),
-                        solute.toArray(new String[solute.size()]),
-                        composition.toArray(new Double[composition.size()]),
-                        (Double) value.getOrDefault("granularity", null),
-                        (Double) value.getOrDefault("melt", null),
-                        (Double) value.getOrDefault("boil", null),
-                        (Double) value.getOrDefault("temperature", null),
-                        (Double) value.getOrDefault("density", null),
-                        (Double) value.getOrDefault("swave", null),
-                        (Double) value.getOrDefault("lwave", null)
-                ));
-            });
+            materials.putAll(Utils.resource(pack, "resounding.materials.json", Utils.token(materials), Cache::deserializeMaterials));
+            tags.putAll(Utils.resource(pack, "resounding.tags.json", Utils.token(tags), Cache::deserializeTags));
         }
 
-        // flatten & refine materials
-        HashMap<String, RawMaterial> flat = flattenMaterials(config);
-        Cache.materials = refineMaterials(flat);
-        // TODO: split this section into assign()?
-        load();
+
+        // read tags & blocks from game registry
+        // TODO: make static
+        Registry.BLOCK.forEach((Block block) -> {
+            String name = block.getTranslationKey();
+            block.getDefaultState().streamTags()
+                    .forEach((tag) -> {
+                        String id = tag.id().toString();
+                        // extrapolate old tags & append
+                        tags.put(id,
+                                new RawTag(null,
+                                        tags.getOrDefault(
+                                                id, new RawTag(null, new String[]{}, null, null)
+                                        ).blocks(),
+                                null, null)
+                        );
+                        Utils.update(blocks, name, id);
+                    });
+        });
+
+        Cache.materials = finalizeMaterials(materials);
+        Cache.tags = finalizeTags(tags);
 
         save(); // TODO remove?
         return true;
     }
 
-    // TODO: AIR as base solvent
-    public static HashMap<String, Material> refineMaterials(HashMap<String, RawMaterial> rawMaterials) {
-        final double temperature = 287.15D;
-        // global average for 20th century 14°C/57°F/287°K
-        rawMaterials.forEach((String key, RawMaterial raw) -> {
-            rawMaterials.put(key,
-                    new RawMaterial(raw.weight(),
-                        raw.solvent(), raw.solute(), raw.composition(),
-                        raw.granularity(),
-                        raw.melt(), raw.boil(),
-                        temperature,
-                        raw.density(),
-                        raw.swave(), raw.lwave()
-                    )
-            );
-        });
-
-        HashMap<String, Material> refined = new HashMap<>();
-        for (String key : rawMaterials.keySet()) {
-            RawMaterial raw = rawMaterials.get(key);
-            // if material isn't worthy of a tag, skip it
-            if
-            (  raw.granularity() == null
-            || raw.melt() == null || raw.boil() == null
-            || raw.density() == null
-            || raw.temperature() == null
-            || raw.swave() == null || raw.lwave() == null
-            )  continue;
-            refine(rawMaterials, refined, key);
-        }
-        return refined;
-    }
-
-
-    private static Material refine(HashMap<String, RawMaterial> in, HashMap<String, Material> out, String key) {
+    private static Material bake(HashMap<String, RawMaterial> in, HashMap<String, Material> out, String key) {
         return Utils.memoize(in, out, key, (getter, raw) -> {
             // TODO: consider using isFluid() in runtime (affects absorption)
             //     : (isFluid * .25 + 2state)/2
@@ -395,91 +291,198 @@ public class Cache {
         }, false);
     }
 
-    // flatten all materials
-    private static HashMap<String, RawMaterial> flattenMaterials(HashMap<String, RawMaterial> raw) {
-        HashMap<String, RawMaterial> flat = new HashMap<>();
-        for (String key : raw.keySet()) {
-            flatten(raw, flat, key);
+
+
+
+    private static RawTag deserializeTags(LinkedTreeMap value) {
+        final Function<String[],Pattern[]> toPatterns = patterns -> (Pattern[]) Arrays.stream(patterns).map(Pattern::compile).toArray();
+        return new RawTag(
+                toPatterns.apply(((String[]) value.getOrDefault("patterns",  new String[] {}))),
+                (String[]) value.getOrDefault("blocks", new String[] {}),
+
+                toPatterns.apply(((String[]) value.getOrDefault("tagPatterns",  new String[] {}))),
+                (String[]) value.getOrDefault("tags", new String[] {})
+        );
+    }
+    public static HashMap<String, Tag> flattenTags(HashMap<String, RawTag> tags, HashMap<String, LinkedList<String>> blocks) {
+        HashMap<String, Tag> output = new HashMap<>();
+        Set<String> tagNames = tags.keySet();
+        // loop through all tags and check all blocks against them
+        for (String name : tags.keySet()) {
+            // TODO: could this be done with annotations?
+            // NOTE: don't access any non-static closure variables other than (getter, raw) inside the calculation phase
+            //       This will change how the compiler sees the lambda, (see: lambda closures)
+            //       and will recreate it on every use (resulting in a large performance hit)
+            // in: [RawTag], out: [Tag], getter returns Tags (hint: .blocks())
+            // Cache.tags must be pre-populated with game's default tags
+            Utils.memoize(tags, output, name, (getter, raw) -> {
+                // get already populated info
+                LinkedList<String> self = (LinkedList<String>) Arrays.stream(tags.getOrDefault(name,
+                        new RawTag(null, new String[]{}, null, null)
+                ).blocks()).toList();
+
+                Utils.granularFilter(tagNames, raw.tagPatterns(), raw.tags()).map(getter).forEach(tag -> {
+                    self.addAll(
+                            Arrays.stream(tag.blocks()).toList()
+                    );
+                });
+                Utils.granularFilter(blocks.keySet(), raw.patterns(), raw.blocks()).forEach(block -> {
+                    self.add(block);
+                    // update reverse mapping, too
+                    Utils.update(blocks, block, name);
+                });
+
+                return new Tag(self.toArray(new String[]{}));
+            });
         }
-        raw = flat;
-        return raw;
+        return output;
+        // TODO attach materials to tagging system
+        // TODO cache tags instead of dynamic determination
+    }
+    private static HashMap<String, Tag> finalizeTags(HashMap<String, RawTag> tags) {
+        return flattenTags(tags, Cache.blocks);
     }
 
-    // fully calculates a raw material, and recursively flattens all dependencies
-    private static void flatten(HashMap<String, RawMaterial> in, HashMap<String, RawMaterial> out, String key) {
-        // TODO: could this be done with annotations?
-        // NOTE: don't access any non-static closure variables other than (getter, raw) inside the calculation phase
-        //       This will change how the compiler sees the lambda, (see: lambda closures)
-        //       and will recreate it on every use (resulting in a large performance hit)
-        Utils.memoize(in, out, key, (getter, raw) -> {
-            // calculation logic
-            String[] solute = raw.solute() == null ? new String[]{} : raw.solute();
-            int length = solute.length;
-            // only calculate if necessary
-            if (length > 0) {
-                // coefficient initialization
-                Double totalWeight = 0D;
-                Double[] composition = raw.composition() == null ? new Double[]{} : raw.composition();
+    private static RawMaterial deserializeMaterials(LinkedTreeMap value) {
+        final Double[] compo = (Double[]) value.getOrDefault("composition", new Double[]{});
+        // adjust for %
+        final Stream<Double> composition = Arrays.stream(compo).map(c -> Utils.when(c, .01));
 
-                // raw.value.overridden? -> null
-                Double[] weight = raw.weight() == null ? new Double[length] : null;
-                String   solvent = raw.solvent();
-                Double[] granularity = raw.granularity() == null ? new Double[length] : null;
-                Double[] melt = raw.melt() == null ? new Double[length] : null;
-                Double[] boil = raw.boil() == null ? new Double[length] : null;
-                Double[] density = raw.density() == null ? new Double[length] : null;
-                Double[] swave = raw.swave() == null ? new Double[length] : null;
-                Double[] lwave = raw.lwave() == null ? new Double[length] : null;
+        return new RawMaterial(
+                (Double) value.getOrDefault("weight", null),
+                // default solvent is air
+                (String) value.getOrDefault("solvent", null),
+                (String[]) value.getOrDefault("solute", new String[]{}),
+                (Double[]) composition.toArray(),
+                (Double) value.getOrDefault("granularity", null),
+                (Double) value.getOrDefault("melt", null),
+                (Double) value.getOrDefault("boil", null),
+                (Double) value.getOrDefault("temperature", null),
+                (Double) value.getOrDefault("density", null),
+                (Double) value.getOrDefault("swave", null),
+                (Double) value.getOrDefault("lwave", null)
+        );
+    }
+    private static HashMap<String, RawMaterial> flattenMaterials(HashMap<String, RawMaterial> in) {
+        HashMap<String, RawMaterial> flat = new HashMap<>();
+        for (String key : in.keySet()) {
+            // TODO: could this be done with annotations?
+            // NOTE: don't access any non-static closure variables other than (getter, raw) inside the calculation phase
+            //       This will change how the compiler sees the lambda, (see: lambda closures)
+            //       and will recreate it on every use (resulting in a large performance hit)
+            // fully calculates a raw material, and recursively flattens all dependencies
+            Utils.memoize(in, flat, key, (getter, raw) -> {
+                // calculation logic
+                String[] solute = raw.solute() == null ? new String[]{} : raw.solute();
+                int length = solute.length;
+                // only calculate if necessary
+                if (length > 0) {
+                    // coefficient initialization
+                    Double totalWeight = 0D;
+                    Double[] composition = raw.composition() == null ? new Double[]{} : raw.composition();
 
-                // loop through solute, collect values for weighted calculations
-                RawMaterial[] components = new RawMaterial[length];
-                for (int i = 0; i < length; i++) {
-                    // get values
-                    components[i] = getter.apply(solute[i]);
-                    if (components[i] == null) {
-                        LOGGER.error("{} is invalid or cyclical", solute[i]);
-                        return null;
+                    // raw.value.overridden? -> null
+                    Double[] weight = raw.weight() == null ? new Double[length] : null;
+                    String   solvent = raw.solvent();
+                    Double[] granularity = raw.granularity() == null ? new Double[length] : null;
+                    Double[] melt = raw.melt() == null ? new Double[length] : null;
+                    Double[] boil = raw.boil() == null ? new Double[length] : null;
+                    Double[] density = raw.density() == null ? new Double[length] : null;
+                    Double[] swave = raw.swave() == null ? new Double[length] : null;
+                    Double[] lwave = raw.lwave() == null ? new Double[length] : null;
+
+                    // loop through solute, collect values for weighted calculations
+                    RawMaterial[] components = new RawMaterial[length];
+                    for (int i = 0; i < length; i++) {
+                        // get values
+                        components[i] = getter.apply(solute[i]);
+                        if (components[i] == null) {
+                            LOGGER.error("{} is invalid or cyclical", solute[i]);
+                            return null;
+                        }
+                        totalWeight += components[i].weight();
                     }
-                    totalWeight += components[i].weight();
-                }
-                // calculate composition
-                for (int i = 0; i < length; i++) {
-                    RawMaterial component = components[i];
-                    Double percent = composition[i];
-                    Double w = component.weight();
                     // calculate composition
-                    Double c = totalWeight + totalWeight * percent - w;
-                    totalWeight = c; // adjust weight for next item
-                    weight[i] = c * percent;
+                    for (int i = 0; i < length; i++) {
+                        RawMaterial component = components[i];
+                        Double percent = composition[i];
+                        Double w = component.weight();
+                        // calculate composition
+                        Double c = totalWeight + totalWeight * percent - w;
+                        totalWeight = c; // adjust weight for next item
+                        weight[i] = c * percent;
 
-                    // apply composition
-                    // 1st component dictates solvent when not present
-                    if (solvent == null) solvent = component.solvent();
-                    Utils.updWeight(granularity, i, component.granularity(), c * percent);
-                    Utils.updWeight(melt, i, component.melt(), c * percent);
-                    Utils.updWeight(boil, i, component.boil(), c * percent);
-                    Utils.updWeight(density, i, component.density(), c * percent);
-                    Utils.updWeight(swave, i, component.swave(), c * percent);
-                    Utils.updWeight(lwave, i, component.lwave(), c * percent);
+                        // apply composition
+                        // 1st component dictates solvent when not present
+                        if (solvent == null) solvent = component.solvent();
+                        Utils.updWeight(granularity, i, component.granularity(), c * percent);
+                        Utils.updWeight(melt, i, component.melt(), c * percent);
+                        Utils.updWeight(boil, i, component.boil(), c * percent);
+                        Utils.updWeight(density, i, component.density(), c * percent);
+                        Utils.updWeight(swave, i, component.swave(), c * percent);
+                        Utils.updWeight(lwave, i, component.lwave(), c * percent);
+                    }
+
+                    // apply weights to values and update value
+                    raw = new RawMaterial(
+                            totalWeight,
+                            raw.solvent(),
+                            null, //raw.solute(),      // for posterity/debug, not needed in runtime
+                            raw.composition(), // for posterity/debug, not needed in runtime
+                            Utils.unWeight(totalWeight, granularity, raw.granularity()),
+                            Utils.unWeight(totalWeight, melt, raw.melt()),
+                            Utils.unWeight(totalWeight, boil, raw.boil()),
+                            raw.temperature(),
+                            Utils.unWeight(totalWeight, density, raw.density()),
+                            Utils.unWeight(totalWeight, swave, raw.swave()),
+                            Utils.unWeight(totalWeight, lwave, raw.lwave())
+                    );
                 }
+                return raw;
+            }, false);
+        }
+        in = flat;
+        return in;
+    }
+    // TODO: AIR as base solvent
+    public static HashMap<String, Material> refineMaterials(HashMap<String, RawMaterial> rawMaterials) {
+        final double temperature = 287.15D;
+        // global average for 20th century 14°C/57°F/287°K
+        rawMaterials.forEach((String key, RawMaterial raw) -> {
+            rawMaterials.put(key,
+                    new RawMaterial(raw.weight(),
+                            raw.solvent(), raw.solute(), raw.composition(),
+                            raw.granularity(),
+                            raw.melt(), raw.boil(),
+                            temperature,
+                            raw.density(),
+                            raw.swave(), raw.lwave()
+                    )
+            );
+        });
 
-                // apply weights to values and update value
-                raw = new RawMaterial(
-                        totalWeight,
-                        raw.solvent(),
-                        null, //raw.solute(),      // for posterity/debug, not needed in runtime
-                        raw.composition(), // for posterity/debug, not needed in runtime
-                        Utils.unWeight(totalWeight, granularity, raw.granularity()),
-                        Utils.unWeight(totalWeight, melt, raw.melt()),
-                        Utils.unWeight(totalWeight, boil, raw.boil()),
-                        raw.temperature(),
-                        Utils.unWeight(totalWeight, density, raw.density()),
-                        Utils.unWeight(totalWeight, swave, raw.swave()),
-                        Utils.unWeight(totalWeight, lwave, raw.lwave())
-                );
-            }
-            return raw;
-        }, false);
+        HashMap<String, Material> refined = new HashMap<>();
+        for (String key : rawMaterials.keySet()) {
+            RawMaterial raw = rawMaterials.get(key);
+            // if material isn't worthy of a tag, skip it
+            if
+            (  raw.granularity() == null
+                    || raw.melt() == null || raw.boil() == null
+                    || raw.density() == null
+                    || raw.temperature() == null
+                    || raw.swave() == null || raw.lwave() == null
+            )  continue;
+            bake(rawMaterials, refined, key);
+        }
+        return refined;
+    }
+    private static HashMap<String, Material> finalizeMaterials(HashMap<String, RawMaterial> materials) {
+        // flatten & refine materials
+        return refineMaterials(
+                flattenMaterials(
+                        materials
+                )
+        );
     }
 
 }

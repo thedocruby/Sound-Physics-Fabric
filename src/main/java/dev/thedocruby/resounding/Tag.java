@@ -1,11 +1,12 @@
 package dev.thedocruby.resounding;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.regex.Pattern;
 
+// basic wrapper class for consistency
 public record Tag(
-        @Nullable Pattern[] patterns, // regex' for blocks in tag
-        @Nullable String[] blocks     // exact block names in tag
+        @NotNull String[] blocks // all blocks belonging to this tag
 ) {
 }
