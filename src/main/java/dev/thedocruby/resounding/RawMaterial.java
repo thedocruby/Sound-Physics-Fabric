@@ -13,6 +13,8 @@ public record RawMaterial(
         @Nullable String[] solute,       // tags that comprise other values when empty
         @SerializedName("composition")
         @Nullable Double[] composition,  // how much importance is applied to each solute
+        @SerializedName("ratio")
+        @Nullable Boolean  ratio,        // true: ignore solute weights (ratio by weight), false: use solute weights (ratio by # of items)
         @SerializedName("granularity")
         @Nullable Double   granularity,  // boundary count between solvent & solute
         @SerializedName("melt")

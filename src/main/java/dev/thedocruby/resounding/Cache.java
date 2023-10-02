@@ -354,6 +354,7 @@ public class Cache {
                 (String) value.getOrDefault("solvent", null),
                 (String[]) value.getOrDefault("solute", new String[]{}),
                 (Double[]) composition.toArray(),
+                (Boolean) value.getOrDefault("ratio", false),
                 (Double) value.getOrDefault("granularity", null),
                 (Double) value.getOrDefault("melt", null),
                 (Double) value.getOrDefault("boil", null),
@@ -374,68 +375,59 @@ public class Cache {
             Utils.memoize(in, flat, key, (getter, raw) -> {
                 // calculation logic
                 String[] solute = raw.solute() == null ? new String[]{} : raw.solute();
+                Double[] composition = raw.composition() == null ? new Double[]{} : raw.composition();
                 int length = solute.length;
+                boolean ratio = raw.ratio() != null && raw.ratio();
                 // only calculate if necessary
                 if (length > 0) {
-                    // coefficient initialization
-                    Double totalWeight = 0D;
-                    Double[] composition = raw.composition() == null ? new Double[]{} : raw.composition();
-
-                    // raw.value.overridden? -> null
-                    Double[] weight = raw.weight() == null ? new Double[length] : null;
-                    String   solvent = raw.solvent();
-                    Double[] granularity = raw.granularity() == null ? new Double[length] : null;
-                    Double[] melt = raw.melt() == null ? new Double[length] : null;
-                    Double[] boil = raw.boil() == null ? new Double[length] : null;
-                    Double[] density = raw.density() == null ? new Double[length] : null;
-                    Double[] swave = raw.swave() == null ? new Double[length] : null;
-                    Double[] lwave = raw.lwave() == null ? new Double[length] : null;
-
-                    // loop through solute, collect values for weighted calculations
-                    RawMaterial[] components = new RawMaterial[length];
+                    Property weight = new Property(ratio);
+                    Property granularity = new Property(ratio);
+                    Property melt = new Property(ratio);
+                    Property boil = new Property(ratio);
+                    Property temperature = new Property(ratio);
+                    Property density = new Property(ratio);
+                    Property swave = new Property(ratio);
+                    Property lwave = new Property(ratio);
+                    LinkedList<String> errors = new LinkedList<>();
                     for (int i = 0; i < length; i++) {
+                        String name = solute[i];
+                        Double count = composition[i];
                         // get values
-                        components[i] = getter.apply(solute[i]);
-                        if (components[i] == null) {
-                            LOGGER.error("{} is invalid or cyclical", solute[i]);
-                            return null;
+                        RawMaterial material = getter.apply(name);
+                        if (material == null) {
+                            errors.add(name);
+                            continue;
                         }
-                        totalWeight += components[i].weight();
+                        // save values
+                        weight.add(material.weight(), 1D, count);
+                        granularity.add(material.granularity(), material.weight(), count);
+                        melt.add(material.melt(), material.weight(), count);
+                        boil.add(material.boil(), material.weight(), count);
+                        temperature.add(material.temperature(), material.weight(), count);
+                        density.add(material.density(), material.weight(), count);
+                        swave.add(material.swave(), material.weight(), count);
+                        lwave.add(material.lwave(), material.weight(), count);
                     }
-                    // calculate composition
-                    for (int i = 0; i < length; i++) {
-                        RawMaterial component = components[i];
-                        Double percent = composition[i];
-                        Double w = component.weight();
-                        // calculate composition
-                        Double c = totalWeight + totalWeight * percent - w;
-                        totalWeight = c; // adjust weight for next item
-                        weight[i] = c * percent;
-
-                        // apply composition
-                        // 1st component dictates solvent when not present
-                        if (solvent == null) solvent = component.solvent();
-                        Utils.updWeight(granularity, i, component.granularity(), c * percent);
-                        Utils.updWeight(melt, i, component.melt(), c * percent);
-                        Utils.updWeight(boil, i, component.boil(), c * percent);
-                        Utils.updWeight(density, i, component.density(), c * percent);
-                        Utils.updWeight(swave, i, component.swave(), c * percent);
-                        Utils.updWeight(lwave, i, component.lwave(), c * percent);
+                    // spew errors
+                    if (!errors.isEmpty()) {
+                        for (String error : errors)
+                            // TODO identify reasonable solution to prevent suboptimal non-static reference here
+                            LOGGER.error("{} in {} is invalid or cyclical", error, key);
+                        return null;
                     }
-
-                    // apply weights to values and update value
                     raw = new RawMaterial(
-                            totalWeight,
-                            raw.solvent(),
-                            null, //raw.solute(),      // for posterity/debug, not needed in runtime
+                            weight.get(),
+                            raw.solvent(),     // for posterity/debug, not needed in runtime
+                            raw.solute(),      // for posterity/debug, not needed in runtime
                             raw.composition(), // for posterity/debug, not needed in runtime
-                            Utils.unWeight(totalWeight, granularity, raw.granularity()),
-                            Utils.unWeight(totalWeight, melt, raw.melt()),
-                            Utils.unWeight(totalWeight, boil, raw.boil()),
-                            raw.temperature(),
-                            Utils.unWeight(totalWeight, density, raw.density()),
-                            Utils.unWeight(totalWeight, swave, raw.swave()),
-                            Utils.unWeight(totalWeight, lwave, raw.lwave())
+                            ratio,
+                            granularity.get(),
+                            melt.get(),
+                            boil.get(),
+                            temperature.get(),
+                            density.get(),
+                            swave.get(),
+                            lwave.get()
                     );
                 }
                 return raw;
@@ -452,6 +444,7 @@ public class Cache {
             rawMaterials.put(key,
                     new RawMaterial(raw.weight(),
                             raw.solvent(), raw.solute(), raw.composition(),
+                            raw.ratio(),
                             raw.granularity(),
                             raw.melt(), raw.boil(),
                             temperature,
