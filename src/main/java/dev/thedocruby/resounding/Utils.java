@@ -129,7 +129,7 @@ public class Utils {
         return output;
     }
 
-    public static <T> HashMap<String, T> resource(ResourcePack pack, String path, Type token, Function<LinkedTreeMap, T> deserializer) {
+    public static <T> HashMap<String, T> resource(ResourcePack pack, String path, Type token, BiFunction<String, LinkedTreeMap, HashMap<String, T>> deserializer) {
         HashMap<String, T> output = new HashMap<>();
         InputStream input;
         // if not available, move on
@@ -140,7 +140,8 @@ public class Utils {
         // place deserialized values into record.
         // this issue is fixed in GSON 2.10, but not in 2.8.9 (what 1.18.2 uses)
         raw.forEach((String key, LinkedTreeMap value) -> {
-            output.put(key, deserializer.apply(value));
+            HashMap<String, T> map = deserializer.apply(key, value);
+            output.putAll(map);
         });
 
         return output;

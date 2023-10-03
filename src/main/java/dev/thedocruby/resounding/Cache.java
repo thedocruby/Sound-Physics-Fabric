@@ -32,7 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import static dev.thedocruby.resounding.Engine.mc;
 import static dev.thedocruby.resounding.Utils.LOGGER;
@@ -228,7 +227,7 @@ public class Cache {
         for (ResourcePackProfile profile : list) {
             ResourcePack pack = profile.createResourcePack();
             materials.putAll(Utils.resource(pack, "resounding.materials.json", Utils.token(materials), Cache::deserializeMaterials));
-            tags.putAll(Utils.resource(pack, "resounding.tags.json", Utils.token(tags), Cache::deserializeTags));
+            tags.putAll(Utils.resource(pack, "resounding.tags.json", Utils.token(tags), Cache::deserializeTag));
         }
 
 
@@ -294,15 +293,17 @@ public class Cache {
 
 
 
-    private static RawTag deserializeTags(LinkedTreeMap value) {
+    private static HashMap<String, RawTag> deserializeTag(String name, LinkedTreeMap value) {
         final Function<String[],Pattern[]> toPatterns = patterns -> (Pattern[]) Arrays.stream(patterns).map(Pattern::compile).toArray();
-        return new RawTag(
+        HashMap<String, RawTag> map = new HashMap<>();
+        map.put(name, new RawTag(
                 toPatterns.apply(((String[]) value.getOrDefault("patterns",  new String[] {}))),
                 (String[]) value.getOrDefault("blocks", new String[] {}),
 
                 toPatterns.apply(((String[]) value.getOrDefault("tagPatterns",  new String[] {}))),
                 (String[]) value.getOrDefault("tags", new String[] {})
-        );
+        ));
+        return map;
     }
     public static HashMap<String, Tag> flattenTags(HashMap<String, RawTag> tags, HashMap<String, LinkedList<String>> blocks) {
         HashMap<String, Tag> output = new HashMap<>();
@@ -343,17 +344,30 @@ public class Cache {
         return flattenTags(tags, Cache.blocks);
     }
 
-    private static RawMaterial deserializeMaterials(LinkedTreeMap value) {
-        final Double[] compo = (Double[]) value.getOrDefault("composition", new Double[]{});
-        // adjust for %
-        final Stream<Double> composition = Arrays.stream(compo).map(c -> Utils.when(c, .01));
-
-        return new RawMaterial(
+    private static HashMap<String, RawMaterial> deserializeMaterials(String name, LinkedTreeMap value) {
+        LinkedTreeMap<String, LinkedTreeMap> children = (LinkedTreeMap) value.getOrDefault("children", null);
+        HashMap<String, RawMaterial> map = new HashMap<>();
+        // treat children as if they had solute: [parent,...] & composition: [0,...] (sets default values)
+        if (children != null) {
+            for (String key : children.keySet()) {
+                LinkedTreeMap modified = children.get(key);
+                String[] solute = (String[]) modified.getOrDefault("solute", new String[]{});
+                Double[] composition = (Double[]) modified.getOrDefault("solute", new Double[]{});
+                solute = ArrayUtils.addFirst(solute, name);
+                // set as base!
+                composition = ArrayUtils.addFirst(composition, 0D);
+                modified.put("solute", solute);
+                modified.put("composition", composition);
+                map.putAll(Cache.deserializeMaterials(key, modified));
+            }
+        }
+        map.put(name,
+            new RawMaterial(
                 (Double) value.getOrDefault("weight", null),
                 // default solvent is air
                 (String) value.getOrDefault("solvent", null),
                 (String[]) value.getOrDefault("solute", new String[]{}),
-                (Double[]) composition.toArray(),
+                (Double[]) value.getOrDefault("composition", new Double[]{}),
                 (Boolean) value.getOrDefault("ratio", false),
                 (Double) value.getOrDefault("granularity", null),
                 (Double) value.getOrDefault("melt", null),
@@ -362,7 +376,9 @@ public class Cache {
                 (Double) value.getOrDefault("density", null),
                 (Double) value.getOrDefault("swave", null),
                 (Double) value.getOrDefault("lwave", null)
+            )
         );
+        return map;
     }
     private static HashMap<String, RawMaterial> flattenMaterials(HashMap<String, RawMaterial> in) {
         HashMap<String, RawMaterial> flat = new HashMap<>();
