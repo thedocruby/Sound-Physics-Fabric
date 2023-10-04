@@ -250,8 +250,11 @@ public class Cache {
                     });
         });
 
-        Cache.materials = finalizeMaterials(materials);
         Cache.tags = finalizeTags(tags);
+
+        // generate material mappings for blocks
+        materials.putAll(Cache.shellMaterials(Cache.blocks));
+        Cache.materials.putAll(finalizeMaterials(materials));
 
         save(); // TODO remove?
         return true;
@@ -305,6 +308,8 @@ public class Cache {
         ));
         return map;
     }
+    // @impure
+    // is there an @annotation for this?
     public static HashMap<String, Tag> flattenTags(HashMap<String, RawTag> tags, HashMap<String, LinkedList<String>> blocks) {
         HashMap<String, Tag> output = new HashMap<>();
         Set<String> tagNames = tags.keySet();
@@ -344,8 +349,32 @@ public class Cache {
         return flattenTags(tags, Cache.blocks);
     }
 
+    private static HashMap<String, RawMaterial> shellMaterials(HashMap<String, LinkedList<String>> blocks) {
+        HashMap<String, RawMaterial> materials = new HashMap<>();
+        for (String key : blocks.keySet()) {
+            String[] solute = blocks.get(key).toArray(new String[0]);
+            Double[] composition = new Double[solute.length];
+
+            // sets first tag as base
+            // TODO is this right?
+            composition[0] = 0D;
+
+            // uses fully.qualified.block.name, any collisions are the fault of the pack developer
+            materials.put(key, new RawMaterial(
+                    1D, null, solute, composition,
+                    // TODO ratio, or not to ratio... that is the question
+                    false, // false:uses material weights
+                    null, null, null,
+                    null, null, null,
+                    null
+            ));
+        }
+        return materials;
+    }
+
     private static HashMap<String, RawMaterial> deserializeMaterials(String name, LinkedTreeMap value) {
-        LinkedTreeMap<String, LinkedTreeMap> children = (LinkedTreeMap) value.getOrDefault("children", null);
+        LinkedTreeMap<String, LinkedTreeMap> children =
+                (LinkedTreeMap<String, LinkedTreeMap>) value.getOrDefault("children", null);
         HashMap<String, RawMaterial> map = new HashMap<>();
         // treat children as if they had solute: [parent,...] & composition: [0,...] (sets default values)
         if (children != null) {
@@ -492,6 +521,11 @@ public class Cache {
                         materials
                 )
         );
+    }
+
+    private static HashMap<String, Material> finalize(HashMap<String, Material> materials) {
+        // TODO heavy hashmap optimization here
+        return materials;
     }
 
 }
