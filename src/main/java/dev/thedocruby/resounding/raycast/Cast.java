@@ -8,6 +8,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.util.Pair;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -19,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import static dev.thedocruby.resounding.Cache.*;
 import static dev.thedocruby.resounding.Utils.LOGGER;
@@ -26,6 +28,8 @@ import static dev.thedocruby.resounding.Utils.LOGGER;
 @Environment(EnvType.CLIENT)
 public class Cast {
 
+    private @Nullable final Vec3d targetPos;
+    private final BiFunction<Vec3d, Vec3d, Pair<Double, Vec3i>> stepFinder;
     public @NotNull World world;
 
     public @Nullable ChunkChain chunk = null;
@@ -37,12 +41,17 @@ public class Cast {
     public @Nullable Step stood = null; // prior position
     public @Nullable Double impeded = null; // prior impedance
 
-    public static Material air = Cache.material(Blocks.AIR.getDefaultState());
+//    public static Material air = Cache.material(Blocks.AIR.getDefaultState());
 
-    public Cast(@NotNull World world, @Nullable Branch tree, @Nullable ChunkChain chunk) {
+    public Cast(@NotNull World world, @Nullable Branch tree, @Nullable ChunkChain chunk, @Nullable Vec3d targetPos) {
         this.world = world;
         this.tree = tree;
         this.chunk = chunk;
+        this.targetPos = targetPos;
+        this.stepFinder = targetPos == null ? this::noTarget : this::target;
+    }
+    public Cast(@NotNull World world, @Nullable Branch tree, @Nullable ChunkChain chunk) {
+        this(world, tree, chunk, null);
     }
     //* raycast {
     public void raycast(@NotNull Vec3d position, @NotNull Vec3d angle) {
@@ -51,7 +60,7 @@ public class Cast {
     }
     public void raycast(@NotNull Vec3d position, @NotNull Vec3d vector, double power) {
         //* access branch {
-//        assert vector != null; // the power check above will catch this
+        // assert vector != null; // the power check above will catch this
         final Vec3d normalized = normalize(position,vector);
         chunk = chunk.access((int) normalized.x >> 4, (int) normalized.z >> 4);
         if (chunk != null) tree = chunk.getBranch((int) normalized.y >> 4);
@@ -144,23 +153,48 @@ public class Cast {
     }
     public static Vec3d blockToVec(BlockPos pos) { return new Vec3d(pos.getX(), pos.getY(), pos.getZ()); }
     // } */
+    //* getBoundStep injections {
+    // could be static if other constraints weren't here.
+    private Pair<Double, Vec3i> noTarget(Vec3d position, Vec3d vector) { return new Pair<>(Double.POSITIVE_INFINITY, Vec3i.ZERO); }
+    private Pair<Double, Vec3i> target(Vec3d position, Vec3d vector) {
+        // TODO consider (== soundChunk) check
+        // NOTE unnecessary - final & handled in constructor. This fn isn't used when this value is null
+        // assert this.targetPos != null;
+        return getStepPair(this.targetPos, 0, position, vector);
+    }
+    // } */
     //* physics {
-    private static Step getStep(Vec3d base, int size, Vec3d position, Vec3d vector) {
+    // runtime dependency injection pattern prevents this from being static
+    private Step getStep(Vec3d base, int size, Vec3d position, Vec3d vector) {
         /* return a new position, based on which bounding wall will be hit first
          * this is for path tracing using an octree
-
+         */
+        final Pair<Double, Vec3i> pair = getStepPair(base, size, position, vector);
+        final Pair<Double, Vec3i> target = stepFinder.apply(position, vector);
+        double coefficient = pair.getLeft();
+        Vec3i  planarIndex = pair.getRight();
+        // this does not belong inside getStepPair
+        if (target.getLeft() < coefficient) {
+            coefficient = target.getLeft();
+            planarIndex = target.getRight();
+        }
+        return new Step(vector.multiply(coefficient), planarIndex);
+    }
+    private static Pair<Double,Vec3i> getStepPair(Vec3d base, int size, Vec3d position, Vec3d vector) {
+        /*
          ** base     = diquad start position
          ** size     = diquad size
          ** position = ray position
          ** vector   = ray trajectory
          */
 
+        // TODO profile intercalating comparisons vs separated approach
         // normalize magnitude to closest wall
         double coefficient = boundAxis(base.x, position.x, size, vector.x);
         double ystep       = boundAxis(base.y, position.y, size, vector.y);
         double zstep       = boundAxis(base.z, position.z, size, vector.z);
 
-        Vec3i planarIndex = new Vec3i(-Math.signum(vector.x),0,0);
+        Vec3i planarIndex  = new Vec3i(-Math.signum(vector.x), 0, 0);
 
         // branch hint: 1/3 probability -> NO
         // same as min(x,min(y,z)) + planar index
@@ -177,10 +211,10 @@ public class Cast {
             // coefficient = epsilon;
         }
         // closest wall -> magnitude
-        return new Step(vector.multiply(coefficient),planarIndex);
+        return new Pair(coefficient,planarIndex);
     }
     private static double boundAxis(double base, double pos, double size, double dir) {
-        // normalize position, determine distance, apply direction
+        // normalize position, determine distance, apply direction & normalize coefficient
         double value = (base - pos  +  (dir > 0 ? size : 0)) / dir;
         // theoretically zeroes/negatives shouldn't ever happen, but they did extensively during debugging
         // (and were promptly fixed!) But you can't ever be too sure.

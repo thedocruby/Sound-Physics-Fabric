@@ -180,8 +180,15 @@ public class Engine {
 	*/
 
 	@Environment(EnvType.CLIENT)
+	private static @NotNull CastResults raycastAirspace(@NotNull Pair<Vec3d,Integer> input, double amplitude, Vec3d targetPosition) {
+		// TODO implement occlusion
+//		Cast cast = new Cast(mc.world, null, soundChunk, listenerPos);
+		return new CastResults(0,0,0);
+	}
+
+	@Environment(EnvType.CLIENT)
 	private static @NotNull CastResults raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude) {
-		int id = input.getRight();
+		int id = input.getRight(); // for debug purposes
 		Vec3d vector = input.getLeft();
 		// TODO: allow arbitrary bounces per ray & splitting
 		// int bounces = 100; // -> incompatible with present algorithms
