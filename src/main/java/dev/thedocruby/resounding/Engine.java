@@ -22,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -167,27 +168,30 @@ public class Engine {
 				tag, (System.nanoTime() - startTime) / 10e5D);
 	}
 
-    /* TODO: Occlusion
 	@Environment(EnvType.CLIENT)
-	private static double getBlockOcclusionD(final BlockState blockState) {
-		BlockSoundGroup soundType = blockState.getSoundGroup();
-		String blockName = blockState.getBlock().getTranslationKey();
-		if (pC.blockWhiteSet.contains(blockName)) return pC.blockWhiteMap.get(blockName).permeability();
-
-		double r = pC.absorptionMap.getOrDefault(soundType, Double.NaN);
-		return Double.isNaN(r) ? pC.defaultAbsorption : r;
-	}
-	*/
-
-	@Environment(EnvType.CLIENT)
-	private static @NotNull CastResults raycastAirspace(@NotNull Pair<Vec3d,Integer> input, double amplitude, Vec3d targetPosition) {
-		// TODO implement occlusion
-//		Cast cast = new Cast(mc.world, null, soundChunk, listenerPos);
-		return new CastResults(0,0,0);
+	private static @NotNull CastResults airspace(@NotNull Pair<Vec3d,Integer> input, double amplitude, Vec3d targetPosition) {
+		return raycast(input, amplitude, input.getLeft().distanceTo(targetPosition), targetPosition,
+				// always permeate!
+				(Cast c, CastResults r) -> false
+		);
 	}
 
 	@Environment(EnvType.CLIENT)
 	private static @NotNull CastResults raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude) {
+		return raycast(input, amplitude,
+				(Cast cast, CastResults results) -> cast.reflected.power() > cast.transmitted.power()
+						// TODO use better method for permeation preference near start
+						* (2 - (pC.nRayBounces - results.bounces) / (double) pC.nRayBounces)
+		);
+	}
+
+	@Environment(EnvType.CLIENT)
+	private static @NotNull CastResults raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude, BiFunction<Cast, CastResults, Boolean> reflect) {
+		return raycast(input, amplitude, Double.POSITIVE_INFINITY, null, reflect);
+	}
+
+	@Environment(EnvType.CLIENT)
+	private static @NotNull CastResults raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude, double maxLength, Vec3d targetPosition, BiFunction<Cast, CastResults, Boolean> reflect) {
 		int id = input.getRight(); // for debug purposes
 		Vec3d vector = input.getLeft();
 		// TODO: allow arbitrary bounces per ray & splitting
@@ -195,7 +199,7 @@ public class Engine {
 		// assert mc.world != null; // should never happen (never should be called uninitialized)
 //		double amplitude = 128; // TODO fine-tune & pull from sound volume
 		CastResults results = new CastResults(0,0,0);
-		Cast cast = new Cast(mc.world, null, soundChunk);
+		Cast cast = new Cast(mc.world, null, soundChunk, targetPosition);
 		// launch initial ray & always permeate first
 		cast.raycast(soundPos, vector, amplitude);
 		Ray ray = new Ray(amplitude, cast.transmitted.position(), cast.transmitted.vector(), cast.transmitted.length());
@@ -204,22 +208,20 @@ public class Engine {
 		Vec3d prior = soundPos; // used solely for debugging
 		byte reflected = 0; // used to stop rays that are trapped between two walls
 		int casts = 0;
-		// while power & iterate bounces
-		while (results.bounces < pC.nRayBounces && ray.power() > 1) {
+		// while power, within max search range & iterate bounces
+		while (ray.power() > 1 && maxLength > length && results.bounces < pC.nRayBounces) {
 			// debugging output
 			if (pC.dRays) Renderer.addSoundBounceRay(prior, ray.position(), Cache.colors[(casts++ + id + results.bounces) % Cache.colors.length]);
 			prior = ray.position();
 
 			// cast ray
-			cast.raycast(ray.position(),ray.vector(),ray.power());
+			cast.raycast(ray.position(), ray.vector(), ray.power());
 			// } */
 
 			//* handle properties {
 			// TODO handle splits & replace:
 			//  reflect instead of permeate, when logical
-			if (cast.reflected.power() > cast.transmitted.power()
-					// TODO use better method for permeation preference near start
-					* (2 - (pC.nRayBounces - results.bounces) / (double) pC.nRayBounces)) {
+			if (reflect.apply(cast, results)) {
 				// stop rays stuck between two walls (not moving)
 				// num, not bool -> (3D) edges & corners
 				if (reflected++ > 2) break;
@@ -234,11 +236,11 @@ public class Engine {
 
 				ray = cast.reflected;
 				length = 0;
-			} else {
-				ray = cast.transmitted;
-				length += ray.length();
-				reflected = 0;
+				continue;
 			}
+			ray = cast.transmitted;
+			length += ray.length();
+			reflected = 0;
 			// } */
 		}
 		results.length += length;
@@ -452,17 +454,17 @@ public class Engine {
 						reflRay.amplitude[i]
 								* Math.pow(airAbsorptionHF, reflRay.lengths[i])
 								/ Math.pow(reflRay.lengths[i], 2.0D * missedSum),
-						Double.MIN_VALUE, 1);
+						java.lang.Double.MIN_VALUE, 1);
 
 				final double bounceTime = reflRay.lengths[i] / speedOfSound;
 
-				sendGain[MathHelper.clamp((int) (1/ Utils.logBase(Math.max(Math.pow(bounceEnergy, pC.maxDecayTime / bounceTime * pC.energyFix), Double.MIN_VALUE), minEnergy) * pC.resolution), 0, pC.resolution)] += playerEnergy;
+				sendGain[MathHelper.clamp((int) (1/ Utils.logBase(Math.max(Math.pow(bounceEnergy, pC.maxDecayTime / bounceTime * pC.energyFix), java.lang.Double.MIN_VALUE), minEnergy) * pC.resolution), 0, pC.resolution)] += playerEnergy;
 			}
 		}
 		sharedSum /= bounceCount;
 		final double[] sendCutoff = new double[pC.resolution+1];
 		for (int i = 0; i <= pC.resolution; i++) {
-			sendGain[i] = MathHelper.clamp(sendGain[i] * (inWater ? pC.waterFilt : 1) * (pC.fastShared ? sharedSum : 1) * pC.resolution / bounceCount * pC.globalRvrbGain, 0, 1.0 - Double.MIN_NORMAL);
+			sendGain[i] = MathHelper.clamp(sendGain[i] * (inWater ? pC.waterFilt : 1) * (pC.fastShared ? sharedSum : 1) * pC.resolution / bounceCount * pC.globalRvrbGain, 0, 1.0 - java.lang.Double.MIN_NORMAL);
 			sendCutoff[i] = Math.pow(sendGain[i], pC.globalRvrbHFRcp); // TODO: make sure this actually works.
 		}
 
