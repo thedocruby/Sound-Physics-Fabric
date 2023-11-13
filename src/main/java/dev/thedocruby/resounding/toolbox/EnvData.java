@@ -1,12 +1,14 @@
 package dev.thedocruby.resounding.toolbox;
 
+import dev.thedocruby.resounding.raycast.Hit;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.LinkedList;
 import java.util.Objects;
 import java.util.Set;
 
 public record EnvData
-		( Set<CastResults> reflRays
+		( Set<LinkedList<Hit>> reflRays
 		, Set<OccludedRayData> occlRays
 ) {
 	@Override
@@ -23,7 +25,7 @@ public record EnvData
 	@Override
 	public @NotNull String toString() {
 		return "EnvData {\n" +
-				String.join("\n", reflRays.stream().sequential().map(CastResults::toString).toList()) + "\n" +
-				String.join("\n", occlRays.stream().sequential().map( OccludedRayData::toString).toList()) + "\n}";
+				String.join("\n", reflRays.stream().map(LinkedList<Hit>::toString).toList()) + "\n" +
+				String.join("\n", occlRays.stream().map( OccludedRayData::toString).toList()) + "\n}";
 	}
 }

@@ -5,6 +5,7 @@ package dev.thedocruby.resounding;
 
 import dev.thedocruby.resounding.openal.Context;
 import dev.thedocruby.resounding.raycast.Cast;
+import dev.thedocruby.resounding.raycast.Hit;
 import dev.thedocruby.resounding.raycast.Ray;
 import dev.thedocruby.resounding.raycast.Renderer;
 import dev.thedocruby.resounding.toolbox.*;
@@ -21,6 +22,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -169,36 +171,36 @@ public class Engine {
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull CastResults airspace(@NotNull Pair<Vec3d,Integer> input, double amplitude, Vec3d targetPosition) {
+	private static @NotNull LinkedList<Hit> airspace(@NotNull Pair<Vec3d,Integer> input, double amplitude, Vec3d targetPosition) {
 		return raycast(input, amplitude, input.getLeft().distanceTo(targetPosition), targetPosition,
 				// always permeate!
-				(Cast c, CastResults r) -> false
+				(Cast c, LinkedList<Hit> r) -> false
 		);
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull CastResults raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude) {
+	private static @NotNull LinkedList<Hit> raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude) {
 		return raycast(input, amplitude,
-				(Cast cast, CastResults results) -> cast.reflected.power() > cast.transmitted.power()
+				(Cast cast, LinkedList<Hit> results) -> cast.reflected.power() > cast.transmitted.power()
 						// TODO use better method for permeation preference near start
-						* (2 - (pC.nRayBounces - results.bounces) / (double) pC.nRayBounces)
+						* (2 - (pC.nRayBounces - results.size()) / (double) pC.nRayBounces)
 		);
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull CastResults raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude, BiFunction<Cast, CastResults, Boolean> reflect) {
+	private static @NotNull LinkedList<Hit> raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude, BiFunction<Cast, LinkedList<Hit>, Boolean> reflect) {
 		return raycast(input, amplitude, Double.POSITIVE_INFINITY, null, reflect);
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull CastResults raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude, double maxLength, Vec3d targetPosition, BiFunction<Cast, CastResults, Boolean> reflect) {
+	private static @NotNull LinkedList<Hit> raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude, double maxLength, Vec3d targetPosition, BiFunction<Cast, LinkedList<Hit>, Boolean> reflect) {
 		int id = input.getRight(); // for debug purposes
 		Vec3d vector = input.getLeft();
 		// TODO: allow arbitrary bounces per ray & splitting
 		// int bounces = 100; // -> incompatible with present algorithms
 		// assert mc.world != null; // should never happen (never should be called uninitialized)
 //		double amplitude = 128; // TODO fine-tune & pull from sound volume
-		CastResults results = new CastResults(0,0,0);
+		LinkedList<Hit> results = new LinkedList<>();
 		Cast cast = new Cast(mc.world, null, soundChunk, targetPosition);
 		// launch initial ray & always permeate first
 		cast.raycast(soundPos, vector, amplitude);
@@ -209,9 +211,9 @@ public class Engine {
 		byte reflected = 0; // used to stop rays that are trapped between two walls
 		int casts = 0;
 		// while power, within max search range & iterate bounces
-		while (ray.power() > 1 && maxLength > length && results.bounces < pC.nRayBounces) {
+		while (ray.power() > 1 && maxLength > length && results.size() < pC.nRayBounces) {
 			// debugging output
-			if (pC.dRays) Renderer.addSoundBounceRay(prior, ray.position(), Cache.colors[(casts++ + id + results.bounces) % Cache.colors.length]);
+			if (pC.dRays) Renderer.addSoundBounceRay(prior, ray.position(), Cache.colors[(casts++ + id + results.size()) % Cache.colors.length]);
 			prior = ray.position();
 
 			// cast ray
@@ -226,13 +228,15 @@ public class Engine {
 				// num, not bool -> (3D) edges & corners
 				if (reflected++ > 2) break;
 				// record bounce results
-				results.add
-						/*shared   */( 0 // TODO figure out & populate
+				results.add(new Hit
+						/*end pos  */( ray.position()
+						/*length   */, length
+						/*shared   */, 0 // TODO figure out & populate
 						/*distance */, cast.reflected.position().distanceTo(listenerPos)
 						/*segment  */, length+cast.reflected.length()
 						/*surface  */, cast.reflected.power()/ray.power()
 						/*amplitude*/, cast.reflected.power()
-						);
+						));
 
 				ray = cast.reflected;
 				length = 0;
@@ -243,90 +247,13 @@ public class Engine {
 			reflected = 0;
 			// } */
 		}
-		results.length += length;
 		return results;
 	}
 
 	@Environment(EnvType.CLIENT)
 	private static @NotNull Set<OccludedRayData> throwOcclRay(@NotNull Vec3d sourcePos, @NotNull Vec3d sinkPos) { //Direct sound occlusion
 		assert Engine.on;
-
-		// TODO: This still needs to be rewritten
-		// TODO: fix reflection/permeability calc with fresnels
-		// TODO: Allow data theft from other reflection data, and cast occlusion
-		// based on conditions then (e.g. rays with the highest distance w/out
-		// bouncing)
-
-        /* Old code
-		Vec3d normalToPlayer = playerPos.subtract(soundPos).normalize(); TODO: change to `listenerPos`
-		double occlusionAccumulation = 0;
-		//Cast a ray from the source towards the player
-		Vec3d rayOrigin = soundPos;
-		BlockPos lastBlockPos = soundBlockPos;
-		final boolean _9ray = pC._9Ray && (lastSoundCategory == SoundCategory.BLOCKS || block);
-		final int nOccRays = _9ray ? 9 : 1;
-		// final List<Map.Entry<Vec3d, Double>> directions = new ArrayList<>(pC.nRays * pC.nRayBounces + nOccRays + 1); // TODO: DirEval
-		double occlusionAccMin = Double.MAX_VALUE;
-		// TODO: this can probably be spliteratored too
-		for (int j = 0; j < nOccRays; j++) {
-			if(j > 0){
-				final int jj = j - 1;
-				rayOrigin = new Vec3d(soundBlockPos.getX() + 0.001 + 0.998 * (jj % 2), soundBlockPos.getY() + 0.001 + 0.998 * ((jj >> 1) % 2), soundBlockPos.getZ() + 0.001 + 0.998 * ((jj >> 2) % 2));
-				lastBlockPos = soundBlockPos;
-				occlusionAccumulation = 0;
-
-			}
-			boolean oAValid = false;
-			SPHitResult rayHit = fixedRaycast(rayOrigin, playerPos, mc.world, lastBlockPos, soundChunk);
-
-			for (int i = 0; i < 10; i++) {
-
-				lastBlockPos = rayHit.getBlockPos();
-				//If we hit a block
-
-				if (pC.debug) Renderer.addOcclusionRay(rayOrigin, rayHit.getPos(), Color.getHSBColor((float) (1F / 3F * (1F - Math.min(1F, occlusionAccumulation / 12F))), 1F, 1F).getRGB());
-				if (rayHit.isMissed()) {
-					if (pC.soundDirectionEvaluation) directions.add(Map.entry(rayOrigin.subtract(playerPos), // TODO: DirEval
-							(_9ray?9:1) * Math.pow(soundPos.distanceTo(playerPos), 2.0)* pC.rcpTotRays
-									/
-							(Math.exp(-occlusionAccumulation * pC.globalBlockAbsorption)* pC.directRaysDirEvalMultiplier)
-					));
-					oAValid = true;
-					break;
-				}
-
-				final Vec3d rayHitPos = rayHit.getPos();
-				final BlockState blockHit = rayHit.getBlockState();
-				double blockOcclusion = getBlockOcclusionD(blockHit);
-
-				// Regardless to whether we hit from inside or outside
-
-				if (pC.oLog) logOcclusion(blockHit.getBlock().getTranslationKey() + "    " + rayHitPos.x + ", " + rayHitPos.y + ", " + rayHitPos.z);
-
-				rayOrigin = rayHitPos; //new Vec3d(rayHit.getPos().x + normalToPlayer.x * 0.1, rayHit.getPos().y + normalToPlayer.y * 0.1, rayHit.getPos().z + normalToPlayer.z * 0.1);
-
-				rayHit = fixedRaycast(rayOrigin, playerPos, mc.world, lastBlockPos, rayHit.chunk);
-
-				SPHitResult rayBack = fixedRaycast(rayHit.getPos(), rayOrigin, mc.world, rayHit.getBlockPos(), rayHit.chunk);
-
-				if (rayBack.getBlockPos().equals(lastBlockPos)) {
-					//Accumulate density
-					occlusionAccumulation += blockOcclusion * (rayOrigin.distanceTo(rayBack.getPos()));
-					if (occlusionAccumulation > pC.maxDirectOcclusionFromBlocks) break;
-				}
-
-				if (pC.oLog) logOcclusion("New trace position: " + rayOrigin.x + ", " + rayOrigin.y + ", " + rayOrigin.z);
-			}
-			if (oAValid) occlusionAccMin = Math.min(occlusionAccMin, occlusionAccumulation);
-		}
-		occlusionAccumulation = Math.min(occlusionAccMin, pC.maxDirectOcclusionFromBlocks);
-		double directCutoff = Math.exp(-occlusionAccumulation * pC.globalBlockAbsorption);
-		double directGain = auxOnly ? 0 : Math.pow(directCutoff, 0.01);
-
-		if (pC.oLog) logOcclusion("direct cutoff: " + directCutoff + "  direct gain:" + directGain);
-		if (isSpam) { return null; }
-		*/
-
+		// TODO replace
 		return Collections.emptySet();
 	}
 
@@ -336,13 +263,13 @@ public class Engine {
 		// TODO implement tagging system here
 		// TODO? implement lambda function referencing to remove branches
 		Consumer<String> logger = pC.log ? (pC.eLog ? Utils.LOGGER::info : Utils.LOGGER::debug) : x -> {};
-		Set<CastResults> reflRays;
+		Set<LinkedList<Hit>> reflRays;
 		logger.accept("Sampling environment with "+pC.nRays+" seed rays...");
 		reflRays = rays.stream().parallel().unordered().map((ray) -> Engine.raycast(ray, 128)).collect(Collectors.toSet());
 		if (pC.eLog) {
 			int rayCount = 0;
-			for (CastResults reflRay : reflRays){
-				rayCount += reflRay.bounces * 2 + 1;
+			for (LinkedList<Hit> reflRay : reflRays) {
+				rayCount += reflRay.size() * 2 + 1;
 			}
 			logger.accept("Total number of rays casted: "+rayCount);
 		}
@@ -395,88 +322,99 @@ public class Engine {
 
 		double bounceCount = 0.0D;
 		double missedSum = 0.0D;
-		for (CastResults reflRay : data.reflRays()) {
-			bounceCount += reflRay.bounces;
-			missedSum += reflRay.missed;
+		for (LinkedList<Hit> reflRay : data.reflRays()) {
+			// TODO determine if this is relevant any longer
+//			bounceCount += reflRay.bounces;
+//			missedSum += reflRay.missed;
 		}
 		missedSum *= pC.rcpNRays;
 
 		// TODO: Does this perform better in parallel? (test using Spark)
 		double sharedSum = 0.0D;
 		final double[] sendGain = new double[pC.resolution + 1];
+		// NOTE temporary solution, will be removed during ray / redirection rework
+		// TODO fix during ray / redirection rework
+		double amplitude = 0.0D;
 		// TODO explain
-		for (CastResults reflRay : data.reflRays()) {
-			if (reflRay.missed == 1.0D) continue;
+		for (LinkedList<Hit> ray : data.reflRays()) {
+//			if (ray.missed == 1.0D) continue;
 
-			final int size = reflRay.bounces;
-			final double[] smoothSharedEnergy = new double[pC.nRayBounces];
-			final double[] smoothSharedDistance = new double[pC.nRayBounces];
-			for (int i = 0; i < size; i++) {
-				if (!pC.fastShared ) {
-					if (reflRay.shared[i] == 1) {
-						smoothSharedEnergy[i] = 1;
-						smoothSharedDistance[i] = reflRay.distance[i];
-					} else {
-						int up; double traceUpRefl = 1; double traceUpDistance = 0;
-						for (up = i + 1; up <= size; up++) {
-							traceUpRefl *= up == size ? 0 : reflRay.surfaces[up];
-							if (up != size) traceUpDistance += reflRay.segments[up];
-							if (up != size && reflRay.shared[up] == 1) { traceUpDistance += reflRay.distance[up]; break; }
-						}
+			final int size = ray.size();
+			bounceCount += size;
+			// TODO determine if array approach is needed here
+			double smoothSharedEnergy = 0;
+			double smoothSharedDistance = 0;
+			int iterations = 0;
+			for (Hit hit : ray) {
+				if (!pC.fastShared) { // in-depth calculation
+					if (hit.shared() == 1) {
+						smoothSharedEnergy = 1;
+						smoothSharedDistance = hit.distance();
+						continue;
+					}
 
-						int dn; double traceDownRefl = 1; double traceDownDistance = 0;
-						for (dn = i - 1; dn >= -1; dn--) {
-							traceDownRefl *= dn == -1 ? 0 : reflRay.surfaces[dn];
-							if (dn != -1) traceDownDistance += reflRay.segments[dn + 1];
-							if (dn != -1 && reflRay.shared[dn] == 1) { traceDownDistance += reflRay.distance[dn]; break; }
-						}
-
-						if (Math.max(traceDownRefl, traceUpRefl) == traceUpRefl){
-							smoothSharedEnergy[i] = traceUpRefl;
-							smoothSharedDistance[i] = traceUpDistance;
-						} else {
-							smoothSharedEnergy[i] = traceDownRefl;
-							smoothSharedDistance[i] = traceDownDistance;
-						}
+					// Should be 0, old algorithm always returned 0 here. Will this behave better with proper value?
+					smoothSharedEnergy = hit.reflect();
+					smoothSharedDistance = hit.distance();
+					// TODO use a better method to identify where occlusion / airspace rays should go
+					if (++iterations == size / 2) {
+						LinkedList<Hit> occlusion = airspace(new Pair<>(hit.position(), -1), hit.amplitude(), Cache.playerPos);
+						double permeation = occlusion.getLast().amplitude();
+						amplitude = Math.max(permeation, amplitude);
+						// TODO determine accuracy of this method
+						if (permeation > 1) sharedSum += size;
 					}
 				}
 
-				sharedSum += reflRay.shared[i];
+				final double playerEnergy =
+						MathHelper.clamp(
+						hit.amplitude() * (
+								pC.fastShared
+								? Math.pow(airAbsorptionHF, hit.length() + hit.distance())
+								/ Math.pow(hit.length() + hit.distance(), 2.0D * missedSum)
 
-				// TODO integrate with fresnels
-				final double playerEnergy = MathHelper.clamp(
-						reflRay.amplitude[i] * (pC.fastShared ? 1 : smoothSharedEnergy[i])
-								* Math.pow(airAbsorptionHF, reflRay.lengths[i] + (pC.fastShared ? reflRay.distance[i] : smoothSharedDistance[i]))
-								/ Math.pow(reflRay.lengths[i] + (pC.fastShared ? reflRay.distance[i] : smoothSharedDistance[i]), 2.0D * missedSum),
+								: smoothSharedEnergy
+								* Math.pow(airAbsorptionHF, hit.length() + smoothSharedDistance)
+								/ Math.pow(hit.length() + smoothSharedDistance, 2.0D * missedSum)
+							),
 						0, 1);
 
 				final double bounceEnergy = MathHelper.clamp(
-						reflRay.amplitude[i]
-								* Math.pow(airAbsorptionHF, reflRay.lengths[i])
-								/ Math.pow(reflRay.lengths[i], 2.0D * missedSum),
+						hit.amplitude()
+								* Math.pow(airAbsorptionHF, hit.length())
+								/ Math.pow(hit.length(), 2.0D * missedSum),
 						java.lang.Double.MIN_VALUE, 1);
 
-				final double bounceTime = reflRay.lengths[i] / speedOfSound;
+				// TODO modify to use individual speed of sound in mediums
+				final double bounceTime = hit.length() / speedOfSound;
 
-				sendGain[MathHelper.clamp((int) (1/ Utils.logBase(Math.max(Math.pow(bounceEnergy, pC.maxDecayTime / bounceTime * pC.energyFix), java.lang.Double.MIN_VALUE), minEnergy) * pC.resolution), 0, pC.resolution)] += playerEnergy;
+				// TODO identify purpose..?
+				sendGain[
+						MathHelper.clamp((int) (1 / Utils.logBase(
+								Math.max(
+										Math.pow(bounceEnergy, pC.maxDecayTime / bounceTime * pC.energyFix),
+										java.lang.Double.MIN_VALUE
+								), minEnergy) * pC.resolution),
+								0, pC.resolution)
+						] += playerEnergy;
+
 			}
 		}
+
 		sharedSum /= bounceCount;
 		final double[] sendCutoff = new double[pC.resolution+1];
 		for (int i = 0; i <= pC.resolution; i++) {
-			sendGain[i] = MathHelper.clamp(sendGain[i] * (inWater ? pC.waterFilt : 1) * (pC.fastShared ? sharedSum : 1) * pC.resolution / bounceCount * pC.globalRvrbGain, 0, 1.0 - java.lang.Double.MIN_NORMAL);
+			// NOTE, removed pC.waterFilt logic, as it's superseded by new occlusion method
+			sendGain[i] = MathHelper.clamp(sendGain[i] * (pC.fastShared ? sharedSum : 1) * pC.resolution / bounceCount * pC.globalRvrbGain, 0, 1.0 - java.lang.Double.MIN_NORMAL);
 			sendCutoff[i] = Math.pow(sendGain[i], pC.globalRvrbHFRcp); // TODO: make sure this actually works.
 		}
 
-		// TODO: Occlusion calculation here, instead of extra ray
-
-		double occlusion = 1;
-
-		// double occlusion = Patch.fixedRaycast(soundPos, listenerPos, mc.world, soundBlockPos, soundChunk).isMissed() ? 1 : 0; // TODO: occlusion coeff from processing goes here IF fancy or fabulous occl
+		// inverse of occlusion
+		double permeation = amplitude / 128;
 
 		directGain *= Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos))
 				/ Math.pow(listenerPos.distanceTo(soundPos), 2 * missedSum)
-				* MathHelper.lerp(occlusion, sharedSum, 1);
+				* MathHelper.lerp(permeation, 1, sharedSum);
 		double directCutoff = Math.pow(directGain, pC.globalAbsHFRcp); // TODO: make sure this actually works.
 
 		SoundProfile profile = new SoundProfile(sourceID, directGain, directCutoff, sendGain, sendCutoff);
