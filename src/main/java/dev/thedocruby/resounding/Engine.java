@@ -288,46 +288,22 @@ public class Engine {
 	@Environment(EnvType.CLIENT)
 	private static @NotNull SoundProfile processEnv(final EnvData data) {
 		// TODO: DirEval is on hold while I rewrite, will be re-added later
-		// Take weighted (on squared distance) average of the directions sound reflection came from
-		//doDirEval = pC.soundDirectionEvaluation && (occlusionAccumulation > 0 || pC.notOccludedRedirect); // TODO: DirEval
-		// dirEval:  TODO: this block can be converted to another multithreaded iterator
-        /* {
-			if (directions.isEmpty()) break dirEval;
-
-			if (pC.pLog) log("Evaluating direction from " + sendSharedSum + " entries...");
-			Vec3d sum = new Vec3d(0, 0, 0);
-			double weight = 0;
-
-			for (Map.Entry<Vec3d, Double> direction : directions) {
-				final double w = direction.getValue();
-				weight += w;
-				sum = sum.add(direction.getKey().normalize().multiply(w));
-			}
-			sum = sum.multiply(1 / weight);
-			setSoundPos(sourceID, sum.normalize().multiply(soundPos.distanceTo(playerPos)).add(playerPos));
-
-			// Vec3d pos = sum.normalize().multiply(soundPos.distanceTo(playerPos)).add(playerPos);
-			// mc.world.addParticle(ParticleTypes.END_ROD, false, pos.getX(), pos.getY(), pos.getZ(), 0,0,0);
-		}*/
-
-		// TODO move to separate effect
-		boolean inWater = mc.player != null && mc.player.isSubmergedInWater();
+		// NOTE, removed pC.waterFilt logic, as it's superseded by new occlusion method
 		// TODO properly implement, move to atmospherics
 		final double airAbsorptionHF = 1.0; // Air.getAbsorptionHF();
-		double directGain = (auxOnly ? 0 : inWater ? pC.waterFilt : 1) * Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos));
+		double directGain = (auxOnly ? 0 : 1) * Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos));
 
 		if (data.reflRays().isEmpty()) {
 			return new SoundProfile(sourceID, directGain, Math.pow(directGain, pC.globalAbsHFRcp), new double[pC.resolution + 1], new double[pC.resolution + 1]);
 		}
 
-		double bounceCount = 0.0D;
-		double missedSum = 0.0D;
-		for (LinkedList<Hit> reflRay : data.reflRays()) {
-			// TODO determine if this is relevant any longer
-//			bounceCount += reflRay.bounces;
-//			missedSum += reflRay.missed;
+		double bounces = 0.0D;
+		double missed = 0.0D;
+		for (LinkedList<Hit> ray : data.reflRays()) {
+			bounces += ray.size();
+			if (ray.getLast().amplitude() < 1) missed++;
 		}
-		missedSum *= pC.rcpNRays;
+		missed /= pC.nRays;
 
 		// TODO: Does this perform better in parallel? (test using Spark)
 		double sharedSum = 0.0D;
@@ -340,7 +316,6 @@ public class Engine {
 //			if (ray.missed == 1.0D) continue;
 
 			final int size = ray.size();
-			bounceCount += size;
 			// TODO determine if array approach is needed here
 			double smoothSharedEnergy = 0;
 			double smoothSharedDistance = 0;
@@ -357,7 +332,9 @@ public class Engine {
 					smoothSharedEnergy = hit.reflect();
 					smoothSharedDistance = hit.distance();
 					// TODO use a better method to identify where occlusion / airspace rays should go
+					// halfway through each ray, send occlusion ray
 					if (++iterations == size / 2) {
+						// TODO account for difference in angle in amplitude
 						LinkedList<Hit> occlusion = airspace(new Pair<>(hit.position(), -1), hit.amplitude(), Cache.playerPos);
 						double permeation = occlusion.getLast().amplitude();
 						amplitude = Math.max(permeation, amplitude);
@@ -371,18 +348,18 @@ public class Engine {
 						hit.amplitude() * (
 								pC.fastShared
 								? Math.pow(airAbsorptionHF, hit.length() + hit.distance())
-								/ Math.pow(hit.length() + hit.distance(), 2.0D * missedSum)
+								/ Math.pow(hit.length() + hit.distance(), 2.0D * missed)
 
 								: smoothSharedEnergy
 								* Math.pow(airAbsorptionHF, hit.length() + smoothSharedDistance)
-								/ Math.pow(hit.length() + smoothSharedDistance, 2.0D * missedSum)
+								/ Math.pow(hit.length() + smoothSharedDistance, 2.0D * missed)
 							),
 						0, 1);
 
 				final double bounceEnergy = MathHelper.clamp(
 						hit.amplitude()
 								* Math.pow(airAbsorptionHF, hit.length())
-								/ Math.pow(hit.length(), 2.0D * missedSum),
+								/ Math.pow(hit.length(), 2.0D * missed),
 						java.lang.Double.MIN_VALUE, 1);
 
 				// TODO modify to use individual speed of sound in mediums
@@ -401,11 +378,11 @@ public class Engine {
 			}
 		}
 
-		sharedSum /= bounceCount;
+		sharedSum /= bounces;
 		final double[] sendCutoff = new double[pC.resolution+1];
 		for (int i = 0; i <= pC.resolution; i++) {
 			// NOTE, removed pC.waterFilt logic, as it's superseded by new occlusion method
-			sendGain[i] = MathHelper.clamp(sendGain[i] * (pC.fastShared ? sharedSum : 1) * pC.resolution / bounceCount * pC.globalRvrbGain, 0, 1.0 - java.lang.Double.MIN_NORMAL);
+			sendGain[i] = MathHelper.clamp(sendGain[i] * (pC.fastShared ? sharedSum : 1) * pC.resolution / bounces * pC.globalRvrbGain, 0, 1.0 - java.lang.Double.MIN_NORMAL);
 			sendCutoff[i] = Math.pow(sendGain[i], pC.globalRvrbHFRcp); // TODO: make sure this actually works.
 		}
 
@@ -413,7 +390,7 @@ public class Engine {
 		double permeation = amplitude / 128;
 
 		directGain *= Math.pow(airAbsorptionHF, listenerPos.distanceTo(soundPos))
-				/ Math.pow(listenerPos.distanceTo(soundPos), 2 * missedSum)
+				/ Math.pow(listenerPos.distanceTo(soundPos), 2 * missed)
 				* MathHelper.lerp(permeation, 1, sharedSum);
 		double directCutoff = Math.pow(directGain, pC.globalAbsHFRcp); // TODO: make sure this actually works.
 
@@ -464,7 +441,9 @@ public class Engine {
 				iavg = (int) Math.round(MathHelper.clamp(weightedSum / sum, 0, pC.resolution));
 			} */
 
-			return iavg > 0 ? new SlotProfile(iavg, sendGain[iavg], sendCutoff[iavg]) : new SlotProfile(0, sendGain[0], sendCutoff[0]);
+			return iavg > 0
+				? new SlotProfile(iavg, sendGain[iavg], sendCutoff[iavg])
+				: new SlotProfile(0, sendGain[0], sendCutoff[0]);
 		}
 		// TODO: Slot selection logic will go here. See https://www.desmos.com/calculator/v5bt1gdgki
         /*
