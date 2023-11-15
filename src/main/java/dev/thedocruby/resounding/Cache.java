@@ -30,7 +30,6 @@ import java.nio.file.FileSystems;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import static dev.thedocruby.resounding.Engine.mc;
@@ -231,6 +230,7 @@ public class Cache {
         }
 
 
+        blocks = new HashMap<>();
         // read tags & blocks from game registry
         // TODO: make static
         Registry.BLOCK.forEach((Block block) -> {
@@ -240,11 +240,11 @@ public class Cache {
                         String id = tag.id().toString();
                         // extrapolate old tags & append
                         tags.put(id,
-                                new RawTag(null,
+                                new RawTag(new Pattern[0],
                                         tags.getOrDefault(
-                                                id, new RawTag(null, new String[]{}, null, null)
+                                                id, new RawTag(null, new String[0], null, null)
                                         ).blocks(),
-                                null, null)
+                                new Pattern[0], new String[0])
                         );
                         Utils.update(blocks, name, id);
                     });
@@ -294,17 +294,14 @@ public class Cache {
     }
 
 
-
-
     private static HashMap<String, RawTag> deserializeTag(String name, LinkedTreeMap value) {
-        final Function<String[],Pattern[]> toPatterns = patterns -> (Pattern[]) Arrays.stream(patterns).map(Pattern::compile).toArray();
         HashMap<String, RawTag> map = new HashMap<>();
         map.put(name, new RawTag(
-                toPatterns.apply(((String[]) value.getOrDefault("patterns",  new String[] {}))),
-                (String[]) value.getOrDefault("blocks", new String[] {}),
+                Utils.toPatterns(Utils.asArray(new String[0], value.get("patterns"))),
+                Utils.asArray(new String[0], value.get("blocks")),
 
-                toPatterns.apply(((String[]) value.getOrDefault("tagPatterns",  new String[] {}))),
-                (String[]) value.getOrDefault("tags", new String[] {})
+                Utils.toPatterns(Utils.asArray(new String[0], value.get("tagPatterns"))),
+                Utils.asArray(new String[0], value.get("tags"))
         ));
         return map;
     }
@@ -314,7 +311,7 @@ public class Cache {
         HashMap<String, Tag> output = new HashMap<>();
         Set<String> tagNames = tags.keySet();
         // loop through all tags and check all blocks against them
-        for (String name : tags.keySet()) {
+        for (String name : tagNames) {
             // TODO: could this be done with annotations?
             // NOTE: don't access any non-static closure variables other than (getter, raw) inside the calculation phase
             //       This will change how the compiler sees the lambda, (see: lambda closures)
@@ -323,9 +320,9 @@ public class Cache {
             // Cache.tags must be pre-populated with game's default tags
             Utils.memoize(tags, output, name, (getter, raw) -> {
                 // get already populated info
-                LinkedList<String> self = (LinkedList<String>) Arrays.stream(tags.getOrDefault(name,
-                        new RawTag(null, new String[]{}, null, null)
-                ).blocks()).toList();
+                LinkedList<String> self = new LinkedList<>(Arrays.stream(
+                    tags.getOrDefault(name, new RawTag(null, new String[0], null, null)).blocks()
+                ).toList());
 
                 Utils.granularFilter(tagNames, raw.tagPatterns(), raw.tags()).map(getter).forEach(tag -> {
                     self.addAll(
@@ -360,7 +357,7 @@ public class Cache {
             composition[0] = 0D;
 
             // uses fully.qualified.block.name, any collisions are the fault of the pack developer
-            materials.put(key, new RawMaterial(
+            materials.put(key, new RawMaterial(null,
                     1D, null, solute, composition,
                     // TODO ratio, or not to ratio... that is the question
                     false, // false:uses material weights
@@ -374,14 +371,14 @@ public class Cache {
 
     private static HashMap<String, RawMaterial> deserializeMaterials(String name, LinkedTreeMap value) {
         LinkedTreeMap<String, LinkedTreeMap> children =
-                (LinkedTreeMap<String, LinkedTreeMap>) value.getOrDefault("children", null);
+                (LinkedTreeMap<String, LinkedTreeMap>) value.get("children");
         HashMap<String, RawMaterial> map = new HashMap<>();
         // treat children as if they had solute: [parent,...] & composition: [0,...] (sets default values)
         if (children != null) {
             for (String key : children.keySet()) {
                 LinkedTreeMap modified = children.get(key);
-                String[] solute = (String[]) modified.getOrDefault("solute", new String[]{});
-                Double[] composition = (Double[]) modified.getOrDefault("solute", new Double[]{});
+                String[] solute = Utils.asArray(new String[0], modified.get("solute"));
+                Double[] composition = Utils.asArray(new Double[0], modified.get("composition"));
                 solute = ArrayUtils.addFirst(solute, name);
                 // set as base!
                 composition = ArrayUtils.addFirst(composition, 0D);
@@ -391,24 +388,25 @@ public class Cache {
             }
         }
         map.put(name,
-            new RawMaterial(
-                (Double) value.getOrDefault("weight", null),
+            new RawMaterial(null,
+                (Double)  value.get("weight"),
                 // default solvent is air
-                (String) value.getOrDefault("solvent", null),
-                (String[]) value.getOrDefault("solute", new String[]{}),
-                (Double[]) value.getOrDefault("composition", new Double[]{}),
-                (Boolean) value.getOrDefault("ratio", false),
-                (Double) value.getOrDefault("granularity", null),
-                (Double) value.getOrDefault("melt", null),
-                (Double) value.getOrDefault("boil", null),
-                (Double) value.getOrDefault("temperature", null),
-                (Double) value.getOrDefault("density", null),
-                (Double) value.getOrDefault("swave", null),
-                (Double) value.getOrDefault("lwave", null)
+                (String)  value.get("solvent"),
+                Utils.asArray(new String[0], value.get("solute")),
+                Utils.asArray(new Double[0], value.get("composition")),
+                (Boolean) value.get("ratio"),
+                (Double)  value.get("granularity"),
+                (Double)  value.get("melt"),
+                (Double)  value.get("boil"),
+                (Double)  value.get("temperature"),
+                (Double)  value.get("density"),
+                (Double)  value.get("swave"),
+                (Double)  value.get("lwav")
             )
         );
         return map;
     }
+
     private static HashMap<String, RawMaterial> flattenMaterials(HashMap<String, RawMaterial> in) {
         HashMap<String, RawMaterial> flat = new HashMap<>();
         for (String key : in.keySet()) {
@@ -419,8 +417,8 @@ public class Cache {
             // fully calculates a raw material, and recursively flattens all dependencies
             Utils.memoize(in, flat, key, (getter, raw) -> {
                 // calculation logic
-                String[] solute = raw.solute() == null ? new String[]{} : raw.solute();
-                Double[] composition = raw.composition() == null ? new Double[]{} : raw.composition();
+                String[] solute = raw.solute() == null ? new String[0] : raw.solute();
+                Double[] composition = raw.composition() == null ? new Double[0] : raw.composition();
                 int length = solute.length;
                 boolean ratio = raw.ratio() != null && raw.ratio();
                 // only calculate if necessary
@@ -460,7 +458,7 @@ public class Cache {
                             LOGGER.error("{} in {} is invalid or cyclical", error, key);
                         return null;
                     }
-                    raw = new RawMaterial(
+                    raw = new RawMaterial(null,
                             weight.get(),
                             raw.solvent(),     // for posterity/debug, not needed in runtime
                             raw.solute(),      // for posterity/debug, not needed in runtime
@@ -487,7 +485,8 @@ public class Cache {
         // global average for 20th century 14°C/57°F/287°K
         rawMaterials.forEach((String key, RawMaterial raw) -> {
             rawMaterials.put(key,
-                    new RawMaterial(raw.weight(),
+                    new RawMaterial(null,
+                            raw.weight(),
                             raw.solvent(), raw.solute(), raw.composition(),
                             raw.ratio(),
                             raw.granularity(),

@@ -158,6 +158,20 @@ public class Utils {
         );
     }
 
+    // compile regular expressions
+    static Pattern[] toPatterns(String[] patterns) {
+        return Arrays.stream(patterns).map(Pattern::compile).toArray(Pattern[]::new);
+    }
+
+    // smart type conversion
+    static <T> T[] asArray(T[] blank, @Nullable Object input) {
+        if (input == null) return blank;
+        if (input instanceof ArrayList)
+            return ((ArrayList<T>) input).toArray(blank);
+        else
+            return (T[]) input;
+    }
+
 // }
 
 	// specialized tuple type for effects using float
