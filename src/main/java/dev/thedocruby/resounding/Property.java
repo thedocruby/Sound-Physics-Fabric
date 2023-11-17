@@ -23,10 +23,12 @@ public class Property {
         return sum + added;
     }
 
-    public boolean add(@Nullable Double value, Double weight, Double count) {
+    public boolean add(@Nullable Double value, double weight, double count, @Nullable Boolean ratioUpdate) {
+        // only update ratio status if override is set
+        if (count == 0) this.ratio = ratioUpdate == null ? this.ratio : ratioUpdate;
         if (value == null) return false;
         valid = true;
-        Double next = value * count;
+        double next = value * count;
         // allows overriding values
         if (count == 0) {
             values = new LinkedList<>();
@@ -43,6 +45,9 @@ public class Property {
             //*/
             return true;
         }
+        // TODO refactor this?...
+        // currently this makes the ratio override process order-dependent.
+        // With parenting this isn't an issue, but this is still a suboptimal implementation
         if (!ratio) next *= weight;
 
         values.add(next);

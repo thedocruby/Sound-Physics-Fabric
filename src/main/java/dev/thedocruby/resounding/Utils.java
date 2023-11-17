@@ -147,7 +147,7 @@ public class Utils {
         return output;
     }
 
-    public static Stream<String> granularFilter(Set<String> items, Pattern[] patterns, String[] keys) {
+    public static Stream<String> granularFilter(List<String> items, Pattern[] patterns, String[] keys) {
         return items.stream().filter(
                 // if matches any of the patterns
                 item -> Arrays.stream(patterns)

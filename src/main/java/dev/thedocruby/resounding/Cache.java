@@ -31,6 +31,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static dev.thedocruby.resounding.Engine.mc;
 import static dev.thedocruby.resounding.Utils.LOGGER;
@@ -309,7 +310,7 @@ public class Cache {
     // is there an @annotation for this?
     public static HashMap<String, Tag> flattenTags(HashMap<String, RawTag> tags, HashMap<String, LinkedList<String>> blocks) {
         HashMap<String, Tag> output = new HashMap<>();
-        Set<String> tagNames = tags.keySet();
+        List<String> tagNames = tags.keySet().stream().toList();
         // loop through all tags and check all blocks against them
         for (String name : tagNames) {
             // TODO: could this be done with annotations?
@@ -325,11 +326,14 @@ public class Cache {
                 ).toList());
 
                 Utils.granularFilter(tagNames, raw.tagPatterns(), raw.tags()).map(getter).forEach(tag -> {
+                    // when underlying tag isn't present -> this happens when a tag self references in order to expand an existing tag in a modpack.
+                    // This has the side effect of making the tags file extremely robust
+                    if (tag == null) return;
                     self.addAll(
                             Arrays.stream(tag.blocks()).toList()
                     );
                 });
-                Utils.granularFilter(blocks.keySet(), raw.patterns(), raw.blocks()).forEach(block -> {
+                Utils.granularFilter(blocks.keySet().stream().toList(), raw.patterns(), raw.blocks()).forEach(block -> {
                     self.add(block);
                     // update reverse mapping, too
                     Utils.update(blocks, block, name);
@@ -353,6 +357,7 @@ public class Cache {
             Double[] composition = new Double[solute.length];
 
             // sets first tag as base
+            // nulls later are treated as 1s
             // TODO is this right?
             composition[0] = 0D;
 
@@ -401,7 +406,7 @@ public class Cache {
                 (Double)  value.get("temperature"),
                 (Double)  value.get("density"),
                 (Double)  value.get("swave"),
-                (Double)  value.get("lwav")
+                (Double)  value.get("lwave")
             )
         );
         return map;
@@ -434,22 +439,27 @@ public class Cache {
                     LinkedList<String> errors = new LinkedList<>();
                     for (int i = 0; i < length; i++) {
                         String name = solute[i];
-                        Double count = composition[i];
                         // get values
                         RawMaterial material = getter.apply(name);
                         if (material == null) {
                             errors.add(name);
                             continue;
                         }
+                        /**
+                         * handles defaults from @Cache.shellMaterials
+                         **/
+                        final double count = composition[i] == null ? 1 : composition[i];
                         // save values
-                        weight.add(material.weight(), 1D, count);
-                        granularity.add(material.granularity(), material.weight(), count);
-                        melt.add(material.melt(), material.weight(), count);
-                        boil.add(material.boil(), material.weight(), count);
-                        temperature.add(material.temperature(), material.weight(), count);
-                        density.add(material.density(), material.weight(), count);
-                        swave.add(material.swave(), material.weight(), count);
-                        lwave.add(material.lwave(), material.weight(), count);
+                        weight.add(material.weight(), 1D, count, material.ratio());
+                        // handles values not needing to contribute to weight
+                        final double coefficient = material.weight() == null ? 1 : material.weight();
+                        granularity.add(material.granularity(), coefficient, count, material.ratio());
+                        melt.add(material.melt(), coefficient, count, material.ratio());
+                        boil.add(material.boil(), coefficient, count, material.ratio());
+                        temperature.add(material.temperature(), coefficient, count, material.ratio());
+                        density.add(material.density(), coefficient, count, material.ratio());
+                        swave.add(material.swave(), coefficient, count, material.ratio());
+                        lwave.add(material.lwave(), coefficient, count, material.ratio());
                     }
                     // spew errors
                     if (!errors.isEmpty()) {
