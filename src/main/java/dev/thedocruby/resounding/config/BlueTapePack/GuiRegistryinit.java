@@ -9,7 +9,7 @@ import me.shedaniel.clothconfig2.api.AbstractConfigListEntry;
 import me.shedaniel.clothconfig2.gui.entries.MultiElementListEntry;
 import me.shedaniel.clothconfig2.gui.entries.NestedListListEntry;
 import net.minecraft.text.LiteralText;
-import net.minecraft.text.TranslatableText;
+import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.ParameterizedType;
@@ -36,16 +36,16 @@ public class GuiRegistryinit {
             Object defaultElemValue = Utils.constructUnsafely(fieldTypeParam);
             String remainingI13n = i13n.substring(0, i13n.indexOf(".option") + ".option".length());
             String classI13n = String.format("%s.%s", remainingI13n, fieldTypeParam.getSimpleName());
-            return Collections.singletonList(new NestedListListEntry(new TranslatableText(i13n), configValue, false, (Supplier)null, (abstractConfigListEntries) -> {
+            return Collections.singletonList(new NestedListListEntry(Text.translatable(i13n), configValue, false, (Supplier)null, (abstractConfigListEntries) -> {
             }, () -> {
                 Map ll = (Map<Object, Object>) Utils.getUnsafely(field, defaults);
                 return ll == null ? List.of() : new ArrayList<>(ll.values());
             }, new LiteralText(""), false, true, (elem, nestedListListEntry) -> {
                 if (elem == null) {
                     Object newDefaultElemValue = Utils.constructUnsafely(fieldTypeParam);
-                    return new MultiElementListEntry(new TranslatableText(classI13n), newDefaultElemValue, getChildren(classI13n, fieldTypeParam, newDefaultElemValue, defaultElemValue, registry1), true);
+                    return new MultiElementListEntry(Text.translatable(classI13n), newDefaultElemValue, getChildren(classI13n, fieldTypeParam, newDefaultElemValue, defaultElemValue, registry1), true);
                 } else {
-                    return new MultiElementListEntry(new TranslatableText(classI13n), elem, getChildren(classI13n, fieldTypeParam, elem, defaultElemValue, registry1), true);
+                    return new MultiElementListEntry(Text.translatable(classI13n), elem, getChildren(classI13n, fieldTypeParam, elem, defaultElemValue, registry1), true);
 
                 }
             }));
