@@ -136,7 +136,7 @@ public class Engine {
 		listenerPos = lastSoundListener.getTransform().position();
 		double maxDist = Math.min(
 				Math.min(
-						Math.min(mc.options.getSimulationDistance().getValue(), mc.options.viewDistance),
+						Math.min(mc.options.getSimulationDistance().getValue(), mc.options.getViewDistance().getValue()),
 						pC.soundSimulationDistance
 				) * 16, // chunk
 				pC.maxTraceDist / 2); // diameter -> radius
