@@ -8,7 +8,6 @@ import me.shedaniel.autoconfig.util.Utils;
 import me.shedaniel.clothconfig2.api.AbstractConfigListEntry;
 import me.shedaniel.clothconfig2.gui.entries.MultiElementListEntry;
 import me.shedaniel.clothconfig2.gui.entries.NestedListListEntry;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,7 +39,7 @@ public class GuiRegistryinit {
             }, () -> {
                 Map ll = (Map<Object, Object>) Utils.getUnsafely(field, defaults);
                 return ll == null ? List.of() : new ArrayList<>(ll.values());
-            }, new LiteralText(""), false, true, (elem, nestedListListEntry) -> {
+            }, Text.literal(""), false, true, (elem, nestedListListEntry) -> {
                 if (elem == null) {
                     Object newDefaultElemValue = Utils.constructUnsafely(fieldTypeParam);
                     return new MultiElementListEntry(Text.translatable(classI13n), newDefaultElemValue, getChildren(classI13n, fieldTypeParam, newDefaultElemValue, defaultElemValue, registry1), true);
