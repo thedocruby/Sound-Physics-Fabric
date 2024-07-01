@@ -196,17 +196,17 @@ public class Cast {
         double ystep       = boundAxis(base.y, position.y, size, vector.y);
         double zstep       = boundAxis(base.z, position.z, size, vector.z);
 
-        Vec3i planarIndex  = new Vec3i(-Math.signum(vector.x), 0, 0);
+        Vec3i planarIndex  = new Vec3i(MathHelper.floor(-Math.signum(vector.x)), 0, 0);
 
         // branch hint: 1/3 probability -> NO
         // same as min(x,min(y,z)) + planar index
         if (ystep < coefficient) {
             coefficient = ystep;
-            planarIndex = new Vec3i(0,-Math.signum(vector.y),0);
+            planarIndex = new Vec3i(0,MathHelper.floor(-Math.signum(vector.y)),0);
         }
         if (zstep < coefficient) {
             coefficient = zstep;
-            planarIndex = new Vec3i(0,0,-Math.signum(vector.z));
+            planarIndex = new Vec3i(0,0,MathHelper.floor(-Math.signum(vector.z)));
         }
         if (coefficient == Double.POSITIVE_INFINITY) {
             LOGGER.warn("invalid coefficient");
