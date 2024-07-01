@@ -39,7 +39,7 @@ public class GuiRegistryinit {
             }, () -> {
                 Map ll = (Map<Object, Object>) Utils.getUnsafely(field, defaults);
                 return ll == null ? List.of() : new ArrayList<>(ll.values());
-            }, Text.literal(""), false, true, (elem, nestedListListEntry) -> {
+            }, Text.empty(), false, true, (elem, nestedListListEntry) -> {
                 if (elem == null) {
                     Object newDefaultElemValue = Utils.constructUnsafely(fieldTypeParam);
                     return new MultiElementListEntry(Text.translatable(classI13n), newDefaultElemValue, getChildren(classI13n, fieldTypeParam, newDefaultElemValue, defaultElemValue, registry1), true);
