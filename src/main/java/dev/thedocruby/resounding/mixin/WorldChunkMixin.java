@@ -212,8 +212,10 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 			return (ChunkChain) getChunk(x,z,ChunkStatus.FULL,false);
 		}
 
-		@Inject(method = "unload(II)V", at = @At("HEAD"))
-		public void unload(int x, int z, CallbackInfo ci) {
+		@Inject(method = "unload(Lnet/minecraft/util/math/ChunkPos;)V", at = @At("HEAD"))
+		public void unload(ChunkPos pos, CallbackInfo ci) {
+			int x = pos.x;
+			int z = pos.z;
 			ChunkChain[] adj = new ChunkChain[4];
 			adj[0] = take(x - 1, z + 0);
 			adj[1] = take(x + 1, z + 0);
