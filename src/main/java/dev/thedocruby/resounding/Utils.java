@@ -129,11 +129,11 @@ public class Utils {
         return output;
     }
 
-    public static <T> HashMap<String, T> resource(ResourcePack pack, String path, Type token, BiFunction<String, LinkedTreeMap, HashMap<String, T>> deserializer) {
+    public static <T> HashMap<String, T> resource(ResourcePack pack, String[] path, Type token, BiFunction<String, LinkedTreeMap, HashMap<String, T>> deserializer) {
         HashMap<String, T> output = new HashMap<>();
         InputStream input;
         // if not available, move on
-        try { input = pack.openRoot(path); }
+        try { input = pack.openRoot(path).get(); }
         catch (IOException e) { return output; }
 
         LinkedTreeMap<String, LinkedTreeMap> raw = new Gson().fromJson(new InputStreamReader(input, UTF_8), token);

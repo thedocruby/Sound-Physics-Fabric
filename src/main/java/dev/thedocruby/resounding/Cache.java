@@ -226,8 +226,8 @@ public class Cache {
         Collection<ResourcePackProfile> list = mc.getResourcePackManager().getEnabledProfiles();
         for (ResourcePackProfile profile : list) {
             ResourcePack pack = profile.createResourcePack();
-            materials.putAll(Utils.resource(pack, "resounding.materials.json", Utils.token(materials), Cache::deserializeMaterials));
-            tags.putAll(Utils.resource(pack, "resounding.tags.json", Utils.token(tags), Cache::deserializeTag));
+            materials.putAll(Utils.resource(pack, new String[] { "resounding.materials.json" }, Utils.token(materials), Cache::deserializeMaterials));
+            tags.putAll(Utils.resource(pack, new String[] { "resounding.tags.json" }, Utils.token(tags), Cache::deserializeTag));
         }
 
 
