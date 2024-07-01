@@ -133,7 +133,7 @@ public class Engine {
 		}
 		// get pose
 		Cache.playerPos = mc.player.getPos().add(new Vec3d(0, mc.player.getEyeHeight(mc.player.getPose()), 0));
-		listenerPos = lastSoundListener.getPos();
+		listenerPos = lastSoundListener.getTransform().position();
 		double maxDist = Math.min(
 				Math.min(
 						Math.min(mc.options.simulationDistance, mc.options.viewDistance),
