@@ -6,11 +6,13 @@ import dev.thedocruby.resounding.Physics;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.loader.impl.lib.sat4j.core.Vec;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.util.Pair;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.util.shape.VoxelShape;
@@ -137,7 +139,7 @@ public class Cast {
     public Branch getBlock(Vec3d pos) {
         if (this.chunk == null || this.tree == null) return null;
         // round position
-        final BlockPos block = new BlockPos(pos);
+        final BlockPos block = BlockPos.ofFloored(pos);
         // obtain tree for layer within section
         // { [ ... ] _ _ _ _ _ _ _ }
         //           ^ ^ ^ ^ ^ ^ ^ state=null
