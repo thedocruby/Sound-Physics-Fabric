@@ -9,7 +9,7 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.registry.Registry;
+import net.minecraft.registry.Registries;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.resource.ResourcePackProfile;
 import net.minecraft.sound.SoundCategory;
@@ -234,7 +234,7 @@ public class Cache {
         blocks = new HashMap<>();
         // read tags & blocks from game registry
         // TODO: make static
-        Registry.BLOCK.forEach((Block block) -> {
+        Registries.BLOCK.forEach((Block block) -> {
             String name = block.getTranslationKey();
             block.getDefaultState().streamTags()
                     .forEach((tag) -> {
