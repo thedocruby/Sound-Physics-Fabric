@@ -38,7 +38,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static dev.thedocruby.resounding.Cache.material;
 import static dev.thedocruby.resounding.Engine.hasLoaded;
