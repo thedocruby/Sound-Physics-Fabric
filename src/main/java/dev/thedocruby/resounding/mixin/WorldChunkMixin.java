@@ -143,7 +143,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		// 16³ blocks
 		ChunkSection[] chunkSections = getSectionArray();
 		// LOGGER.info(String.valueOf(chunkSections.length) /* +"\t"+Arrays.toString(chunkSections)*/); // TODO remove
-		this.yOffset = -chunkSections[0].getYOffset() >> 4;
+		this.yOffset = -heightLimitView.sectionIndexToCoord(0);
 		final ChunkPos pos = this.getPos();
 		final double x     = pos.x << 4; // * 16
 		final double z     = pos.z << 4; // * 16
