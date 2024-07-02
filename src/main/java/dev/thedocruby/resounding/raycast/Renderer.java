@@ -65,10 +65,9 @@ public class Renderer {
 		if (!ray.throughWalls) {
 			RenderSystem.enableDepthTest();
 		}
-		RenderSystem.setShader(GameRenderer::getPositionColorShader);
+		RenderSystem.setShader(GameRenderer::getPositionColorProgram);
 		Tessellator tessellator = Tessellator.getInstance();
 		BufferBuilder bufferBuilder = tessellator.getBuffer();
-		RenderSystem.disableTexture();
 		RenderSystem.disableBlend();
 		RenderSystem.lineWidth(ray.throughWalls ? 3F : 0.25F);
 
@@ -80,7 +79,6 @@ public class Renderer {
 		tessellator.draw();
 		RenderSystem.lineWidth(2F);
 		RenderSystem.enableBlend();
-		RenderSystem.enableTexture();
 	}
 
 	private static int getRed(int argb) {
