@@ -157,8 +157,8 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 			final int index = this.yOffset + (y >> 4);
 			boolean empty = chunkSection.isEmpty();
 
-			Branch air = new Branch(new BlockPos(x,y,z),16, material(Blocks.AIR.getDefaultState()));
-			Branch blank = new Branch(new BlockPos(x,y,z),16);
+			Branch air = new Branch(BlockPos.ofFloored(x,y,z),16, material(Blocks.AIR.getDefaultState()));
+			Branch blank = new Branch(BlockPos.ofFloored(x,y,z),16);
 
 			// provide fallback or all-air branch when necessary
 			synchronized (branches) {
