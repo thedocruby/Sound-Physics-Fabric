@@ -37,6 +37,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static dev.thedocruby.resounding.Cache.material;
@@ -151,7 +152,8 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		final Branch[] branches = new Branch[chunkSections.length];
 
 		// chunk up a section into an octree
-		Stream.of(chunkSections).parallel().forEach((chunkSection) -> {
+		IntStream.range(0, chunkSections.length).parallel().forEach((i) -> {
+			ChunkSection chunkSection = chunkSections[i];
 			int y = -heightLimitView.sectionIndexToCoord(i) << 4;
 			final int index = this.yOffset + (y >> 4);
 			boolean empty = chunkSection.isEmpty();
