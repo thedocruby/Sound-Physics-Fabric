@@ -152,7 +152,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 
 		// chunk up a section into an octree
 		Stream.of(chunkSections).parallel().forEach((chunkSection) -> {
-			int y = chunkSection.getYOffset();
+			int y = -heightLimitView.sectionIndexToCoord(i) << 4;
 			final int index = this.yOffset + (y >> 4);
 			boolean empty = chunkSection.isEmpty();
 
