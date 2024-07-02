@@ -3,6 +3,7 @@ package dev.thedocruby.resounding.raycast;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.*;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -72,8 +73,8 @@ public class Renderer {
 
 		BufferBuilder bufferBuilder = tessellator.begin(VertexFormat.DrawMode.DEBUG_LINE_STRIP, VertexFormats.POSITION_COLOR);
 
-		bufferBuilder.vertex(ray.start.x - x, ray.start.y - y, ray.start.z - z).color(red, green, blue, 255).next();
-		bufferBuilder.vertex(ray.end.x - x, ray.end.y - y, ray.end.z - z).color(red, green, blue, 255).next();
+		bufferBuilder.vertex((float) (ray.start.x - x), (float) (ray.start.y - y), (float) (ray.start.z - z)).color(red, green, blue, 255);
+		bufferBuilder.vertex((float) (ray.end.x - x), (float) (ray.end.y - y), (float) (ray.end.z - z)).color(red, green, blue, 255);
 
 		BufferRenderer.drawWithGlobalProgram(bufferBuilder.end());
 		RenderSystem.lineWidth(2F);
