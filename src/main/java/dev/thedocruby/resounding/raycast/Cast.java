@@ -6,7 +6,6 @@ import dev.thedocruby.resounding.Physics;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.loader.impl.lib.sat4j.core.Vec;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.util.Pair;
