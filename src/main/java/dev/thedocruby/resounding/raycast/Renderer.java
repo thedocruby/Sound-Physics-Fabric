@@ -75,7 +75,7 @@ public class Renderer {
 		bufferBuilder.vertex(ray.start.x - x, ray.start.y - y, ray.start.z - z).color(red, green, blue, 255).next();
 		bufferBuilder.vertex(ray.end.x - x, ray.end.y - y, ray.end.z - z).color(red, green, blue, 255).next();
 
-		BufferRenderer.drawWithGlobalProgram(bufferBuilder.end());yyy
+		BufferRenderer.drawWithGlobalProgram(bufferBuilder.end());
 		RenderSystem.lineWidth(2F);
 		RenderSystem.enableBlend();
 	}
