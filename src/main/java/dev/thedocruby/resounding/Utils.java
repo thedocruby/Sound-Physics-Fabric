@@ -3,6 +3,8 @@ package dev.thedocruby.resounding;
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
+import dev.thedocruby.resounding.util.memoize.Memoization;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.resource.ResourcePackProfile;
@@ -50,27 +52,26 @@ public class Utils {
     public static boolean[][] extendArray (final boolean[][] old, final int min) {
         return ArrayUtils.addAll(old, new boolean[Math.max(1,old.length - min)][]);
     }
+
+    /**
+     * @deprecated Replaced by {@code Memoization.withDependenciesFirstRemoveVisited}
+     *
+     * @see Memoization#withDependenciesFirstRemoveVisited
+     */
+    @Deprecated
     public static <IN,OUT> OUT memoize(HashMap<String, IN> in, HashMap<String, OUT> out, String key, BiFunction<Function<String, OUT>, IN, OUT> calculate) {
-        return memoize(in, out, key, calculate, true);
+        return Memoization.withDependenciesFirstRemoveVisited(in, out, key, calculate);
     }
 
+    /**
+     * @deprecated Replaced by {@code Memoization.withDependenciesFirstAnyways}
+     *
+     * @see Memoization#withDependenciesFirstAnyways
+     */
+    @Deprecated
     // specialized memoization for tag/material cache functionality
     public static <IN,OUT> OUT memoize(HashMap<String, IN> in, HashMap<String, OUT> out, String key, BiFunction<Function<String, OUT>, IN, OUT> calculate, boolean remove) {
-        // return cached values
-        if (out.containsKey(key))
-            return out.get(key);
-        // mark as in-progress
-        // getter == null; should be scanned for in calculate to prevent cyclic references
-        out.put(key, null);
-        OUT value = null;
-        if (in.containsKey(key))
-            value = calculate.apply(
-                x -> memoize(in, out, x, calculate, remove),
-                remove ? in.remove(key) : in.get(key));
-        out.put(key, value);
-        if (value == null)
-            LOGGER.error("{} is invalid or cyclical", key);
-        return value;
+        return Memoization.withDependenciesFirstAnyways(in, out, key, calculate, remove);
     }
 
     public static Double when(Double value, Double coefficient) {
