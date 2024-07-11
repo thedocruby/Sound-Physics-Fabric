@@ -380,8 +380,7 @@ public class Cache {
         HashMap<String, RawMaterial> map = new HashMap<>();
         // treat children as if they had solute: [parent,...] & composition: [0,...] (sets default values)
         if (children != null) {
-            for (String key : children.keySet()) {
-                LinkedTreeMap modified = children.get(key);
+            children.forEach((key, modified) -> {
                 String[] solute = Utils.asArray(new String[0], modified.get("solute"));
                 Double[] composition = Utils.asArray(new Double[0], modified.get("composition"));
                 solute = ArrayUtils.addFirst(solute, name);
@@ -390,7 +389,7 @@ public class Cache {
                 modified.put("solute", solute);
                 modified.put("composition", composition);
                 map.putAll(Cache.deserializeMaterials(key, modified));
-            }
+            });
         }
         map.put(name,
             new RawMaterial(null,
