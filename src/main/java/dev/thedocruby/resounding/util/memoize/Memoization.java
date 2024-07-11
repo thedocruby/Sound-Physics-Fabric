@@ -31,7 +31,7 @@ public final class Memoization {
      * @throws MemoizationException  if memoization was unsuccessful
      * @see #withDependenciesFirstAnyways(Map, Map, String, BiFunction, boolean)
      */
-    public static <IN, OUT>  @NotNull OUT withDependenciesFirstRemoveVisited(
+    public static <IN, OUT> @NotNull OUT withDependenciesFirstRemoveVisited(
         final @NotNull Map<String, IN> inputs,
         final @NotNull Map<String, @NotNull OUT> outputs,
         final String key,
@@ -62,7 +62,7 @@ public final class Memoization {
      * @throws MemoizationException  if memoization was unsuccessful
      * @see #withDependenciesFirst(Map, Map, String, BiFunction, boolean, boolean)
      */
-    public static <IN, OUT>  @NotNull OUT withDependenciesFirstAnyways(
+    public static <IN, OUT> @NotNull OUT withDependenciesFirstAnyways(
         final @NotNull Map<String, IN> inputs,
         final @NotNull Map<String, @NotNull OUT> outputs,
         final String key,
@@ -99,7 +99,7 @@ public final class Memoization {
      * @return the output value
      * @throws MemoizationException  if memoization was unsuccessful
      */
-    public static <IN, OUT>  @NotNull OUT withDependenciesFirst(
+    public static <IN, OUT> @NotNull OUT withDependenciesFirst(
         final @NotNull Map<String, IN> inputs,
         final @NotNull Map<String, @NotNull OUT> outputs,
         final String key,
