@@ -214,7 +214,7 @@ public final class Memoization {
         }
 
         generatedKeys.add(key);
-        outputs.put(key, null);
+        outputs.put(key, output);
         return output;
     }
 
