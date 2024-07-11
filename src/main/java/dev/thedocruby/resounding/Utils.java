@@ -53,9 +53,8 @@ public class Utils {
     }
 
     /**
-     * @deprecated Replaced by {@code Memoization.withDependenciesFirstRemoveVisited}
-     *
      * @see Memoization#withDependenciesFirstRemoveVisited
+     * @deprecated Replaced by {@code Memoization.withDependenciesFirstRemoveVisited}
      */
     @Deprecated
     public static <IN,OUT> OUT memoize(HashMap<String, IN> in, HashMap<String, OUT> out, String key, BiFunction<Function<String, OUT>, IN, OUT> calculate) {
@@ -63,9 +62,8 @@ public class Utils {
     }
 
     /**
-     * @deprecated Replaced by {@code Memoization.withDependenciesFirstAnyways}
-     *
      * @see Memoization#withDependenciesFirstAnyways
+     * @deprecated Replaced by {@code Memoization.withDependenciesFirstAnyways}
      */
     @Deprecated
     // specialized memoization for tag/material cache functionality
