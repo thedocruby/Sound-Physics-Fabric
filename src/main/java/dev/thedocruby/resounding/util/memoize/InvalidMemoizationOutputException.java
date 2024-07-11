@@ -2,7 +2,11 @@ package dev.thedocruby.resounding.util.memoize;
 
 /**
  * Signals that a memoization output was invalid.
+ *
+ * @see MemoizationException
+ * @deprecated Unused, prefer {@code MemoizationException}
  */
+@Deprecated(forRemoval = true)
 public class InvalidMemoizationOutputException extends MemoizationException {
     /**
      * Constructs a new invalid memoization output exception with the specified

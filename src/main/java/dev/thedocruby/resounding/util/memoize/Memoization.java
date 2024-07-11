@@ -3,6 +3,9 @@ package dev.thedocruby.resounding.util.memoize;
 import dev.thedocruby.resounding.util.DoNothingSet;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -28,11 +31,15 @@ public final class Memoization {
      * @throws MemoizationException  if memoization was unsuccessful
      * @see #withDependenciesFirstAnyways(Map, Map, String, BiFunction, boolean)
      */
-    public static <IN, OUT> OUT withDependenciesFirstRemoveVisited(
-        final Map<String, IN> inputs,
-        final Map<String, OUT> outputs,
+    public static <IN, OUT>  @NotNull OUT withDependenciesFirstRemoveVisited(
+        final @NotNull Map<String, IN> inputs,
+        final @NotNull Map<String, @NotNull OUT> outputs,
         final String key,
-        final BiFunction<Function<String, OUT>, IN, OUT> calculator
+        final @NotNull BiFunction<
+            @NotNull Function<String, @NotNull OUT>,
+            @NotNull IN,
+            @Nullable OUT
+        > calculator
     ) throws MemoizationException {
         return withDependenciesFirstAnyways(inputs, outputs, key, calculator, true);
     }
@@ -55,11 +62,15 @@ public final class Memoization {
      * @throws MemoizationException  if memoization was unsuccessful
      * @see #withDependenciesFirst(Map, Map, String, BiFunction, boolean, boolean)
      */
-    public static <IN, OUT> OUT withDependenciesFirstAnyways(
-        final Map<String, IN> inputs,
-        final Map<String, OUT> outputs,
+    public static <IN, OUT>  @NotNull OUT withDependenciesFirstAnyways(
+        final @NotNull Map<String, IN> inputs,
+        final @NotNull Map<String, @NotNull OUT> outputs,
         final String key,
-        final BiFunction<Function<String, OUT>, IN, OUT> calculator,
+        final @NotNull BiFunction<
+            @NotNull Function<String, @NotNull OUT>,
+            @NotNull IN,
+            OUT
+        > calculator,
         final boolean removeVisited
     ) throws MemoizationException {
         return withDependenciesFirst(inputs, outputs, key, calculator, removeVisited, false);
@@ -88,11 +99,15 @@ public final class Memoization {
      * @return the output value
      * @throws MemoizationException  if memoization was unsuccessful
      */
-    public static <IN, OUT> OUT withDependenciesFirst(
-        final Map<String, IN> inputs,
-        final Map<String, OUT> outputs,
+    public static <IN, OUT>  @NotNull OUT withDependenciesFirst(
+        final @NotNull Map<String, IN> inputs,
+        final @NotNull Map<String, @NotNull OUT> outputs,
         final String key,
-        final BiFunction<Function<String, OUT>, IN, OUT> calculator,
+        final @NotNull BiFunction<
+            @NotNull Function<String, @NotNull OUT>,
+            @NotNull IN,
+            OUT
+        > calculator,
         final boolean removeVisited,
         final boolean noChangeOnFail
     ) throws MemoizationException {
@@ -146,14 +161,18 @@ public final class Memoization {
      * @return the output value
      * @throws MemoizationException  if memoization was unsuccessful
      */
-    private static <IN, OUT> OUT withDependenciesFirstInternal(
-        final Map<String, IN> inputs,
-        final Map<String, OUT> outputs,
-        final Set<String> visitedKeys,
-        final Set<String> generatedKeys,
-        final ObjectLinkedOpenHashSet<String> keyPath,
+    private static <IN, OUT> @NotNull OUT withDependenciesFirstInternal(
+        final @NotNull Map<String, IN> inputs,
+        final @NotNull Map<String, @NotNull OUT> outputs,
+        final @NotNull Set<String> visitedKeys,
+        final @NotNull Set<String> generatedKeys,
+        final @NotNull ObjectLinkedOpenHashSet<String> keyPath,
         final String key,
-        final BiFunction<Function<String, OUT>, IN, OUT> calculator
+        final @NotNull BiFunction<
+            @NotNull Function<String, @NotNull OUT>,
+            @NotNull IN,
+            OUT
+        > calculator
     ) throws MemoizationException {
         if (!visitedKeys.add(key)) {
             throw new AlreadyVisitedMemoizationException("Already visited key '" + key + "'");
@@ -207,8 +226,8 @@ public final class Memoization {
         }
 
         if (output == null) {
-            throw new InvalidMemoizationOutputException(
-                "The memoization calculation resulted with null",
+            throw new MemoizationException(
+                "Memoization calculation resulted with null for key'" + key + "'",
                 new NullPointerException("The calculator function evaluated to null")
             );
         }
