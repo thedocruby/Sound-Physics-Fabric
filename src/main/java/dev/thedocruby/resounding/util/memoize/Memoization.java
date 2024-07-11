@@ -3,23 +3,113 @@ package dev.thedocruby.resounding.util.memoize;
 import dev.thedocruby.resounding.util.DoNothingSet;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import org.apache.commons.lang3.function.TriFunction;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Utility class for memoization.
  */
 public final class Memoization {
     /**
+     * Calculated all the outputs and its dependencies for all keys. Equivalent
+     * to calling
+     * {@code allWithDependenciesAnyways(inputs, calculator, key -> true, removeVisited, true)}.
+     *
+     * @param <IN>  the input type
+     * @param <OUT>  the output type
+     * @param inputs  the inputs (for read)
+     * @param calculator  the output calculator
+     * @param removeVisited  should the visited inputs be removed
+     * @return the outputs
+     * @see #allWithDependenciesAnyways(Map, TriFunction, boolean)
+     */
+    public static <IN, OUT> @NotNull Map<String, @NotNull OUT> allWithDependenciesAnyways(
+        final @NotNull Map<String, IN> inputs,
+        final @NotNull TriFunction<
+            @NotNull Function<String, @NotNull OUT>,
+            String,
+            @NotNull IN,
+            OUT
+        > calculator,
+        final boolean removeVisited
+    ) {
+        return allWithDependenciesFiltered(inputs, key -> true, calculator, removeVisited, true);
+    }
+
+    /**
+     * Calculated all the outputs and its dependencies for all filtered keys.
+     *
+     * @param <IN>  the input type
+     * @param <OUT>  the output type
+     * @param inputs  the inputs (for read)
+     * @param filter  the key filter
+     * @param calculator  the output calculator
+     * @param removeVisited  should the visited inputs be removed
+     * @param continueOnFail  should iteration continue and recover on failure
+     * @return the outputs
+     * @throws MemoizationException  if memoization was unsuccessful and was
+     *     propagated
+     * @see #withDependenciesFirst
+     */
+    public static <IN, OUT> @NotNull Map<String, @NotNull OUT>
+    allWithDependenciesFiltered(
+        final @NotNull Map<String, IN> inputs,
+        final @NotNull Predicate<? super @NotNull String> filter,
+        final @NotNull TriFunction<
+            @NotNull Function<String, @NotNull OUT>,
+            String,
+            @NotNull IN,
+            OUT
+        > calculator,
+        final boolean removeVisited,
+        final boolean continueOnFail
+    ) throws MemoizationException {
+        final var outputs = new HashMap<String, @NotNull OUT>();
+        final var generatedKeys = DoNothingSet.<String>getInstance();
+        final Set<String> visitedKeys = removeVisited ? new ObjectOpenHashSet<>() : generatedKeys;
+        final var keyPath = new ObjectLinkedOpenHashSet<String>();
+
+        for (final var key : inputs.keySet()) {
+            if (!filter.test(key)) {
+                continue;
+            }
+
+            try {
+                withDependenciesFirstInternal(
+                    inputs,
+                    outputs,
+                    visitedKeys,
+                    generatedKeys,
+                    keyPath,
+                    key,
+                    (getter, input) -> calculator.apply(getter, key, input)
+                );
+            } catch (final RuntimeException cause) {
+                if (continueOnFail) {
+                    keyPath.clear();
+                } else {
+                    throw cause;
+                }
+            }
+        }
+
+        // NOTE: only remove from inputs if no exceptions are caught
+        inputs.keySet().removeAll(visitedKeys);
+
+        return outputs;
+    }
+
+    /**
      * Calculated an output and its dependencies for a given key. Visited inputs
-     * during calculation will be removed, which is equivalent to calling {@code
-     *     withDependenciesFirstAnyways(inputs, outputs, key, calculator, true)
-     * }
+     * during calculation will be removed, which is equivalent to calling
+     * {@code withDependenciesFirstAnyways(inputs, outputs, key, calculator, true)}.
      *
      * @param <IN>  the input type
      * @param <OUT>  the output type
@@ -47,9 +137,8 @@ public final class Memoization {
     /**
      * Calculated an output and its dependencies for a given key. Any changes to
      * {@code inputs} and {@code outputs} are kept on failure, which is
-     * equivalent to calling {@code
-     *     withDependenciesFirst(inputs, outputs, key, calculator, removeVisited, true)
-     * }.
+     * equivalent to calling
+     * {@code withDependenciesFirst(inputs, outputs, key, calculator, removeVisited, true)}.
      *
      * @param <IN>  the input type
      * @param <OUT>  the output type

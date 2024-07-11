@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import dev.thedocruby.resounding.raycast.Branch;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
+import dev.thedocruby.resounding.util.memoize.Memoization;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
@@ -31,7 +32,6 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import static dev.thedocruby.resounding.Engine.mc;
 import static dev.thedocruby.resounding.Utils.LOGGER;
@@ -261,8 +261,8 @@ public class Cache {
         return true;
     }
 
-    private static Material bake(HashMap<String, RawMaterial> in, HashMap<String, Material> out, String key) {
-        return Utils.memoize(in, out, key, (getter, raw) -> {
+    private static Material bake(Map<String, RawMaterial> in, HashMap<String, Material> out, String key) {
+        return Memoization.withDependenciesFirstAnyways(in, out, key, (getter, raw) -> {
             // TODO: consider using isFluid() in runtime (affects absorption)
             //     : (isFluid * .25 + 2state)/2
             double state = MathHelper.getLerpProgress(raw.temperature(), raw.melt(), raw.boil());
@@ -412,85 +412,85 @@ public class Cache {
         return map;
     }
 
-    private static HashMap<String, RawMaterial> flattenMaterials(HashMap<String, RawMaterial> in) {
-        HashMap<String, RawMaterial> flat = new HashMap<>();
-        for (String key : in.keySet()) {
-            // TODO: could this be done with annotations?
-            // NOTE: don't access any non-static closure variables other than (getter, raw) inside the calculation phase
-            //       This will change how the compiler sees the lambda, (see: lambda closures)
-            //       and will recreate it on every use (resulting in a large performance hit)
-            // fully calculates a raw material, and recursively flattens all dependencies
-            Utils.memoize(in, flat, key, (getter, raw) -> {
-                // calculation logic
-                String[] solute = raw.solute() == null ? new String[0] : raw.solute();
-                Double[] composition = raw.composition() == null ? new Double[0] : raw.composition();
-                int length = solute.length;
-                boolean ratio = raw.ratio() != null && raw.ratio();
-                // only calculate if necessary
-                if (length > 0) {
-                    Property weight = new Property(ratio);
-                    Property granularity = new Property(ratio);
-                    Property melt = new Property(ratio);
-                    Property boil = new Property(ratio);
-                    Property temperature = new Property(ratio);
-                    Property density = new Property(ratio);
-                    Property swave = new Property(ratio);
-                    Property lwave = new Property(ratio);
-                    LinkedList<String> errors = new LinkedList<>();
-                    for (int i = 0; i < length; i++) {
-                        String name = solute[i];
-                        // get values
-                        RawMaterial material = getter.apply(name);
-                        if (material == null) {
-                            errors.add(name);
-                            continue;
-                        }
-                        /**
-                         * handles defaults from @Cache.shellMaterials
-                         **/
-                        final double count = composition[i] == null ? 1 : composition[i];
-                        // save values
-                        weight.add(material.weight(), 1D, count, material.ratio());
-                        // handles values not needing to contribute to weight
-                        final double coefficient = material.weight() == null ? 1 : material.weight();
-                        granularity.add(material.granularity(), coefficient, count, material.ratio());
-                        melt.add(material.melt(), coefficient, count, material.ratio());
-                        boil.add(material.boil(), coefficient, count, material.ratio());
-                        temperature.add(material.temperature(), coefficient, count, material.ratio());
-                        density.add(material.density(), coefficient, count, material.ratio());
-                        swave.add(material.swave(), coefficient, count, material.ratio());
-                        lwave.add(material.lwave(), coefficient, count, material.ratio());
+    private static Map<String, RawMaterial> flattenMaterials(HashMap<String, RawMaterial> in) {
+        // TODO: could this be done with annotations?
+        // NOTE: don't access any non-static closure variables other than (getter, raw) inside the calculation phase
+        //       This will change how the compiler sees the lambda, (see: lambda closures)
+        //       and will recreate it on every use (resulting in a large performance hit)
+        // fully calculates a raw material, and recursively flattens all dependencies
+        return Memoization.allWithDependenciesAnyways(in, (getter, key, raw) -> {
+            // calculation logic
+            String[] solute = raw.solute() == null ? new String[0] : raw.solute();
+            Double[] composition = raw.composition() == null ? new Double[0] : raw.composition();
+            int length = solute.length;
+            boolean ratio = raw.ratio() != null && raw.ratio();
+            // only calculate if necessary
+            if (length > 0) {
+                Property weight = new Property(ratio);
+                Property granularity = new Property(ratio);
+                Property melt = new Property(ratio);
+                Property boil = new Property(ratio);
+                Property temperature = new Property(ratio);
+                Property density = new Property(ratio);
+                Property swave = new Property(ratio);
+                Property lwave = new Property(ratio);
+                LinkedList<RuntimeException> errors = new LinkedList<>();
+                for (int i = 0; i < length; i++) {
+                    String name = solute[i];
+                    // get values
+                    final RawMaterial material;
+                    try {
+                        material = getter.apply(name);
+                    } catch (final RuntimeException cause) {
+                        errors.add(cause);
+                        continue;
                     }
-                    // spew errors
-                    if (!errors.isEmpty()) {
-                        for (String error : errors)
-                            // TODO identify reasonable solution to prevent suboptimal non-static reference here
-                            LOGGER.error("{} in {} is invalid or cyclical", error, key);
-                        return null;
-                    }
-                    raw = new RawMaterial(null,
-                            weight.get(),
-                            raw.solvent(),     // for posterity/debug, not needed in runtime
-                            raw.solute(),      // for posterity/debug, not needed in runtime
-                            raw.composition(), // for posterity/debug, not needed in runtime
-                            ratio,
-                            granularity.get(),
-                            melt.get(),
-                            boil.get(),
-                            temperature.get(),
-                            density.get(),
-                            swave.get(),
-                            lwave.get()
-                    );
+                    /**
+                     * handles defaults from @Cache.shellMaterials
+                     **/
+                    final double count = composition[i] == null ? 1 : composition[i];
+                    // save values
+                    weight.add(material.weight(), 1D, count, material.ratio());
+                    // handles values not needing to contribute to weight
+                    final double coefficient = material.weight() == null ? 1 : material.weight();
+                    granularity.add(material.granularity(), coefficient, count, material.ratio());
+                    melt.add(material.melt(), coefficient, count, material.ratio());
+                    boil.add(material.boil(), coefficient, count, material.ratio());
+                    temperature.add(material.temperature(), coefficient, count, material.ratio());
+                    density.add(material.density(), coefficient, count, material.ratio());
+                    swave.add(material.swave(), coefficient, count, material.ratio());
+                    lwave.add(material.lwave(), coefficient, count, material.ratio());
                 }
-                return raw;
-            }, false);
-        }
-        in = flat;
-        return in;
+                // spew errors
+                if (!errors.isEmpty()) {
+                    final var error = errors.pollFirst();
+                    errors.forEach(error::addSuppressed);
+
+                    LOGGER.error("Exception caught while calculating key '{}'", key);
+                    LOGGER.throwing(error);
+
+                    return null;
+                }
+                raw = new RawMaterial(null,
+                        weight.get(),
+                        raw.solvent(),     // for posterity/debug, not needed in runtime
+                        raw.solute(),      // for posterity/debug, not needed in runtime
+                        raw.composition(), // for posterity/debug, not needed in runtime
+                        ratio,
+                        granularity.get(),
+                        melt.get(),
+                        boil.get(),
+                        temperature.get(),
+                        density.get(),
+                        swave.get(),
+                        lwave.get()
+                );
+            }
+            return raw;
+        }, false);
     }
     // TODO: AIR as base solvent
-    public static HashMap<String, Material> refineMaterials(HashMap<String, RawMaterial> rawMaterials) {
+    public static HashMap<String, Material> refineMaterials(Map<String, RawMaterial> rawMaterials) {
         final double temperature = 287.15D;
         // global average for 20th century 14°C/57°F/287°K
         rawMaterials.forEach((String key, RawMaterial raw) -> {
