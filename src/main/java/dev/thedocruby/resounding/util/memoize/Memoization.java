@@ -38,7 +38,7 @@ public final class Memoization {
         final @NotNull BiFunction<
             @NotNull Function<String, @NotNull OUT>,
             @NotNull IN,
-            @Nullable OUT
+            OUT
         > calculator
     ) throws MemoizationException {
         return withDependenciesFirstAnyways(inputs, outputs, key, calculator, true);
