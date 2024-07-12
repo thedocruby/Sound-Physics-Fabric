@@ -4,7 +4,7 @@ package dev.thedocruby.resounding;
  * A material.
  *
  * @param impedance  the impedance of the material
- * @param permeation  the permeation of the material
+ * @param permeation  the permeation of the material (the inverse of absorption)
  * @param state  the current state of matter
  */
 public record Material(double impedance, double permeation, double state) {
