@@ -96,7 +96,7 @@ public class Cache {
                 if (leaf.material == null) any = any || !leaf.isEmpty();
                 else {
                     // any = true;
-                    if (!root.material.equals(leaf.material)) {
+                    if (!Objects.equals(root.material, leaf.material)) {
                         // root.material = null;
                         any = true;
                         valid = false;
