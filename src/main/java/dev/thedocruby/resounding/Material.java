@@ -27,26 +27,6 @@ public record Material(double impedance, double permeation, double state) {
     }
 
     /**
-     * The impedance of this material.
-     *
-     * @return the impedance
-     */
-    @Override
-    public double impedance() {
-        return this.impedance;
-    }
-
-    /**
-     * The permeation of this material. This is also the inverse of absorption.
-     *
-     * @return the permeation
-     */
-    @Override
-    public double permeation() {
-        return this.permeation;
-    }
-
-    /**
      * The current state of matter. This is a continuous value in the range
      * between zero and one, with each state roughly mapped in the following
      * table:
