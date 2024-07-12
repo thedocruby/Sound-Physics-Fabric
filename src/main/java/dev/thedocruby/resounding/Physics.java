@@ -34,7 +34,7 @@ public class Physics {
         // */
     }
 
-    public static @NotNull Double reflection(@NotNull Double impedanceA, @NotNull Double impedanceB) {
+    public static double reflection(final double impedanceA, final double impedanceB) {
         // difference of squares
         return impedanceA == impedanceB ? 0.0 : Math.pow( (impedanceA - impedanceB) / (impedanceA + impedanceB), 2);
     }
