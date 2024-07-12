@@ -113,7 +113,7 @@ public class Cache {
                 final BlockPos position = start.add(block);
                 @NotNull Material next = material(chunk.getBlockState(position));
                 // break if next block isn't similar enough
-                if (!root.material.equals(next)) {
+                if (!Objects.equals(root.material, next)) {
                     // root.material = null;
                     valid = false;
                     break;
