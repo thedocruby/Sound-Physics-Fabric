@@ -135,7 +135,7 @@ public class Utils {
         HashMap<String, T> output = new HashMap<>();
         InputStream input;
         // if not available, move on
-        try { InputSupplier<InputStream> supplier = pack.openRoot(path); }
+        try { input = pack.openRoot(path).get(); }
 	catch (NullPointerException | IOException e) { return output; }
 
         LinkedTreeMap<String, LinkedTreeMap> raw = new Gson().fromJson(new InputStreamReader(input, UTF_8), token);
