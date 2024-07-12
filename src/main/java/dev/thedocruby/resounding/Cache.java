@@ -181,10 +181,9 @@ public class Cache {
     // gets the config dir, opens the save file, parses it
     public static boolean recall() {
         HashMap<String, Material> temp = Utils.recall("resounding.cache", Utils.token(Cache.materials), (LinkedTreeMap value) -> new Material(
-                // defaults to air's values
-                (double) value.getOrDefault("impedance",  350),
-                (double) value.getOrDefault("permeation", 1),
-                (double) value.getOrDefault("state",      1)
+                (double) value.getOrDefault("impedance",  Material.FALLBACK.impedance()),
+                (double) value.getOrDefault("permeation", Material.FALLBACK.permeation()),
+                (double) value.getOrDefault("state",      Material.FALLBACK.state())
         ));
         if (temp.isEmpty()) return false;
         else Cache.materials = temp;

@@ -9,6 +9,11 @@ package dev.thedocruby.resounding;
  */
 public record Material(double impedance, double permeation, double state) {
     /**
+     * The fallback material.
+     */
+    public static final Material FALLBACK = new Material(350.0, 1.0, 1.0);
+
+    /**
      * Creates a new material.
      * <p>
      * For valid values for the state of matter, see {@code state()}.
