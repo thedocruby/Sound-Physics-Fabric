@@ -135,11 +135,8 @@ public class Utils {
         HashMap<String, T> output = new HashMap<>();
         InputStream input;
         // if not available, move on
-        try {
-            InputSupplier<InputStream> supplier = pack.openRoot(path);
-            if (supplier == null) return output;
-            input = supplier.get();
-        } catch (IOException e) { return output; }
+        try { InputSupplier<InputStream> supplier = pack.openRoot(path); }
+	catch (NullPointerException | IOException e) { return output; }
 
         LinkedTreeMap<String, LinkedTreeMap> raw = new Gson().fromJson(new InputStreamReader(input, UTF_8), token);
         // place deserialized values into record.
