@@ -236,7 +236,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		Material material = material(state);
 		// if block is homogenous with branch
 		//* TODO remove
-		if (material.equals(branch.material)) return;
+		if (Objects.equals(material.equals, branch.material)) return;
 		// */
 
 		// will get optimized on reload, must keep this function quick
