@@ -136,7 +136,7 @@ public class Utils {
         InputStream input;
         // if not available, move on
         try { input = pack.openRoot(path).get(); }
-	catch (NullPointerException | IOException e) { return output; }
+        catch (NullPointerException | IOException e) { return output; }
 
         LinkedTreeMap<String, LinkedTreeMap> raw = new Gson().fromJson(new InputStreamReader(input, UTF_8), token);
         // place deserialized values into record.
