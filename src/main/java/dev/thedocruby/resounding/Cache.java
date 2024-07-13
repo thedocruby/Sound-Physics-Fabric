@@ -96,7 +96,7 @@ public class Cache {
                 if (leaf.material == null) any = any || !leaf.isEmpty();
                 else {
                     // any = true;
-                    if (!root.material.equals(leaf.material)) {
+                    if (!Objects.equals(root.material, leaf.material)) {
                         // root.material = null;
                         any = true;
                         valid = false;
@@ -113,7 +113,7 @@ public class Cache {
                 final BlockPos position = start.add(block);
                 @NotNull Material next = material(chunk.getBlockState(position));
                 // break if next block isn't similar enough
-                if (!root.material.equals(next)) {
+                if (!Objects.equals(root.material, next)) {
                     // root.material = null;
                     valid = false;
                     break;

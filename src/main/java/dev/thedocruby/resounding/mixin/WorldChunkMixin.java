@@ -35,6 +35,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -236,7 +237,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		Material material = material(state);
 		// if block is homogenous with branch
 		//* TODO remove
-		if (material.equals(branch.material)) return;
+		if (Objects.equals(material, branch.material)) return;
 		// */
 
 		// will get optimized on reload, must keep this function quick
