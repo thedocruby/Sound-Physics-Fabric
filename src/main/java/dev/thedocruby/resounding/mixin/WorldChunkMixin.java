@@ -12,9 +12,9 @@ import net.minecraft.client.world.ClientChunkManager;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.s2c.play.ChunkData;
+import net.minecraft.registry.Registry;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.HeightLimitView;
 import net.minecraft.world.World;
@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
 import static dev.thedocruby.resounding.Cache.material;
 import static dev.thedocruby.resounding.Engine.hasLoaded;
@@ -144,7 +144,7 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		// 16³ blocks
 		ChunkSection[] chunkSections = getSectionArray();
 		// LOGGER.info(String.valueOf(chunkSections.length) /* +"\t"+Arrays.toString(chunkSections)*/); // TODO remove
-		this.yOffset = -chunkSections[0].getYOffset() >> 4;
+		this.yOffset = -heightLimitView.sectionIndexToCoord(0);
 		final ChunkPos pos = this.getPos();
 		final double x     = pos.x << 4; // * 16
 		final double z     = pos.z << 4; // * 16
@@ -152,13 +152,14 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		final Branch[] branches = new Branch[chunkSections.length];
 
 		// chunk up a section into an octree
-		Stream.of(chunkSections).parallel().forEach((chunkSection) -> {
-			int y = chunkSection.getYOffset();
+		IntStream.range(0, chunkSections.length).parallel().forEach((i) -> {
+			ChunkSection chunkSection = chunkSections[i];
+			int y = heightLimitView.sectionIndexToCoord(i) << 4;
 			final int index = this.yOffset + (y >> 4);
 			boolean empty = chunkSection.isEmpty();
 
-			Branch air = new Branch(new BlockPos(x,y,z),16, material(Blocks.AIR.getDefaultState()));
-			Branch blank = new Branch(new BlockPos(x,y,z),16);
+			Branch air = new Branch(BlockPos.ofFloored(x,y,z),16, material(Blocks.AIR.getDefaultState()));
+			Branch blank = new Branch(BlockPos.ofFloored(x,y,z),16);
 
 			// provide fallback or all-air branch when necessary
 			synchronized (branches) {
@@ -213,8 +214,10 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 			return (ChunkChain) getChunk(x,z,ChunkStatus.FULL,false);
 		}
 
-		@Inject(method = "unload(II)V", at = @At("HEAD"))
-		public void unload(int x, int z, CallbackInfo ci) {
+		@Inject(method = "unload(Lnet/minecraft/util/math/ChunkPos;)V", at = @At("HEAD"))
+		public void unload(ChunkPos pos, CallbackInfo ci) {
+			int x = pos.x;
+			int z = pos.z;
 			ChunkChain[] adj = new ChunkChain[4];
 			adj[0] = take(x - 1, z + 0);
 			adj[1] = take(x + 1, z + 0);

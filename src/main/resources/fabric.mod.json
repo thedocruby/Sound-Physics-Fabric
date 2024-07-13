@@ -37,10 +37,10 @@
     "bluetapepack.mixins.json"
   ],
   "depends": {
-    "java": ">=17",
+    "java": ">=21",
     "cloth-config2": ">=6.2.57",
     "fabricloader": ">=0.13.3",
-    "minecraft": "=1.18.2"
+    "minecraft": "=1.21"
   },
   "suggests": {
     "modmenu": ">=3.1.0",

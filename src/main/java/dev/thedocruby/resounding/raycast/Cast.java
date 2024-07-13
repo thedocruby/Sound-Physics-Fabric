@@ -11,6 +11,7 @@ import net.minecraft.block.Blocks;
 import net.minecraft.util.Pair;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.util.shape.VoxelShape;
@@ -137,7 +138,7 @@ public class Cast {
     public Branch getBlock(Vec3d pos) {
         if (this.chunk == null || this.tree == null) return null;
         // round position
-        final BlockPos block = new BlockPos(pos);
+        final BlockPos block = BlockPos.ofFloored(pos);
         // obtain tree for layer within section
         // { [ ... ] _ _ _ _ _ _ _ }
         //           ^ ^ ^ ^ ^ ^ ^ state=null
@@ -194,17 +195,17 @@ public class Cast {
         double ystep       = boundAxis(base.y, position.y, size, vector.y);
         double zstep       = boundAxis(base.z, position.z, size, vector.z);
 
-        Vec3i planarIndex  = new Vec3i(-Math.signum(vector.x), 0, 0);
+        Vec3i planarIndex  = new Vec3i(MathHelper.floor(-Math.signum(vector.x)), 0, 0);
 
         // branch hint: 1/3 probability -> NO
         // same as min(x,min(y,z)) + planar index
         if (ystep < coefficient) {
             coefficient = ystep;
-            planarIndex = new Vec3i(0,-Math.signum(vector.y),0);
+            planarIndex = new Vec3i(0,MathHelper.floor(-Math.signum(vector.y)),0);
         }
         if (zstep < coefficient) {
             coefficient = zstep;
-            planarIndex = new Vec3i(0,0,-Math.signum(vector.z));
+            planarIndex = new Vec3i(0,0,MathHelper.floor(-Math.signum(vector.z)));
         }
         if (coefficient == Double.POSITIVE_INFINITY) {
             LOGGER.warn("invalid coefficient");

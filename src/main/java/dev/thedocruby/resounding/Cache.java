@@ -9,6 +9,7 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.registry.Registries;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.resource.ResourcePackProfile;
 import net.minecraft.sound.SoundCategory;
@@ -17,7 +18,6 @@ import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.chunk.WorldChunk;
@@ -226,15 +226,15 @@ public class Cache {
         Collection<ResourcePackProfile> list = mc.getResourcePackManager().getEnabledProfiles();
         for (ResourcePackProfile profile : list) {
             ResourcePack pack = profile.createResourcePack();
-            materials.putAll(Utils.resource(pack, "resounding.materials.json", Utils.token(materials), Cache::deserializeMaterials));
-            tags.putAll(Utils.resource(pack, "resounding.tags.json", Utils.token(tags), Cache::deserializeTag));
+            materials.putAll(Utils.resource(pack, new String[] { "resounding.materials.json" }, Utils.token(materials), Cache::deserializeMaterials));
+            tags.putAll(Utils.resource(pack, new String[] { "resounding.tags.json" }, Utils.token(tags), Cache::deserializeTag));
         }
 
 
         blocks = new HashMap<>();
         // read tags & blocks from game registry
         // TODO: make static
-        Registry.BLOCK.forEach((Block block) -> {
+        Registries.BLOCK.forEach((Block block) -> {
             String name = block.getTranslationKey();
             block.getDefaultState().streamTags()
                     .forEach((tag) -> {

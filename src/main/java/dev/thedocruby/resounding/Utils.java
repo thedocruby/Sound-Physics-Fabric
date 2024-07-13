@@ -4,8 +4,10 @@ import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.resource.InputSupplier;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.resource.ResourcePackProfile;
+import org.apache.commons.compress.parallel.InputStreamSupplier;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -129,12 +131,12 @@ public class Utils {
         return output;
     }
 
-    public static <T> HashMap<String, T> resource(ResourcePack pack, String path, Type token, BiFunction<String, LinkedTreeMap, HashMap<String, T>> deserializer) {
+    public static <T> HashMap<String, T> resource(ResourcePack pack, String[] path, Type token, BiFunction<String, LinkedTreeMap, HashMap<String, T>> deserializer) {
         HashMap<String, T> output = new HashMap<>();
         InputStream input;
         // if not available, move on
-        try { input = pack.openRoot(path); }
-        catch (IOException e) { return output; }
+        try { input = pack.openRoot(path).get(); }
+        catch (NullPointerException | IOException e) { return output; }
 
         LinkedTreeMap<String, LinkedTreeMap> raw = new Gson().fromJson(new InputStreamReader(input, UTF_8), token);
         // place deserialized values into record.
