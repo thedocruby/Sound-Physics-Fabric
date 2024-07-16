@@ -9,13 +9,13 @@ import dev.thedocruby.resounding.raycast.Hit;
 import dev.thedocruby.resounding.raycast.Ray;
 import dev.thedocruby.resounding.raycast.Renderer;
 import dev.thedocruby.resounding.toolbox.*;
+import it.unimi.dsi.fastutil.objects.ObjectIntPair;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundListener;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.util.Pair;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Contract;
@@ -47,7 +47,7 @@ public class Engine {
 
 
 	// init vars {
-	private static Set<Pair<Vec3d,Integer>> rays; // TODO: move inside sound entity
+	private static Set<ObjectIntPair<Vec3d>> rays; // TODO: move inside sound entity
 	private static String tag; // TODO: move inside sound entity
 	private static Vec3d listenerPos; // TODO remove?
 	private static SoundListener lastSoundListener; // TODO: move inside sound entity
@@ -86,7 +86,7 @@ public class Engine {
 			final double phi = Math.acos(1 - 2*(i + epsilon) / phiHelper);
 			final double sP = Math.sin(phi);
 
-			return new Pair<>(new Vec3d(
+			return ObjectIntPair.of(new Vec3d(
 					Math.cos(theta) * sP,
 					Math.sin(theta) * sP,
 					Math.cos(phi)
@@ -173,15 +173,15 @@ public class Engine {
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull LinkedList<Hit> airspace(@NotNull Pair<Vec3d,Integer> input, double amplitude, Vec3d targetPosition) {
-		return raycast(input, amplitude, input.getLeft().distanceTo(targetPosition), targetPosition,
+	private static @NotNull LinkedList<Hit> airspace(@NotNull ObjectIntPair<Vec3d> input, double amplitude, Vec3d targetPosition) {
+		return raycast(input, amplitude, input.left().distanceTo(targetPosition), targetPosition,
 				// always permeate!
 				(Cast c, LinkedList<Hit> r) -> false
 		);
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull LinkedList<Hit> raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude) {
+	private static @NotNull LinkedList<Hit> raycast(@NotNull ObjectIntPair<Vec3d> input, double amplitude) {
 		return raycast(input, amplitude,
 				(Cast cast, LinkedList<Hit> results) -> cast.reflected.power() > cast.transmitted.power()
 						// TODO use better method for permeation preference near start
@@ -190,14 +190,14 @@ public class Engine {
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull LinkedList<Hit> raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude, BiFunction<Cast, LinkedList<Hit>, Boolean> reflect) {
+	private static @NotNull LinkedList<Hit> raycast(@NotNull ObjectIntPair<Vec3d> input, double amplitude, BiFunction<Cast, LinkedList<Hit>, Boolean> reflect) {
 		return raycast(input, amplitude, Double.POSITIVE_INFINITY, null, reflect);
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull LinkedList<Hit> raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude, double maxLength, Vec3d targetPosition, BiFunction<Cast, LinkedList<Hit>, Boolean> reflect) {
-		int id = input.getRight(); // for debug purposes
-		Vec3d vector = input.getLeft();
+	private static @NotNull LinkedList<Hit> raycast(@NotNull ObjectIntPair<Vec3d> input, double amplitude, double maxLength, Vec3d targetPosition, BiFunction<Cast, LinkedList<Hit>, Boolean> reflect) {
+		int id = input.rightInt(); // for debug purposes
+		Vec3d vector = input.left();
 		// TODO: allow arbitrary bounces per ray & splitting
 		// int bounces = 100; // -> incompatible with present algorithms
 		// assert mc.world != null; // should never happen (never should be called uninitialized)
@@ -337,7 +337,7 @@ public class Engine {
 					// halfway through each ray, send occlusion ray
 					if (++iterations == size / 2) {
 						// TODO account for difference in angle in amplitude
-						LinkedList<Hit> occlusion = airspace(new Pair<>(hit.position(), -1), hit.amplitude(), Cache.playerPos);
+						LinkedList<Hit> occlusion = airspace(ObjectIntPair.of(hit.position(), -1), hit.amplitude(), Cache.playerPos);
 						double permeation = occlusion.getLast().amplitude();
 						amplitude = Math.max(permeation, amplitude);
 						// TODO determine accuracy of this method
