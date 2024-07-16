@@ -165,11 +165,19 @@ public class Cache {
 
     @Environment(EnvType.CLIENT) // TODO: is this method needed on server side?
     public static @NotNull Material material(@Nullable BlockState state) {
-        // TODO: separate map for fluids? (performance consideration)
-        // state.getFluidState().getFluid(); // Fluids.WATER/EMPTY/etc
-        // TODO: cascading effect material controllers
-        return materials.getOrDefault(state.getBlock().getName(), materials.get("air")); // TODO remove / use block tagging/regex system
-//        return materials.getOrDefault(state.getBlock().getName(), null);
+        if (state != null) {
+            // TODO: separate map for fluids? (performance consideration)
+            // state.getFluidState().getFluid(); // Fluids.WATER/EMPTY/etc
+            // TODO: cascading effect material controllers
+            // TODO remove / use block tagging/regex system
+            final var material = materials.get(Registries.BLOCK.getId(state.getBlock()).toString());
+
+            if (material != null) {
+                return material;
+            }
+        }
+
+        return Material.FALLBACK;
     }
 
 
