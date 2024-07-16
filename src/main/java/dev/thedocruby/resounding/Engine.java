@@ -303,7 +303,7 @@ public class Engine {
 		double missed = 0.0D;
 		for (LinkedList<Hit> ray : data.reflRays()) {
 			bounces += ray.size();
-			if (ray.getLast().amplitude() < 1) missed++;
+			if (!ray.isEmpty() && ray.getLast().amplitude() < 1) missed++;
 		}
 		missed /= pC.nRays;
 
