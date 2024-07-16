@@ -195,10 +195,9 @@ public class Engine {
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull LinkedList<Hit> raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude, double maxLength, Vec3d targetPosition, BiFunction<Cast, LinkedList<Hit>, Boolean> reflect) {
+	private static @NotNull LinkedList<Hit> raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude, double maxLength, Vec3d targetPosition, BiPredicate<Cast, LinkedList<Hit>> reflect) {
 		int id = input.getRight(); // for debug purposes
 		Vec3d vector = input.getLeft();
-	private static @NotNull LinkedList<Hit> raycast(@NotNull Pair<Vec3d,Integer> input, double amplitude, double maxLength, Vec3d targetPosition, BiPredicate<Cast, LinkedList<Hit>> reflect) {
 		// TODO: allow arbitrary bounces per ray & splitting
 		// int bounces = 100; // -> incompatible with present algorithms
 		// assert mc.world != null; // should never happen (never should be called uninitialized)
