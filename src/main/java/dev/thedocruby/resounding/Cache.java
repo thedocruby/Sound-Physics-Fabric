@@ -43,7 +43,7 @@ public class Cache {
 
     public final static ExecutorService octreePool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-    public static HashMap<String, Material> materials = new HashMap<>();
+    public static HashMap<@NotNull String, @NotNull Material> materials = new HashMap<>();
 
     public static HashMap<String, Tag> tags = new HashMap<>();
 
@@ -165,19 +165,16 @@ public class Cache {
 
     @Environment(EnvType.CLIENT) // TODO: is this method needed on server side?
     public static @NotNull Material material(@Nullable BlockState state) {
-        if (state != null) {
-            // TODO: separate map for fluids? (performance consideration)
-            // state.getFluidState().getFluid(); // Fluids.WATER/EMPTY/etc
-            // TODO: cascading effect material controllers
-            // TODO remove / use block tagging/regex system
-            final var material = materials.get(Registries.BLOCK.getId(state.getBlock()).toString());
+        if (state == null) return Material.FALLBACK;
+        // TODO: separate map for fluids? (performance consideration)
+        // state.getFluidState().getFluid(); // Fluids.WATER/EMPTY/etc
+        // TODO: cascading effect material controllers
+        // TODO evaluate if unloaded registry will throw NPE.
+        final var material = materials.get(Registries.BLOCK.getId(state.getBlock()).toString());
 
-            if (material != null) {
-                return material;
-            }
-        }
+        if (material == null) return MATERIAL.FALLBACK;
 
-        return Material.FALLBACK;
+        return material;
     }
 
 
