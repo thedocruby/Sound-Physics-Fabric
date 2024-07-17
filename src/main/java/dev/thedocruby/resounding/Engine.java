@@ -24,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Set;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -190,12 +190,12 @@ public class Engine {
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull LinkedList<Hit> raycast(@NotNull ObjectIntPair<Vec3d> input, double amplitude, BiFunction<Cast, LinkedList<Hit>, Boolean> reflect) {
+	private static @NotNull LinkedList<Hit> raycast(@NotNull ObjectIntPair<Vec3d> input, double amplitude, BiPredicate<Cast, LinkedList<Hit>> reflect) {
 		return raycast(input, amplitude, Double.POSITIVE_INFINITY, null, reflect);
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull LinkedList<Hit> raycast(@NotNull ObjectIntPair<Vec3d> input, double amplitude, double maxLength, Vec3d targetPosition, BiFunction<Cast, LinkedList<Hit>, Boolean> reflect) {
+	private static @NotNull LinkedList<Hit> raycast(@NotNull ObjectIntPair<Vec3d> input, double amplitude, double maxLength, Vec3d targetPosition, BiPredicate<Cast, LinkedList<Hit>> reflect) {
 		int id = input.rightInt(); // for debug purposes
 		Vec3d vector = input.left();
 		// TODO: allow arbitrary bounces per ray & splitting
@@ -225,7 +225,7 @@ public class Engine {
 			//* handle properties {
 			// TODO handle splits & replace:
 			//  reflect instead of permeate, when logical
-			if (reflect.apply(cast, results)) {
+			if (reflect.test(cast, results)) {
 				// stop rays stuck between two walls (not moving)
 				// num, not bool -> (3D) edges & corners
 				if (reflected++ > 2) break;
