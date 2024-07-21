@@ -30,6 +30,7 @@ import java.nio.file.FileSystems;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -91,7 +92,7 @@ public class Cache {
             for (BlockPos block : blockSequence) {
                 final BlockPos position = start.add(block.multiply(scale));
                 // use recursion here
-                Branch leaf = growOctree(chunk, new Branch(position,scale, (Material) null));
+                Branch leaf = growOctree(chunk, new Branch(position, scale, (Material) null));
                 // if (leaf.material != null) {
                 if (leaf.material == null) any = any || !leaf.isEmpty();
                 else {
@@ -104,7 +105,7 @@ public class Cache {
                     }
                 }
                 // don't break here, as understanding adjacent sections is important
-                root.put(position.asLong(),leaf);
+                root.put(position.asLong(), leaf);
             }
             if (!any) root.empty();
             // for single-blocks
@@ -172,23 +173,20 @@ public class Cache {
         // TODO evaluate if unloaded registry will throw NPE.
         final var material = materials.get(Registries.BLOCK.getId(state.getBlock()).toString());
 
-        if (material == null) return MATERIAL.FALLBACK;
+        if (material == null) return Material.FALLBACK;
 
         return material;
     }
-
-
-
 
 
     // TODO integrate
     // Recalls baked materials from config
     // gets the config dir, opens the save file, parses it
     public static boolean recall() {
-        HashMap<String, Material> temp = Utils.recall("resounding.cache", Utils.token(Cache.materials), (LinkedTreeMap value) -> new Material(
-                (double) value.getOrDefault("impedance",  Material.FALLBACK.impedance()),
+        HashMap<String, Material> temp = Utils.recall("resounding.cache", Utils.token(Cache.materials), value -> new Material(
+                (double) value.getOrDefault("impedance", Material.FALLBACK.impedance()),
                 (double) value.getOrDefault("permeation", Material.FALLBACK.permeation()),
-                (double) value.getOrDefault("state",      Material.FALLBACK.state())
+                (double) value.getOrDefault("state", Material.FALLBACK.state())
         ));
         if (temp.isEmpty()) return false;
         else Cache.materials = temp;
@@ -230,8 +228,8 @@ public class Cache {
         Collection<ResourcePackProfile> list = mc.getResourcePackManager().getEnabledProfiles();
         for (ResourcePackProfile profile : list) {
             ResourcePack pack = profile.createResourcePack();
-            materials.putAll(Utils.resource(pack, new String[] { "resounding.materials.json" }, Utils.token(materials), Cache::deserializeMaterials));
-            tags.putAll(Utils.resource(pack, new String[] { "resounding.tags.json" }, Utils.token(tags), Cache::deserializeTag));
+            materials.putAll(Utils.resource(pack, new String[]{"resounding.materials.json"}, Utils.token(materials), Cache::deserializeMaterials));
+            tags.putAll(Utils.resource(pack, new String[]{"resounding.tags.json"}, Utils.token(tags), Cache::deserializeTag));
         }
 
 
