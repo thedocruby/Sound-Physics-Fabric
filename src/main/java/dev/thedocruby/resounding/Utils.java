@@ -3,12 +3,16 @@ package dev.thedocruby.resounding;
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
+import com.mojang.datafixers.util.Either;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resource.InputSupplier;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.resource.ResourcePackProfile;
 import org.apache.commons.compress.parallel.InputStreamSupplier;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.function.TriConsumer;
+import org.apache.commons.lang3.function.TriFunction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
@@ -19,8 +23,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.concurrent.Callable;
+import java.util.function.*;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -51,28 +55,6 @@ public class Utils {
 
     public static boolean[][] extendArray (final boolean[][] old, final int min) {
         return ArrayUtils.addAll(old, new boolean[Math.max(1,old.length - min)][]);
-    }
-    public static <IN,OUT> OUT memoize(HashMap<String, IN> in, HashMap<String, OUT> out, String key, BiFunction<Function<String, OUT>, IN, OUT> calculate) {
-        return memoize(in, out, key, calculate, true);
-    }
-
-    // specialized memoization for tag/material cache functionality
-    public static <IN,OUT> OUT memoize(HashMap<String, IN> in, HashMap<String, OUT> out, String key, BiFunction<Function<String, OUT>, IN, OUT> calculate, boolean remove) {
-        // return cached values
-        if (out.containsKey(key))
-            return out.get(key);
-        // mark as in-progress
-        // getter == null; should be scanned for in calculate to prevent cyclic references
-        out.put(key, null);
-        OUT value = null;
-        if (in.containsKey(key))
-            value = calculate.apply(
-                x -> memoize(in, out, x, calculate, remove),
-                remove ? in.remove(key) : in.get(key));
-        out.put(key, value);
-        if (value == null)
-            LOGGER.error("{} is invalid or cyclical", key);
-        return value;
     }
 
     public static Double when(Double value, Double coefficient) {
@@ -125,9 +107,9 @@ public class Utils {
         } catch (IOException e) {
             LOGGER.error("Failed recalling '" + token.toString() + "'s from config", e);
         }
-        input.forEach((String key, LinkedTreeMap value) ->
-                output.put(key, deserializer.apply(value))
-        );
+        input.forEach(Uncapture.consumer(output, deserializer,
+            (_output, _deserializer, key, value) -> _output.put(key, _deserializer.apply(value))
+        ));
         return output;
     }
 
@@ -139,25 +121,27 @@ public class Utils {
         catch (NullPointerException | IOException e) { return output; }
 
         LinkedTreeMap<String, LinkedTreeMap> raw = new Gson().fromJson(new InputStreamReader(input, UTF_8), token);
-        // place deserialized values into record.
-        // this issue is fixed in GSON 2.10, but not in 2.8.9 (what 1.18.2 uses)
-        raw.forEach((String key, LinkedTreeMap value) -> {
-            HashMap<String, T> map = deserializer.apply(key, value);
-            output.putAll(map);
-        });
+        for (Map.Entry<String, LinkedTreeMap> entry : raw.entrySet()) {
+            // place deserialized values into record.
+            // this issue is fixed in GSON 2.10, but not in 2.8.9 (what 1.18.2 uses)
+            output.putAll(
+                deserializer.apply(entry.getKey(), entry.getValue())
+            );
+        }
 
         return output;
     }
 
     public static Stream<String> granularFilter(List<String> items, Pattern[] patterns, String[] keys) {
-        return items.stream().filter(
+        final var filtered = Arrays.stream(patterns).filter(Objects::nonNull);
+        final var keyList = Arrays.asList(keys);
+        return items.stream().filter(Uncapture.predicate(filtered, keyList,
                 // if matches any of the patterns
-                item -> Arrays.stream(patterns)
-                        .filter(Objects::nonNull)
-                        .anyMatch(t -> t.matcher(item).find())
-                     // or is explicitly stated
-                     || Arrays.asList(keys).contains(item)
-        );
+                (_filtered, _keyList, item) ->
+                        // check explicitly first
+                        _keyList.contains(item)
+                        || _filtered.anyMatch(t -> t.matcher(item).find())
+        ));
     }
 
     // compile regular expressions
@@ -170,8 +154,7 @@ public class Utils {
         if (input == null) return blank;
         if (input instanceof ArrayList)
             return ((ArrayList<T>) input).toArray(blank);
-        else
-            return (T[]) input;
+        return (T[]) input;
     }
 
 // }

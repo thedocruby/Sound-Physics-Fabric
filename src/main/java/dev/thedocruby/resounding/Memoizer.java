@@ -17,7 +17,7 @@ public class Memoizer<IN,KEY,OUT> {
     private final List<String> errors = new LinkedList<>();
 
     private Function<KEY,@NotNull IN> getter;
-    private BiConsumer<@NotNull KEY,OUT> putter;
+    private BiConsumer<@NotNull KEY,OUT> setter;
     private final TriFunction<Function<KEY,@Nullable OUT>,@NotNull IN,@NotNull KEY,@Nullable OUT> calculator;
     private final ObjectLinkedOpenHashSet<KEY> path = new ObjectLinkedOpenHashSet<>();
 
@@ -44,7 +44,7 @@ public class Memoizer<IN,KEY,OUT> {
         this.in = in;
         path.clear();
         getter = deconstruct ? in::remove : in::get;
-        putter = ignoreNull ? (key, value) -> {if (key != value) output.put(key, value);} : output::put;
+        setter = ignoreNull ? (key, value) -> {if (key != value) output.put(key, value);} : output::put;
 
         in.keySet().stream().toList().forEach(this::get);
 
@@ -70,7 +70,7 @@ public class Memoizer<IN,KEY,OUT> {
 
         if (value == null)
             errors.add("Invalid path: '" + path + "'.");
-        putter.accept(key, value);
+        setter.accept(key, value);
 
         path.removeLast();
         return value;

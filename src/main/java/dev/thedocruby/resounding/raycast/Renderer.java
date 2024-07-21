@@ -1,6 +1,8 @@
 package dev.thedocruby.resounding.raycast;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.thedocruby.resounding.Uncapture;
+import dev.thedocruby.resounding.Utils;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.render.*;
@@ -11,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 
 import static dev.thedocruby.resounding.config.PrecomputedConfig.pC;
 
@@ -33,7 +36,7 @@ public class Renderer {
 				if (ray.tickCreated == -1) ray.tickCreated = gameTime;
 				renderRay(ray, x, y, z);
 			}
-			rays.removeIf(ray -> (gameTime - ray.tickCreated) > ray.lifespan || (gameTime - ray.tickCreated) < 0L);
+			rays.removeIf(Uncapture.predicate(gameTime, (_gameTime, ray) -> (_gameTime - ray.tickCreated) > ray.lifespan || (_gameTime - ray.tickCreated) < 0L));
 		}
 	}
 

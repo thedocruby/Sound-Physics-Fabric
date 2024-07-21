@@ -4,11 +4,12 @@ package dev.thedocruby.resounding;
 // internal {
 
 import dev.thedocruby.resounding.openal.Context;
-import dev.thedocruby.resounding.raycast.Cast;
-import dev.thedocruby.resounding.raycast.Hit;
 import dev.thedocruby.resounding.raycast.Ray;
+import dev.thedocruby.resounding.raycast.Hit;
+import dev.thedocruby.resounding.raycast.Segment;
 import dev.thedocruby.resounding.raycast.Renderer;
 import dev.thedocruby.resounding.toolbox.*;
+import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.ObjectIntPair;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -18,6 +19,7 @@ import net.minecraft.client.sound.SoundListener;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import org.apache.logging.log4j.util.Cast;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -26,6 +28,7 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -79,11 +82,10 @@ public class Engine {
 								 0.33 ;
 		final double phiHelper = pC.nRays - 1 + 2*epsilon;
 
-		// calculate starting vectors
-		rays = IntStream.range(0, pC.nRays).parallel().unordered().mapToObj(i -> {
+		final Function<Integer, ObjectIntPair<Vec3d>> calculatePosition = Uncapture.function(rate, epsilon, phiHelper, (_rate, _epsilon, _phiHelper, i) -> {
 			// trig stuff
-			final double theta = rate * i;
-			final double phi = Math.acos(1 - 2*(i + epsilon) / phiHelper);
+			final double theta = _rate * i;
+			final double phi = Math.acos(1 - 2*(i + _epsilon) / _phiHelper);
 			final double sP = Math.sin(phi);
 
 			return ObjectIntPair.of(new Vec3d(
@@ -91,7 +93,10 @@ public class Engine {
 					Math.sin(theta) * sP,
 					Math.cos(phi)
 			), i);
-		}).collect(Collectors.toSet());
+		});
+
+		// calculate starting vectors
+		rays = IntStream.range(0, pC.nRays).parallel().unordered().mapToObj(calculatePosition::apply).collect(Collectors.toSet());
 	}
 
 	@Environment(EnvType.CLIENT)
@@ -112,8 +117,7 @@ public class Engine {
 	public static void play(Context context, Vec3d pos, int sourceIDIn, boolean auxOnlyIn) {
 		assert Engine.on;
 		soundPos = pos;
-		long startTime = 0;
-		if (pC.pLog) startTime = System.nanoTime();
+		long startTime = pC.pLog ? System.nanoTime() : 0;
 		auxOnly = auxOnlyIn;
 		sourceID = sourceIDIn;
 		/* TODO remove
@@ -176,26 +180,26 @@ public class Engine {
 	private static @NotNull LinkedList<Hit> airspace(@NotNull ObjectIntPair<Vec3d> input, double amplitude, Vec3d targetPosition) {
 		return raycast(input, amplitude, input.left().distanceTo(targetPosition), targetPosition,
 				// always permeate!
-				(Cast c, LinkedList<Hit> r) -> false
+				(Ray c, LinkedList<Hit> r) -> false
 		);
 	}
 
 	@Environment(EnvType.CLIENT)
 	private static @NotNull LinkedList<Hit> raycast(@NotNull ObjectIntPair<Vec3d> input, double amplitude) {
 		return raycast(input, amplitude,
-				(Cast cast, LinkedList<Hit> results) -> cast.reflected.power() > cast.transmitted.power()
+				(Ray ray, LinkedList<Hit> results) -> ray.reflected.power() > ray.transmitted.power()
 						// TODO use better method for permeation preference near start
 						* (2 - (pC.nRayBounces - results.size()) / (double) pC.nRayBounces)
 		);
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull LinkedList<Hit> raycast(@NotNull ObjectIntPair<Vec3d> input, double amplitude, BiPredicate<Cast, LinkedList<Hit>> reflect) {
+	private static @NotNull LinkedList<Hit> raycast(@NotNull ObjectIntPair<Vec3d> input, double amplitude, BiPredicate<Ray, LinkedList<Hit>> reflect) {
 		return raycast(input, amplitude, Double.POSITIVE_INFINITY, null, reflect);
 	}
 
 	@Environment(EnvType.CLIENT)
-	private static @NotNull LinkedList<Hit> raycast(@NotNull ObjectIntPair<Vec3d> input, double amplitude, double maxLength, Vec3d targetPosition, BiPredicate<Cast, LinkedList<Hit>> reflect) {
+	private static @NotNull LinkedList<Hit> raycast(@NotNull ObjectIntPair<Vec3d> input, double amplitude, double maxLength, Vec3d targetPosition, BiPredicate<Ray, LinkedList<Hit>> reflect) {
 		int id = input.rightInt(); // for debug purposes
 		Vec3d vector = input.left();
 		// TODO: allow arbitrary bounces per ray & splitting
@@ -203,49 +207,49 @@ public class Engine {
 		// assert mc.world != null; // should never happen (never should be called uninitialized)
 //		double amplitude = 128; // TODO fine-tune & pull from sound volume
 		LinkedList<Hit> results = new LinkedList<>();
-		Cast cast = new Cast(mc.world, null, soundChunk, targetPosition);
-		// launch initial ray & always permeate first
-		cast.raycast(soundPos, vector, amplitude);
-		Ray ray = new Ray(amplitude, cast.transmitted.position(), cast.transmitted.vector(), cast.transmitted.length());
+		Ray ray = new Ray(mc.world, null, soundChunk, targetPosition);
+		// launch initial segment & always permeate first
+		ray.cast(soundPos, vector, amplitude);
+		Segment segment = new Segment(amplitude, ray.transmitted.position(), ray.transmitted.vector(), ray.transmitted.length());
 
-		double length = cast.transmitted.length();
+		double length = ray.transmitted.length();
 		Vec3d prior = soundPos; // used solely for debugging
 		byte reflected = 0; // used to stop rays that are trapped between two walls
 		int casts = 0;
 		// while power, within max search range & iterate bounces
-		while (ray.power() > 1 && maxLength > length && results.size() < pC.nRayBounces) {
+		while (segment.power() > 1 && maxLength > length && results.size() < pC.nRayBounces) {
 			// debugging output
-			if (pC.dRays) Renderer.addSoundBounceRay(prior, ray.position(), Cache.colors[(casts++ + id + results.size()) % Cache.colors.length]);
-			prior = ray.position();
+			if (pC.dRays) Renderer.addSoundBounceRay(prior, segment.position(), Cache.colors[(casts++ + id + results.size()) % Cache.colors.length]);
+			prior = segment.position();
 
-			// cast ray
-			cast.raycast(ray.position(), ray.vector(), ray.power());
+			// ray segment
+			ray.cast(segment.position(), segment.vector(), segment.power());
 			// } */
 
 			//* handle properties {
 			// TODO handle splits & replace:
 			//  reflect instead of permeate, when logical
-			if (reflect.test(cast, results)) {
+			if (reflect.test(ray, results)) {
 				// stop rays stuck between two walls (not moving)
 				// num, not bool -> (3D) edges & corners
 				if (reflected++ > 2) break;
 				// record bounce results
 				results.add(new Hit
-						/*end pos  */( ray.position()
+						/*end pos  */( segment.position()
 						/*length   */, length
 						/*shared   */, 0 // TODO figure out & populate
-						/*distance */, cast.reflected.position().distanceTo(listenerPos)
-						/*segment  */, length+cast.reflected.length()
-						/*surface  */, cast.reflected.power()/ray.power()
-						/*amplitude*/, cast.reflected.power()
+						/*distance */, ray.reflected.position().distanceTo(listenerPos)
+						/*segment  */, length+ ray.reflected.length()
+						/*surface  */, ray.reflected.power()/ segment.power()
+						/*amplitude*/, ray.reflected.power()
 						));
 
-				ray = cast.reflected;
+				segment = ray.reflected;
 				length = 0;
 				continue;
 			}
-			ray = cast.transmitted;
-			length += ray.length();
+			segment = ray.transmitted;
+			length += segment.length();
 			reflected = 0;
 			// } */
 		}
@@ -405,6 +409,7 @@ public class Engine {
 
 	@Environment(EnvType.CLIENT)
 	public static void setEnv(Context context, final @NotNull SoundProfile profile, boolean isGentle) {
+		// TODO determine if this check is necessary
 		if (profile.sendGain().length != pC.resolution + 1 || profile.sendCutoff().length != pC.resolution + 1) {
 			throw new IllegalArgumentException("Error: Reverb parameter count does not match reverb resolution!");
 		}

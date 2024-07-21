@@ -10,6 +10,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.resource.ResourcePackProfile;
 import net.minecraft.sound.SoundCategory;
@@ -235,23 +236,20 @@ public class Cache {
 
         blocks = new HashMap<>();
         // read tags & blocks from game registry
-        // TODO: make static
-        Registries.BLOCK.forEach((Block block) -> {
-            String name = block.getTranslationKey();
-            block.getDefaultState().streamTags()
-                    .forEach((tag) -> {
-                        String id = tag.id().toString();
-                        // extrapolate old tags & append
-                        tags.put(id,
-                                new RawTag(new Pattern[0],
-                                        tags.getOrDefault(
-                                                id, new RawTag(null, new String[0], null, null)
-                                        ).blocks(),
+        for (Block block : Registries.BLOCK.stream().toList()) {
+            for (TagKey tag : block.getDefaultState().streamTags().toList()) {
+                final String id = tag.id().toString();
+                // extrapolate old tags & append
+                tags.put(id,
+                        new RawTag(new Pattern[0],
+                                tags.getOrDefault(
+                                        id, new RawTag(null, new String[0], null, null)
+                                ).blocks(),
                                 new Pattern[0], new String[0])
-                        );
-                        Utils.update(blocks, name, id);
-                    });
-        });
+                );
+                Utils.update(blocks, block.getTranslationKey(), id);
+            }
+        }
 
         Cache.tags = finalizeTags(tags);
 
@@ -263,37 +261,44 @@ public class Cache {
         return true;
     }
 
-    private static Material bake(HashMap<String, RawMaterial> in, HashMap<String, Material> out, String key) {
-        return Utils.memoize(in, out, key, (getter, raw) -> {
-            // TODO: consider using isFluid() in runtime (affects absorption)
-            //     : (isFluid * .25 + 2state)/2
-            double state = MathHelper.getLerpProgress(raw.temperature(), raw.melt(), raw.boil());
-            double velocity = MathHelper.lerp(state, raw.lwave(), raw.swave());
-            double impedance = velocity * raw.density();
+    private static Material bake(Function<String, Material> getter, RawMaterial raw) {
+        if (raw == null
+                || null == raw.granularity()
+                || null == raw.melt()
+                || null == raw.boil()
+                || null == raw.density()
+                || null == raw.temperature()
+                || null == raw.swave()
+                || null == raw.lwave())
+            return null;
+        // TODO: consider using isFluid() in runtime (affects absorption)
+        //     : (isFluid * .25 + 2state)/2
+        double state = MathHelper.getLerpProgress(raw.temperature(), raw.melt(), raw.boil());
+        double velocity = MathHelper.lerp(state, raw.lwave(), raw.swave());
+        double impedance = velocity * raw.density();
 
-            // solvent material is i.8 when undefined.
-            // if material supplied doesn't exist, error
-            double solvent;
-            if (raw.solvent() == null)
-                solvent = impedance * 0.8;
-            else {
-                Material solve = getter.apply(raw.solvent());
-                if (solve == null) return null;
-                solvent = solve.impedance();
-            }
+        // solvent material is i.8 when undefined.
+        // if material supplied doesn't exist, error
+        double solvent;
+        if (raw.solvent() == null)
+            solvent = impedance * 0.8;
+        else {
+            Material solve = getter.apply(raw.solvent());
+            if (solve == null) return null;
+            solvent = solve.impedance();
+        }
 
-            double permeation;
-            // java doesn't handle x.pow(infinity) when x.range(0, < 1) correctly! Fix this.
-            if (raw.granularity() == Double.POSITIVE_INFINITY)
-                permeation = 0;
-            else
-                permeation = Math.pow(1-Physics.reflection(impedance, solvent), raw.granularity() * (1 + state));
+        double permeation;
+        // java doesn't handle x.pow(infinity) when x.range(0, < 1) correctly! Fix this.
+        if (raw.granularity() == Double.POSITIVE_INFINITY)
+            permeation = 0;
+        else
+            permeation = Math.pow(1 - Physics.reflection(impedance, solvent), raw.granularity() * (1 + state));
 
-            return new Material(
-                    impedance,
-                    permeation,
-                    state);
-        }, false);
+        return new Material(
+                impedance,
+                permeation,
+                state);
     }
 
 
@@ -308,46 +313,44 @@ public class Cache {
         ));
         return map;
     }
+
     // @impure
     // is there an @annotation for this?
     public static HashMap<String, Tag> flattenTags(HashMap<String, RawTag> tags, HashMap<String, LinkedList<String>> blocks) {
         HashMap<String, Tag> output = new HashMap<>();
         List<String> tagNames = tags.keySet().stream().toList();
         // loop through all tags and check all blocks against them
-        for (String name : tagNames) {
-            // TODO: could this be done with annotations?
-            // NOTE: don't access any non-static closure variables other than (getter, raw) inside the calculation phase
-            //       This will change how the compiler sees the lambda, (see: lambda closures)
-            //       and will recreate it on every use (resulting in a large performance hit)
-            // in: [RawTag], out: [Tag], getter returns Tags (hint: .blocks())
-            // Cache.tags must be pre-populated with game's default tags
-            Utils.memoize(tags, output, name, (getter, raw) -> {
-                // get already populated info
-                LinkedList<String> self = new LinkedList<>(Arrays.stream(
-                    tags.getOrDefault(name, new RawTag(null, new String[0], null, null)).blocks()
-                ).toList());
+        // in: [RawTag], out: [Tag], getter returns Tags (hint: .blocks())
+        // Cache.tags must be pre-populated with game's default tags
+        // TODO something with errors
+        new Memoizer<RawTag, String, Tag>(output, Uncapture.function(tagNames, blocks, (_tagNames, _blocks, getter, raw, key) -> {
+            // get already populated info
+            // TODO is raw truly @NotNull?
+            // TODO consider making Tag.blocks a mutable list
+            ArrayList<String> self = new ArrayList<>(Arrays.stream((raw == null ? new String[0] : raw.blocks())).toList());
 
-                Utils.granularFilter(tagNames, raw.tagPatterns(), raw.tags()).map(getter).forEach(tag -> {
-                    // when underlying tag isn't present -> this happens when a tag self references in order to expand an existing tag in a modpack.
-                    // This has the side effect of making the tags file extremely robust
-                    if (tag == null) return;
-                    self.addAll(
-                            Arrays.stream(tag.blocks()).toList()
-                    );
-                });
-                Utils.granularFilter(blocks.keySet().stream().toList(), raw.patterns(), raw.blocks()).forEach(block -> {
-                    self.add(block);
-                    // update reverse mapping, too
-                    Utils.update(blocks, block, name);
-                });
+            for (Tag tag : Utils.granularFilter(_tagNames, raw.tagPatterns(), raw.tags()).map(getter).toList()) {
+                // when underlying tag isn't present -> this happens when a tag self references in order to expand an existing tag in a modpack.
+                // This has the side effect of making the tags file extremely robust
+                if (tag == null) continue;
+                self.addAll(
+                        Arrays.stream(tag.blocks()).toList()
+                );
+            }
+            for (String block : Utils.granularFilter(_blocks.keySet().stream().toList(), raw.patterns(), raw.blocks()).toList()) {
+                self.add(block);
+                // update reverse mapping, too
+                Utils.update(_blocks, block, key);
+            }
 
-                return new Tag(self.toArray(new String[]{}));
-            });
-        }
+            return new Tag(self.toArray(new String[]{}));
+        })).solve(tags).forEach(LOGGER::error);
+
         return output;
         // TODO attach materials to tagging system
         // TODO cache tags instead of dynamic determination
     }
+
     private static HashMap<String, Tag> finalizeTags(HashMap<String, RawTag> tags) {
         return flattenTags(tags, Cache.blocks);
     }
@@ -395,136 +398,115 @@ public class Cache {
             }
         }
         map.put(name,
-            new RawMaterial(null,
-                (Double)  value.get("weight"),
-                // default solvent is air
-                (String)  value.get("solvent"),
-                Utils.asArray(new String[0], value.get("solute")),
-                Utils.asArray(new Double[0], value.get("composition")),
-                (Boolean) value.get("ratio"),
-                (Double)  value.get("granularity"),
-                (Double)  value.get("melt"),
-                (Double)  value.get("boil"),
-                (Double)  value.get("temperature"),
-                (Double)  value.get("density"),
-                (Double)  value.get("swave"),
-                (Double)  value.get("lwave")
-            )
+                new RawMaterial(null,
+                        (Double) value.get("weight"),
+                        // default solvent is air
+                        (String) value.get("solvent"),
+                        Utils.asArray(new String[0], value.get("solute")),
+                        Utils.asArray(new Double[0], value.get("composition")),
+                        (Boolean) value.get("ratio"),
+                        (Double) value.get("granularity"),
+                        (Double) value.get("melt"),
+                        (Double) value.get("boil"),
+                        (Double) value.get("temperature"),
+                        (Double) value.get("density"),
+                        (Double) value.get("swave"),
+                        (Double) value.get("lwave")
+                )
         );
         return map;
     }
 
     private static HashMap<String, RawMaterial> flattenMaterials(HashMap<String, RawMaterial> in) {
         HashMap<String, RawMaterial> flat = new HashMap<>();
-        for (String key : in.keySet()) {
-            // TODO: could this be done with annotations?
-            // NOTE: don't access any non-static closure variables other than (getter, raw) inside the calculation phase
-            //       This will change how the compiler sees the lambda, (see: lambda closures)
-            //       and will recreate it on every use (resulting in a large performance hit)
-            // fully calculates a raw material, and recursively flattens all dependencies
-            Utils.memoize(in, flat, key, (getter, raw) -> {
-                // calculation logic
-                String[] solute = raw.solute() == null ? new String[0] : raw.solute();
-                Double[] composition = raw.composition() == null ? new Double[0] : raw.composition();
-                int length = solute.length;
-                boolean ratio = raw.ratio() != null && raw.ratio();
-                // only calculate if necessary
-                if (length > 0) {
-                    Property weight = new Property(ratio);
-                    Property granularity = new Property(ratio);
-                    Property melt = new Property(ratio);
-                    Property boil = new Property(ratio);
-                    Property temperature = new Property(ratio);
-                    Property density = new Property(ratio);
-                    Property swave = new Property(ratio);
-                    Property lwave = new Property(ratio);
-                    LinkedList<String> errors = new LinkedList<>();
-                    for (int i = 0; i < length; i++) {
-                        String name = solute[i];
-                        // get values
-                        RawMaterial material = getter.apply(name);
-                        if (material == null) {
-                            errors.add(name);
-                            continue;
-                        }
-                        /**
-                         * handles defaults from @Cache.shellMaterials
-                         **/
-                        final double count = composition[i] == null ? 1 : composition[i];
-                        // save values
-                        weight.add(material.weight(), 1D, count, material.ratio());
-                        // handles values not needing to contribute to weight
-                        final double coefficient = material.weight() == null ? 1 : material.weight();
-                        granularity.add(material.granularity(), coefficient, count, material.ratio());
-                        melt.add(material.melt(), coefficient, count, material.ratio());
-                        boil.add(material.boil(), coefficient, count, material.ratio());
-                        temperature.add(material.temperature(), coefficient, count, material.ratio());
-                        density.add(material.density(), coefficient, count, material.ratio());
-                        swave.add(material.swave(), coefficient, count, material.ratio());
-                        lwave.add(material.lwave(), coefficient, count, material.ratio());
+        // fully calculates a raw material, and recursively flattens all dependencies
+        // TODO solve error messages
+        new Memoizer<RawMaterial, String, RawMaterial>(flat, (getter, raw, key) -> {
+            // calculation logic
+            String[] solute = raw.solute() == null ? new String[0] : raw.solute();
+            Double[] composition = raw.composition() == null ? new Double[0] : raw.composition();
+            int length = solute.length;
+            boolean ratio = raw.ratio() != null && raw.ratio();
+            boolean valid = true;
+            // only calculate if necessary
+            if (length > 0) {
+                Property weight = new Property(ratio);
+                Property granularity = new Property(ratio);
+                Property melt = new Property(ratio);
+                Property boil = new Property(ratio);
+                Property temperature = new Property(ratio);
+                Property density = new Property(ratio);
+                Property swave = new Property(ratio);
+                Property lwave = new Property(ratio);
+                for (int i = 0; i < length; i++) {
+                    String name = solute[i];
+                    // get values
+                    RawMaterial material = getter.apply(name);
+                    if (material == null) {
+                        valid = false;
+                        continue;
                     }
-                    // spew errors
-                    if (!errors.isEmpty()) {
-                        for (String error : errors)
-                            // TODO identify reasonable solution to prevent suboptimal non-static reference here
-                            LOGGER.error("{} in {} is invalid or cyclical", error, key);
-                        return null;
-                    }
-                    raw = new RawMaterial(null,
-                            weight.get(),
-                            raw.solvent(),     // for posterity/debug, not needed in runtime
-                            raw.solute(),      // for posterity/debug, not needed in runtime
-                            raw.composition(), // for posterity/debug, not needed in runtime
-                            ratio,
-                            granularity.get(),
-                            melt.get(),
-                            boil.get(),
-                            temperature.get(),
-                            density.get(),
-                            swave.get(),
-                            lwave.get()
-                    );
+                    /**
+                     * handles defaults from @Cache.shellMaterials
+                     **/
+                    final double count = composition[i] == null ? 1 : composition[i];
+                    // save values
+                    weight.add(material.weight(), 1D, count, material.ratio());
+                    // handles values not needing to contribute to weight
+                    final double coefficient = material.weight() == null ? 1 : material.weight();
+                    granularity.add(material.granularity(), coefficient, count, material.ratio());
+                    melt.add(material.melt(), coefficient, count, material.ratio());
+                    boil.add(material.boil(), coefficient, count, material.ratio());
+                    temperature.add(material.temperature(), coefficient, count, material.ratio());
+                    density.add(material.density(), coefficient, count, material.ratio());
+                    swave.add(material.swave(), coefficient, count, material.ratio());
+                    lwave.add(material.lwave(), coefficient, count, material.ratio());
                 }
-                return raw;
-            }, false);
-        }
+                if (!valid) return null;
+                raw = new RawMaterial(null,
+                        weight.get(),
+                        raw.solvent(),     // for posterity/debug, not needed in runtime
+                        raw.solute(),      // for posterity/debug, not needed in runtime
+                        raw.composition(), // for posterity/debug, not needed in runtime
+                        ratio,
+                        granularity.get(),
+                        melt.get(),
+                        boil.get(),
+                        temperature.get(),
+                        density.get(),
+                        swave.get(),
+                        lwave.get()
+                );
+            }
+            return raw;
+        }).solve(in, false, true).forEach(LOGGER::error);
         in = flat;
         return in;
     }
+
     // TODO: AIR as base solvent
     public static HashMap<String, Material> refineMaterials(HashMap<String, RawMaterial> rawMaterials) {
-        final double temperature = 287.15D;
+        final Double temperature = 287.15D;
         // global average for 20th century 14°C/57°F/287°K
-        rawMaterials.forEach((String key, RawMaterial raw) -> {
-            rawMaterials.put(key,
-                    new RawMaterial(null,
-                            raw.weight(),
-                            raw.solvent(), raw.solute(), raw.composition(),
-                            raw.ratio(),
-                            raw.granularity(),
-                            raw.melt(), raw.boil(),
-                            temperature,
-                            raw.density(),
-                            raw.swave(), raw.lwave()
-                    )
-            );
-        });
+        rawMaterials.replaceAll(Uncapture.function(temperature, (_temperature, k, raw) ->
+                raw == null ? null :
+                        new RawMaterial(null,
+                                raw.weight(),
+                                raw.solvent(), raw.solute(), raw.composition(),
+                                raw.ratio(),
+                                raw.granularity(),
+                                raw.melt(), raw.boil(),
+                                _temperature,
+                                raw.density(),
+                                raw.swave(), raw.lwave()
+                        )
+        ));
 
         HashMap<String, Material> refined = new HashMap<>();
-        for (String key : rawMaterials.keySet()) {
-            RawMaterial raw = rawMaterials.get(key);
-            // if material isn't worthy of a tag, skip it
-            if
-            (  raw.granularity() == null
-                    || raw.melt() == null || raw.boil() == null
-                    || raw.density() == null
-                    || raw.temperature() == null
-                    || raw.swave() == null || raw.lwave() == null
-            )  continue;
-            bake(rawMaterials, refined, key);
-        }
+        new Memoizer<>(refined, Cache::bake).solve(rawMaterials, false, true).forEach(LOGGER::error);
         return refined;
     }
+
     private static HashMap<String, Material> finalizeMaterials(HashMap<String, RawMaterial> materials) {
         // flatten & refine materials
         return refineMaterials(

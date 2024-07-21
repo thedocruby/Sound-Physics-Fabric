@@ -2,6 +2,8 @@ package dev.thedocruby.resounding.mixin;
 
 import dev.thedocruby.resounding.Cache;
 import dev.thedocruby.resounding.Material;
+import dev.thedocruby.resounding.Uncapture;
+import dev.thedocruby.resounding.Utils;
 import dev.thedocruby.resounding.raycast.Branch;
 import dev.thedocruby.resounding.toolbox.ChunkChain;
 import net.fabricmc.api.EnvType;
@@ -151,19 +153,18 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 		this.branches = new Branch[chunkSections.length];
 		final Branch[] branches = new Branch[chunkSections.length];
 
-		// chunk up a section into an octree
-		IntStream.range(0, chunkSections.length).parallel().forEach((i) -> {
-			ChunkSection chunkSection = chunkSections[i];
+		final Consumer<Integer> createSection = Uncapture.consumer(chunkSections, x, z, branches, (_chunkSections, _x, _z, _branches, i) -> {
+			ChunkSection chunkSection = _chunkSections[i];
 			int y = heightLimitView.sectionIndexToCoord(i) << 4;
 			final int index = this.yOffset + (y >> 4);
 			boolean empty = chunkSection.isEmpty();
 
-			Branch air = new Branch(BlockPos.ofFloored(x,y,z),16, material(Blocks.AIR.getDefaultState()));
-			Branch blank = new Branch(BlockPos.ofFloored(x,y,z),16);
+			Branch air = new Branch(BlockPos.ofFloored(_x,y,_z),16, material(Blocks.AIR.getDefaultState()));
+			Branch blank = new Branch(BlockPos.ofFloored(_x,y,_z),16);
 
 			// provide fallback or all-air branch when necessary
-			synchronized (branches) {
-				branches[index] = empty ? air : blank;
+			synchronized (_branches) {
+				_branches[index] = empty ? air : blank;
 			}
 			// only calculate if necessary
 			if (empty) {
@@ -171,6 +172,9 @@ public abstract class WorldChunkMixin extends Chunk implements ChunkChain {
 				Cache.octreePool.execute(() -> Cache.plantOctree(this, index, blank));
 			}
 		});
+
+		// chunk up a section into an octree
+		IntStream.range(0, chunkSections.length).parallel().forEach(createSection::accept);
 
 		this.branches = branches;
 
