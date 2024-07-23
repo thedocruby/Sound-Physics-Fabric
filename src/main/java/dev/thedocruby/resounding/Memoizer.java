@@ -22,26 +22,37 @@ public class Memoizer<IN,KEY,OUT> {
     private final ObjectLinkedOpenHashSet<KEY> path = new ObjectLinkedOpenHashSet<>();
 
     public Memoizer(
-            Map<KEY,OUT> output,
-            BiFunction<Function<KEY,@Nullable OUT>,@NotNull IN,@Nullable OUT> calculator
+            @NotNull Map<KEY,OUT> output,
+            @NotNull BiFunction<Function<KEY,@Nullable OUT>,@NotNull IN,@Nullable OUT> calculator
+    ) {
+        this(output, Objects.requireNonNull(calculator, "Parameter calculator is null"), false);
+    }
+
+    private Memoizer(
+            @NotNull Map<KEY,OUT> output,
+            @NotNull BiFunction<Function<KEY,@Nullable OUT>,@NotNull IN,@Nullable OUT> calculator,
+            boolean ignore
     ) {
         this(output, (getter, raw, key) -> calculator.apply(getter, raw));
     }
 
     public Memoizer(
-            Map<KEY,OUT> output,
-            TriFunction<Function<KEY,@Nullable OUT>,@NotNull IN,@NotNull KEY,@Nullable OUT> calculator
+            @NotNull Map<KEY,OUT> output,
+            @NotNull TriFunction<Function<KEY,@Nullable OUT>,@NotNull IN,@NotNull KEY,@Nullable OUT> calculator
     ) {
+        Objects.requireNonNull(output, "Parameter output is null");
+        Objects.requireNonNull(calculator, "Parameter calculator is null");
+
         this.output = output;
         this.calculator = calculator;
     }
 
-    public List<String> solve(Map<KEY,@NotNull IN> in) {
+    public @NotNull List<String> solve(@NotNull Map<KEY,@NotNull IN> in) {
         return solve(in, false, true);
     }
 
-    public List<String> solve(Map<KEY,@NotNull IN> in, boolean deconstruct, boolean ignoreNull) {
-        this.in = in;
+    public @NotNull List<String> solve(@NotNull Map<KEY,@NotNull IN> in, boolean deconstruct, boolean ignoreNull) {
+        this.in = Objects.requireNonNull(in, "Parameter in is null");
         path.clear();
         getter = deconstruct ? in::remove : in::get;
         setter = ignoreNull ? (key, value) -> {if (key != value) output.put(key, value);} : output::put;
